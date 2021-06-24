@@ -14,7 +14,7 @@ const QuestionWrapper = styled.div`
   cursor: default;
   border-radius: 36px;
   background-color: transparent;
-  color: ${({ theme }) => theme.text2};
+  color: ${({ theme }) => theme.primary1};
 
   :hover,
   :focus {
@@ -34,7 +34,7 @@ const LightQuestionWrapper = styled.div`
   border-radius: 36px;
   width: 24px;
   height: 24px;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(203, 232, 15, 0.1);
   color: ${({ theme }) => theme.white};
 
   :hover,
@@ -45,6 +45,7 @@ const LightQuestionWrapper = styled.div`
 
 const QuestionMark = styled.span`
   font-size: 1rem;
+  color: '#52ad80';
 `
 
 export default function W3ToolTip({ text }: { text: string }) {

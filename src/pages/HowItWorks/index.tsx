@@ -37,12 +37,12 @@ export default function HowItWorks() {
       <Flex className="intro">
         <Text className="intro__h1"></Text>
         <Text className="intro__text">
-          While this demo may seem to work like the original Uniswap Swap page, what happens behind the scenes is quite
+          While this demo may seem to work just like Uniswap's original `swap` page, what happens behind the scenes is quite
           different:
         </Text>
         <Text className="intro__h2">
           Our team has replaced all the Swap functionality from the Uniswap JavaScript SDK with ones from our own Uni v2
-          Web3API!
+          Polywrap wrapper!
         </Text>
         <Text className="intro__text"> Scroll down to see how this all works!</Text>
 
@@ -54,11 +54,11 @@ export default function HowItWorks() {
         </Text>
         <Flex className="steps__container">
           <Flex className="steps__textContainer">
-            <Text className="steps__heading">Downloading Web3API package from IPFS</Text>
+            <Text className="steps__heading">Downloading polywrap package from IPFS</Text>
             <Text className="steps__text">
-              The first step to integrate Web3API into any dapp is to install it as a dependency and then initializing
-              the Web3APIClient. Rather than bundling business logic into your app with a JS SDK, the Web3API package is
-              deployed to a decentralized endpoint like IPFS. The Web3API client downloads this package at runtime and
+              The first step to integrate Polywrap into any dapp is to install it as a dependency and then initializing
+              the PolywrapClient. Rather than bundling business logic into your app with a JS SDK, the Polywrap package is
+              deployed to a decentralized endpoint like IPFS. The Polywrap client downloads this package at runtime and
               instantiates the wasm modules containing the protocol business logic.
             </Text>
           </Flex>
@@ -82,7 +82,7 @@ export default function HowItWorks() {
           <Flex className="steps__textContainer">
             <Text className="steps__heading">GraphQL</Text>
             <Text className="steps__text">
-              With a Web3API-enabled dapp, you can send GraphQL queries to invoke functions made available by the wasm
+              With a Polywrap-enabled dapp, you can send GraphQL queries to invoke functions made available by the wasm
               modules.
             </Text>
           </Flex>
