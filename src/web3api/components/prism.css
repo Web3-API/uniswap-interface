@@ -84,7 +84,7 @@ pre[class*='language-'] {
 .token.char,
 .token.builtin,
 .token.inserted {
-  color: #1b87ed;
+  color: #74DD9F;
 }
 
 .token.operator,
@@ -132,7 +132,7 @@ pre[class*='language-'] {
 }
 
 .codeBlock__select {
-  padding: 0 0 2rem 0;
+  padding: 0 0 3.5rem 0;
   margin-top: -4.5rem !important;
   justify-content: space-around;
   width: 100%;
@@ -164,7 +164,7 @@ pre[class*='language-'] {
 
 .codeBlock__code {
   margin-left: -6rem;
-  margin-top: -2rem;
+  margin-top: -3rem;
   width: 20rem;
   display: flex;
   justify-content: center;

@@ -32,7 +32,7 @@ const mediaWidthTemplates: { [width in keyof typeof MEDIA_WIDTHS]: typeof css } 
 ) as any
 
 const white = '#FFFFFF'
-const black = '#000000'
+const black = '#1E2B45'
 
 export function colors(darkMode: boolean): Colors {
   return {
@@ -41,16 +41,16 @@ export function colors(darkMode: boolean): Colors {
     black,
 
     // text
-    text1: darkMode ? '#FFFFFF' : '#000000',
+    text1: darkMode ? '#FFFFFF' : '#242f46',
     text2: darkMode ? '#C3C5CB' : '#565A69',
     text3: darkMode ? '#6C7284' : '#888D9B',
     text4: darkMode ? '#565A69' : '#C3C5CB',
     text5: darkMode ? '#2C2F36' : '#EDEEF2',
 
     // backgrounds / greys
-    bg1: darkMode ? 'black' : '#FFFFFF',
-    bg2: darkMode ? 'black' : '#F7F8FA',
-    bg3: darkMode ? 'black' : '#EDEEF2',
+    bg1: darkMode ? '#0b1424' : '#FFFFFF',
+    bg2: darkMode ? '#242f46' : '#F7F8FA',
+    bg3: darkMode ? '#242f46' : '#EDEEF2',
     bg4: darkMode ? '#565A69' : '#CED0D9',
     bg5: darkMode ? '#6C7284' : '#888D9B',
 
