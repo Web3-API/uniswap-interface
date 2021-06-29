@@ -30,19 +30,19 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
   const { active: networkActive, error: networkError, activate: activateNetwork } = useWeb3React(NetworkContextName)
 
   // Web3API integration.
-  const [networksConfig, setNetworksConfig] = useState<any>({
+  const [ethPlugin, setEthPlugin] = useState<any>(ethereumPlugin({
     networks: {
       mainnet: {
         provider:
           "https://mainnet.infura.io/v3/b00b2c2cc09c487685e9fb061256d6a6",
       },
     },
-  })
+  }))
 
   const redirects: UriRedirect[] = [
     {
       from: 'ens/ethereum.web3api.eth',
-      to: ethereumPlugin(networksConfig)
+      to: ethPlugin
     },
     {
       from: 'w3://ens/ipfs.web3api.eth',
@@ -76,10 +76,10 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
           signer: library.getSigner()
         }
       }
-      setNetworksConfig({
+      setEthPlugin(ethereumPlugin({
         networks: config,
         defaultNetwork: currentNetwork.name
-      })
+      }))
     }
   }, [library, chainId])
 
