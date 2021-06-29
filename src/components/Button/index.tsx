@@ -1,5 +1,6 @@
 import React from 'react'
 import styled from 'styled-components'
+import { transparentize } from 'polished'
 import { darken, lighten } from 'polished'
 
 import { RowBetween } from '../Row'
@@ -54,9 +55,9 @@ export const ButtonPrimary = styled(Base)`
   }
   &:disabled {
     background-color: ${({ theme, altDisabledStyle, disabled }) =>
-      altDisabledStyle ? (disabled ? theme.bg3 : theme.primary1) : theme.bg3};
+      altDisabledStyle ? (disabled ? theme.bg3 : theme.primary1) : transparentize(0.7, theme.bg3)};
     color: ${({ theme, altDisabledStyle, disabled }) =>
-      altDisabledStyle ? (disabled ? theme.text3 : 'white') : theme.text3};
+      altDisabledStyle ? (disabled ? theme.text3 : 'white') : theme.text2};
     cursor: auto;
     box-shadow: none;
     border: 1px solid transparent;

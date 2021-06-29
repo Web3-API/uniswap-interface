@@ -33,9 +33,10 @@ import Vote from './Vote'
 import VotePage from './Vote/VotePage'
 
 const AppWrapper = styled.div`
+  align-items: flex-start;
   display: flex;
   flex-flow: column;
-  align-items: flex-start;
+  min-height: 100vh;
   overflow-x: hidden;
 `
 
@@ -52,9 +53,9 @@ const BodyWrapper = styled.div`
   padding-top: 100px;
   align-items: center;
   flex: 1;
+  position: relative;
   overflow-y: auto;
   overflow-x: hidden;
-  z-index: 10;
 
   ${({ theme }) => theme.mediaWidth.upToSmall`
     padding: 16px;
@@ -62,6 +63,38 @@ const BodyWrapper = styled.div`
   `};
 
   z-index: 1;
+`
+
+const CircleYellow = styled.div`
+  background-image: radial-gradient(circle at 26% 23%, rgba(255,294,114,0.5), rgba(255,294,114,0.001));;
+  border-radius: 9999px;
+  top: 8%;
+  filter: blur(5px);
+  height: 160px;
+  left:  -2%;
+  mix-blend-mode: soft-light;
+  position: absolute;
+  width: 160px;
+  z-index: 1;
+  ${({ theme }) => theme.mediaWidth.upToSmall`
+    top: -11%;
+    left: -12%;
+  `};
+`
+
+const CircleBlue = styled.div`
+  filter: blur(20px);
+  background-image: radial-gradient(circle at 26% 23%, rgba(27,95,237,0.5), rgba(27,95,237,0.001));
+  border-radius: 9999px;
+  bottom: 12%;
+  height: 320px;
+  opacity: 0.5;
+  position: absolute;
+  right: -2%;
+  width: 320px;
+  ${({ theme }) => theme.mediaWidth.upToMedium`
+    right: -42%;
+  `};
 `
 
 const Marginer = styled.div`
@@ -85,6 +118,8 @@ export default function App() {
           <Header />
         </HeaderWrapper>
         <BodyWrapper>
+          <CircleYellow />
+          <CircleBlue />
           <Popups />
           <Polling />
           <TopLevelModals />
