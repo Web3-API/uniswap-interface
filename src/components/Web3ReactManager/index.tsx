@@ -30,7 +30,14 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
   const { active: networkActive, error: networkError, activate: activateNetwork } = useWeb3React(NetworkContextName)
 
   // Web3API integration.
-  const [networksConfig, setNetworksConfig] = useState<any>({})
+  const [networksConfig, setNetworksConfig] = useState<any>({
+    networks: {
+      mainnet: {
+        provider:
+          "https://mainnet.infura.io/v3/b00b2c2cc09c487685e9fb061256d6a6",
+      },
+    },
+  })
 
   const redirects: UriRedirect[] = [
     {
