@@ -16,7 +16,7 @@ import { useUserSingleHopOnly } from 'state/user/hooks'
 import { w3bestTradeExactIn, w3bestTradeExactOut } from '../web3api/tradeWrappers'
 import { W3Pair, W3Token, W3TokenAmount, W3Trade } from '../web3api/types'
 import { mapChainId, mapPair, mapToken, reverseMapToken } from '../web3api/mapping'
-import { tokenEquals } from '../web3api/utils'
+import { tokenEquals, tokenDeps, tokenAmountDeps, pairDeps } from '../web3api/utils'
 import { wrappedCurrency } from '../utils/w3WrappedCurrency'
 import { Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
@@ -180,32 +180,52 @@ async function bestExactOut(
 /**
  * Returns the best trade for the exact amount of tokens in to the given token out
  */
-export function useTradeExactIn(currencyAmountIn?: W3TokenAmount, currencyOut?: W3Token): Promise<W3Trade | null> {
+export function useTradeExactIn(currencyAmountIn?: W3TokenAmount, currencyOut?: W3Token): Promise<W3Trade | null> | undefined {
   const allowedPairs = useAllCommonPairs(currencyAmountIn?.token, currencyOut)
   const [singleHopOnly] = useUserSingleHopOnly()
   const client: Web3ApiClient = useWeb3ApiClient()
+  const allowedPairsDeps: unknown[] = [];
+  allowedPairs.forEach((pair) => {
+    allowedPairsDeps.push(...pairDeps(pair))
+  });
 
-  return useMemo(() => bestExactIn(client, allowedPairs, singleHopOnly, currencyAmountIn, currencyOut), [
-    allowedPairs,
+  return useMemo(() => {
+    if (!currencyAmountIn || !currencyOut) {
+      return undefined;
+    } else {
+      return bestExactIn(client, allowedPairs, singleHopOnly, currencyAmountIn, currencyOut);
+    }
+  }, [
+    ...allowedPairsDeps,
     singleHopOnly,
-    currencyAmountIn,
-    currencyOut
+    ...tokenAmountDeps(currencyAmountIn),
+    ...tokenDeps(currencyOut)
   ])
 }
 
 /**
  * Returns the best trade for the token in to the exact amount of token out
  */
-export function useTradeExactOut(currencyIn?: W3Token, currencyAmountOut?: W3TokenAmount): Promise<W3Trade | null> {
+export function useTradeExactOut(currencyIn?: W3Token, currencyAmountOut?: W3TokenAmount): Promise<W3Trade | null> | undefined {
   const allowedPairs = useAllCommonPairs(currencyIn, currencyAmountOut?.token)
   const [singleHopOnly] = useUserSingleHopOnly()
   const client: Web3ApiClient = useWeb3ApiClient()
+  const allowedPairsDeps: unknown[] = [];
+  allowedPairs.forEach((pair) => {
+    allowedPairsDeps.push(...pairDeps(pair))
+  });
 
-  return useMemo(() => bestExactOut(client, allowedPairs, singleHopOnly, currencyIn, currencyAmountOut), [
-    allowedPairs,
+  return useMemo(() => {
+    if (!currencyIn || !currencyAmountOut) {
+      return undefined;
+    } else {
+      return bestExactOut(client, allowedPairs, singleHopOnly, currencyIn, currencyAmountOut)
+    }
+  }, [
+    ...allowedPairsDeps,
     singleHopOnly,
-    currencyIn,
-    currencyAmountOut
+    ...tokenDeps(currencyIn),
+    ...tokenAmountDeps(currencyAmountOut)
   ])
 }
 

@@ -145,7 +145,7 @@ export async function validateSwapInput(
   currencies: { [field in Field]?: W3Token },
   currencyBalances: { [field in Field]?: W3TokenAmount },
   parsedAmount: W3TokenAmount | undefined,
-  v2TradeAsync: Promise<W3Trade | null>,
+  v2TradeAsync: Promise<W3Trade | null> | undefined,
   account: string | null | undefined,
   to: string | null,
   allowedSlippage: number
@@ -195,7 +195,7 @@ export function useDerivedSwapInfo(): {
   currencies: { [field in Field]?: W3Token }
   currencyBalances: { [field in Field]?: W3TokenAmount }
   parsedAmount: W3TokenAmount | undefined
-  v2TradeAsync: Promise<W3Trade | null>
+  v2TradeAsync: Promise<W3Trade | null> | undefined
   inputErrorAsync: Promise<string | undefined>
 } {
   const { account } = useActiveWeb3React()

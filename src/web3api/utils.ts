@@ -1,4 +1,4 @@
-import { W3ChainId, W3Currency, W3Token, W3TokenAmount } from './types'
+import { W3ChainId, W3Currency, W3Token, W3TokenAmount, W3Pair } from './types'
 import { ETHER } from './constants'
 import Decimal from 'decimal.js-light'
 
@@ -132,5 +132,29 @@ export function chainIdToName(chainId: W3ChainId): string {
       return 'KOVAN'
     default:
       throw new Error('Unknown chain ID')
+  }
+}
+
+export function tokenDeps(token: W3Token | undefined) {
+  if (!token) {
+    return [undefined]
+  } else {
+    return [token.address, token.chainId]
+  }
+}
+
+export function tokenAmountDeps(amount: W3TokenAmount | undefined) {
+  if (!amount) {
+    return [undefined]
+  } else {
+    return [amount.amount, ...tokenDeps(amount.token)]
+  }
+}
+
+export function pairDeps(pair: W3Pair | undefined) {
+  if (!pair) {
+    return [undefined]
+  } else {
+    return [...tokenAmountDeps(pair.tokenAmount0), ...tokenAmountDeps(pair.tokenAmount1)]
   }
 }
