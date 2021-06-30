@@ -313,12 +313,15 @@ export default function Header() {
         <Title href="."></Title>
         <HeaderLinks>
           <StyledNavLink id={`swap-nav-link`} to={'/swap'}>
-            {t('Uni v2 <> Polywrap Demo')}
+            {t('<UniV2> Polywrapper')}
           </StyledNavLink>
           <StyledNavLink id={`howitworks-nav-link`} to={'/howitworks'}>
             {t('How It Works')}
-          </StyledNavLink>
-          <StyledExternalLink id={`docs-nav-link`} href={'https://docs.web3api.dev'}>
+          </StyledNavLink>          
+          <StyledExternalLink id={`discord-nav-link`} href={'https://discord.gg/QQDAtAX8ZT'}>
+            Discord <span style={{ fontSize: '11px' }}>↗</span>
+          </StyledExternalLink>
+          <StyledExternalLink id={`docs-nav-link`} href={'https://docs.polywrap.io'}>
             Documentation <span style={{ fontSize: '11px' }}>↗</span>
           </StyledExternalLink>
           <StyledExternalLink id={`ens-nav-link`} href={'https://app.ens.domains/name/v2.uniswap.web3api.eth'}>
