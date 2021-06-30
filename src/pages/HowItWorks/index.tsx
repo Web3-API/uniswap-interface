@@ -1,18 +1,16 @@
 import React, { useEffect } from 'react'
 import Prism from 'prismjs'
-import W3Logo from '../../assets/images/web3api-logo.png'
+import PolywrapLogo from '../../assets/images/polywrap-logo.png'
 import IpfsDiagram from '../../assets/images/ipfs-diagram.png'
 import WasmLogo from '../../assets/images/wasm-logo.png'
 import ArrowDown from '../../assets/images/arrow-down-green.svg'
-import { W3LogoAnimated } from '../../theme'
 import { Image, Flex, Text } from 'rebass'
-import Background from '../../web3api/components/Background'
 import '../../web3api/components/howItWorks.css'
 import '../../components/Card/index'
 import { OutlineCard } from '../../components/Card/index'
 
 const query = `
-  Web3Api.query({
+  Client.query({
       uri: ensUri,
       query: \`query {
           bestTradeExactIn(
@@ -32,8 +30,7 @@ export default function HowItWorks() {
 
   return (
     <>
-      <Background />
-      <W3LogoAnimated className="intro__logo" width={'100px'} src={W3Logo} />
+      <Image className="intro__logo" width={'100px'} src={PolywrapLogo} />
       <Flex className="intro">
         <Text className="intro__h1"></Text>
         <Text className="intro__text">
@@ -42,7 +39,7 @@ export default function HowItWorks() {
         </Text>
         <Text className="intro__h2">
           Our team has replaced all the Swap functionality from the Uniswap JavaScript SDK with ones from our own Uni v2
-          Web3API!
+          Polywrapper!
         </Text>
         <Text className="intro__text"> Scroll down to see how this all works!</Text>
 
@@ -54,11 +51,11 @@ export default function HowItWorks() {
         </Text>
         <Flex className="steps__container">
           <Flex className="steps__textContainer">
-            <Text className="steps__heading">Downloading Web3API package from IPFS</Text>
+            <Text className="steps__heading">Downloading Polywrapper from IPFS</Text>
             <Text className="steps__text">
-              The first step to integrate Web3API into any dapp is to install it as a dependency and then initializing
-              the Web3APIClient. Rather than bundling business logic into your app with a JS SDK, the Web3API package is
-              deployed to a decentralized endpoint like IPFS. The Web3API client downloads this package at runtime and
+              The first step to integrate Polywrap into any dapp is to install it as a dependency and then initializing
+              the PolywrapClient. Rather than bundling business logic into your app with a JS SDK, the Polywrapper is
+              deployed to a decentralized endpoint like IPFS. The Polywrap client downloads this package at runtime and
               instantiates the wasm modules containing the protocol business logic.
             </Text>
           </Flex>
@@ -82,7 +79,7 @@ export default function HowItWorks() {
           <Flex className="steps__textContainer">
             <Text className="steps__heading">GraphQL</Text>
             <Text className="steps__text">
-              With a Web3API-enabled dapp, you can send GraphQL queries to invoke functions made available by the wasm
+              With a Polywrap-enabled dapp, you can send GraphQL queries to invoke functions made available by the wasm
               modules.
             </Text>
           </Flex>
