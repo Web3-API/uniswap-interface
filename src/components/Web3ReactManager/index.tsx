@@ -6,7 +6,7 @@ import { network } from '../../connectors'
 import { useEagerConnect, useInactiveListener } from '../../hooks'
 import { NetworkContextName } from '../../constants'
 import Loader from '../Loader'
-import { UriRedirect } from '@web3api/client-js'
+import { PluginRegistration } from '@web3api/client-js'
 import { Web3ApiProvider } from '@web3api/react'
 import { ethereumPlugin } from '@web3api/ethereum-plugin-js'
 import { sha3Plugin } from '@web3api/sha3-plugin-js'
@@ -30,29 +30,30 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
   const { active: networkActive, error: networkError, activate: activateNetwork } = useWeb3React(NetworkContextName)
 
   // Web3API integration.
-  const [ethPlugin, setEthPlugin] = useState<any>(ethereumPlugin({
-    networks: {
-      mainnet: {
-        provider:
-          "https://mainnet.infura.io/v3/b00b2c2cc09c487685e9fb061256d6a6",
-      },
-    },
-  }))
+  const [ethPlugin, setEthPlugin] = useState<any>(
+    ethereumPlugin({
+      networks: {
+        mainnet: {
+          provider: 'https://mainnet.infura.io/v3/b00b2c2cc09c487685e9fb061256d6a6'
+        }
+      }
+    })
+  )
 
-  const redirects: UriRedirect[] = [
+  const plugins: PluginRegistration[] = [
     {
-      from: 'ens/ethereum.web3api.eth',
-      to: ethPlugin
+      uri: 'ens/ethereum.web3api.eth',
+      plugin: ethPlugin
     },
     {
-      from: 'w3://ens/ipfs.web3api.eth',
-      to: ipfsPlugin({
+      uri: 'w3://ens/ipfs.web3api.eth',
+      plugin: ipfsPlugin({
         provider: 'https://ipfs.io'
       })
     },
     {
-      from: 'w3://ens/sha3.web3api.eth',
-      to: sha3Plugin()
+      uri: 'w3://ens/sha3.web3api.eth',
+      plugin: sha3Plugin()
     }
   ]
 
@@ -76,10 +77,12 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
           signer: library.getSigner()
         }
       }
-      setEthPlugin(ethereumPlugin({
-        networks: config,
-        defaultNetwork: currentNetwork.name
-      }))
+      setEthPlugin(
+        ethereumPlugin({
+          networks: config,
+          defaultNetwork: currentNetwork.name
+        })
+      )
     }
   }, [library, chainId])
 
@@ -121,5 +124,5 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
     ) : null
   }
 
-  return <Web3ApiProvider redirects={redirects}>{children}</Web3ApiProvider>
+  return <Web3ApiProvider plugins={plugins}>{children}</Web3ApiProvider>
 }
