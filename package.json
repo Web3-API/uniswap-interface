@@ -128,8 +128,8 @@
   "dependencies": {
     "@types/prismjs": "1.16.5",
     "@uniswap/default-token-list": "2.0.0",
-    "@web3api/client-js": "0.0.1-prealpha.36",
-    "@web3api/react": "0.0.1-prealpha.36",
+    "@web3api/client-js": "0.0.1-prealpha.38",
+    "@web3api/react": "0.0.1-prealpha.38",
     "decimal.js": "10.2.1"
   }
 }
