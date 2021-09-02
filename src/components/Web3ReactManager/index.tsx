@@ -48,9 +48,9 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
     {
       uri: 'w3://ens/ipfs.web3api.eth',
       plugin: ipfsPlugin({
-        provider: 'https://ipfs.io',
+        provider: 'https://polywrap-dev.mypinata.cloud',
         fallbackProviders: [
-          "https://polywrap-dev.mypinata.cloud"
+          'https://ipfs.io'
         ]
       })
     },
