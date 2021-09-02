@@ -83,6 +83,7 @@
     "react-window": "^1.8.5",
     "rebass": "^4.0.7",
     "redux-localstorage-simple": "^2.3.1",
+    "rimraf": "3.0.2",
     "serve": "^11.3.2",
     "start-server-and-test": "^1.11.0",
     "styled-components": "^4.2.0",
@@ -103,6 +104,8 @@
     "start:service-worker": "yarn build && yarn serve -s build",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
+    "reset": "yarn clean && yarn",
+    "clean": "npx rimraf ./**/node_modules ./**/build ./**/coverage",
     "eject": "react-scripts eject",
     "integration-test": "start-server-and-test 'serve build -l 3000' http://localhost:3000 'cypress run'"
   },
@@ -128,8 +131,8 @@
   "dependencies": {
     "@types/prismjs": "1.16.5",
     "@uniswap/default-token-list": "2.0.0",
-    "@web3api/client-js": "0.0.1-prealpha.38",
-    "@web3api/react": "0.0.1-prealpha.38",
+    "@web3api/client-js": "0.0.1-prealpha.39",
+    "@web3api/react": "0.0.1-prealpha.39",
     "decimal.js": "10.2.1"
   }
 }

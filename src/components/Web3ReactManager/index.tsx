@@ -9,9 +9,7 @@ import Loader from '../Loader'
 import { PluginRegistration } from '@web3api/client-js'
 import { Web3ApiProvider } from '@web3api/react'
 import { ethereumPlugin } from '@web3api/ethereum-plugin-js'
-import { sha3Plugin } from '@web3api/sha3-plugin-js'
 import { networks } from 'web3api/constants'
-import { ipfsPlugin } from '@web3api/ipfs-plugin-js'
 
 const MessageWrapper = styled.div`
   display: flex;
@@ -44,19 +42,6 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
     {
       uri: 'ens/ethereum.web3api.eth',
       plugin: ethPlugin
-    },
-    {
-      uri: 'w3://ens/ipfs.web3api.eth',
-      plugin: ipfsPlugin({
-        provider: 'https://polywrap-dev.mypinata.cloud',
-        fallbackProviders: [
-          'https://ipfs.io'
-        ]
-      })
-    },
-    {
-      uri: 'w3://ens/sha3.web3api.eth',
-      plugin: sha3Plugin()
     }
   ]
 
