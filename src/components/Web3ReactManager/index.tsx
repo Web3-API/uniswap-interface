@@ -1,10 +1,15 @@
 import { Trans } from '@lingui/macro'
 import { useWeb3React } from '@web3-react/core'
-import { useEffect } from 'react'
+import { PluginRegistration } from '@web3api/client-js'
+import { ethereumPlugin } from '@web3api/ethereum-plugin-js'
+import { Web3ApiProvider } from '@web3api/react'
+import { ethersSolidity } from 'ethers-solidity-plugin-js'
+import { useEffect, useState } from 'react'
 import styled from 'styled-components/macro'
 
 import { network } from '../../connectors'
 import { NetworkContextName } from '../../constants/misc'
+import { ethereumPluginUri, ethersSolidityPluginUri, networks } from '../../constants/polywrap'
 import { useEagerConnect, useInactiveListener } from '../../hooks/web3'
 
 const MessageWrapper = styled.div`
@@ -19,8 +24,30 @@ const Message = styled.h2`
 `
 
 export default function Web3ReactManager({ children }: { children: JSX.Element }) {
-  const { active } = useWeb3React()
+  const { active, library, chainId } = useWeb3React()
   const { active: networkActive, error: networkError, activate: activateNetwork } = useWeb3React(NetworkContextName)
+
+  // Web3API integration.
+  const [ethPlugin, setEthPlugin] = useState<any>(
+    ethereumPlugin({
+      networks: {
+        mainnet: {
+          provider: 'https://mainnet.infura.io/v3/b00b2c2cc09c487685e9fb061256d6a6',
+        },
+      },
+    })
+  )
+
+  const plugins: PluginRegistration[] = [
+    {
+      uri: ethereumPluginUri,
+      plugin: ethPlugin,
+    },
+    {
+      uri: ethersSolidityPluginUri,
+      plugin: ethersSolidity({}),
+    },
+  ]
 
   // try to eagerly connect to an injected provider, if it exists and has granted access already
   const triedEager = useEagerConnect()
@@ -31,6 +58,25 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
       activateNetwork(network)
     }
   }, [triedEager, networkActive, networkError, activateNetwork, active])
+
+  useEffect(() => {
+    if (chainId && library) {
+      const id = chainId.toString()
+      const currentNetwork = networks[id]
+      const config = {
+        [currentNetwork.name]: {
+          provider: library,
+          signer: library.getSigner(),
+        },
+      }
+      setEthPlugin(
+        ethereumPlugin({
+          networks: config,
+          defaultNetwork: currentNetwork.name,
+        })
+      )
+    }
+  }, [library, chainId])
 
   // when there's no account connected, react to logins (broadly speaking) on the injected provider, if it exists
   useInactiveListener(!triedEager)
@@ -48,5 +94,5 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
     )
   }
 
-  return children
+  return <Web3ApiProvider plugins={plugins}>{children}</Web3ApiProvider>
 }
