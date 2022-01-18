@@ -1,3 +1,11 @@
+import { Currency } from '../polywrap'
+
+export const ETHER: Currency = {
+  decimals: 18,
+  name: 'Ether',
+  symbol: 'ETH'
+}
+
 export const ensUri = 'ens/v2.uniswap.web3api.eth'
 export const ethereumPluginUri = 'ens/ethereum.web3api.eth'
 export const ethersSolidityPluginUri = 'w3://ens/ethers-solidity.polywrap.eth'
@@ -22,3 +30,5 @@ export const networks: any = {
     explorer: 'https://rinkeby.etherscan.io',
   },
 }
+
+

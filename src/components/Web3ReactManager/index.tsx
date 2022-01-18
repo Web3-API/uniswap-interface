@@ -9,8 +9,8 @@ import styled from 'styled-components/macro'
 
 import { network } from '../../connectors'
 import { NetworkContextName } from '../../constants/misc'
-import { ethereumPluginUri, ethersSolidityPluginUri, networks } from '../../constants/polywrap'
 import { useEagerConnect, useInactiveListener } from '../../hooks/web3'
+import { ethereumPluginUri, ethersSolidityPluginUri, networks } from '../../polywrap-utils/constants'
 
 const MessageWrapper = styled.div`
   display: flex;
