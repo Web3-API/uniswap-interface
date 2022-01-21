@@ -110,7 +110,7 @@ export function useV3DerivedMintInfo(
   currencyBalances: { [field in Field]?: CurrencyAmount<Currency> }
   dependentField: Field
   parsedAmounts: { [field in Field]?: CurrencyAmount<Currency> }
-  position: Position | undefined
+  uniPosition: Position | undefined
   noLiquidity?: boolean
   errorMessage?: ReactNode
   invalidPool: boolean
@@ -465,7 +465,7 @@ export function useV3DerivedMintInfo(
     ticks,
     price,
     pricesAtTicks,
-    position,
+    uniPosition: position,
     noLiquidity,
     errorMessage,
     invalidPool,

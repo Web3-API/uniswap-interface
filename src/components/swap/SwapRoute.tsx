@@ -16,6 +16,7 @@ import { useDarkModeManager } from 'state/user/hooks'
 import styled from 'styled-components/macro'
 import { Separator, ThemedText } from 'theme'
 
+import { mapFeeAmount } from '../../polywrap-utils'
 import { SUPPORTED_GAS_ESTIMATE_CHAIN_IDS } from './GasEstimateBadge'
 import { AutoRouterLabel, AutoRouterLogo } from './RouterLabel'
 
@@ -128,7 +129,7 @@ function getTokenPath(trade: Trade<Currency, Currency, TradeType>): RoutingDiagr
       const entry: RoutingDiagramEntry['path'][0] = [
         tokenIn,
         tokenOut,
-        nextPool instanceof Pair ? V2_DEFAULT_FEE_TIER : nextPool.fee,
+        mapFeeAmount(nextPool instanceof Pair ? V2_DEFAULT_FEE_TIER : nextPool.fee),
       ]
 
       path.push(entry)

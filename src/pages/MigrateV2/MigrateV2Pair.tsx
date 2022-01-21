@@ -43,6 +43,8 @@ import { useV2LiquidityTokenPermit } from '../../hooks/useERC20Permit'
 import useIsArgentWallet from '../../hooks/useIsArgentWallet'
 import { useTotalSupply } from '../../hooks/useTotalSupply'
 import { useActiveWeb3React } from '../../hooks/web3'
+import { FeeAmountEnum } from '../../polywrap'
+import { mapFeeAmount, reverseMapFeeAmount } from '../../polywrap-utils'
 import { NEVER_RELOAD, useSingleCallResult } from '../../state/multicall/hooks'
 import { TransactionType } from '../../state/transactions/actions'
 import { useTokenBalance } from '../../state/wallet/hooks'
@@ -160,6 +162,8 @@ function V2PairMigration({
   const [feeAmount, setFeeAmount] = useState(FeeAmount.MEDIUM)
   const [poolState, pool] = usePool(token0, token1, feeAmount)
   const noLiquidity = poolState === PoolState.NOT_EXISTS
+
+  const handleFeePoolSelect = (fee: FeeAmountEnum) => setFeeAmount(reverseMapFeeAmount(fee))
 
   // get spot prices + price difference
   const v2SpotPrice = useMemo(
@@ -432,7 +436,7 @@ function V2PairMigration({
             <Badge variant={BadgeVariant.PRIMARY}>V3</Badge>
           </RowBetween>
 
-          <FeeSelector feeAmount={feeAmount} handleFeePoolSelect={setFeeAmount} />
+          <FeeSelector feeAmount={mapFeeAmount(feeAmount)} handleFeePoolSelect={handleFeePoolSelect} />
           {noLiquidity && (
             <BlueCard style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <AlertCircle color={theme.text1} style={{ marginBottom: '12px', opacity: 0.8 }} />

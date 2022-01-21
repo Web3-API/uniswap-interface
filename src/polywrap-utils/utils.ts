@@ -1,6 +1,5 @@
 import { Fraction } from '@uniswap/sdk-core'
 import JSBI from 'jsbi'
-import { DependencyList, useEffect, useState } from 'react'
 
 import * as Poly from '../polywrap'
 import { ETHER } from './constants'
@@ -82,16 +81,3 @@ export function toFixed(tokenAmount: Poly.TokenAmount, digits = 6): string {
 //     return [...tokenAmountDeps(pair.tokenAmount0), ...tokenAmountDeps(pair.tokenAmount1)]
 //   }
 // }
-
-export function useAsync<T>(callback: () => Promise<T>, deps: DependencyList, initialValue: T): T {
-  const [val, setVal] = useState<T>(initialValue)
-
-  useEffect(() => {
-    const updateAsync = async () => {
-      setVal(await callback())
-    }
-    void updateAsync()
-  }, [...deps, callback])
-
-  return val
-}

@@ -7,6 +7,7 @@ import {
 import {
   FeeAmount as UniFeeAmount,
   Pool as UniPool,
+  Position as UniPosition,
   Route as UniRoute,
   Tick as UniTick,
   TickDataProvider as UniTickDataProvider,
@@ -17,9 +18,9 @@ import {
 import {
   ChainIdEnum,
   Currency,
-  FeeAmount,
   FeeAmountEnum,
   Pool,
+  Position,
   Route,
   Tick,
   Token,
@@ -82,7 +83,7 @@ export function mapTokenAmount<T extends UniCurrency>(
   }
 }
 
-export function mapFeeAmount(input: UniFeeAmount): FeeAmount {
+export function mapFeeAmount(input: UniFeeAmount): FeeAmountEnum {
   switch (input) {
     case UniFeeAmount.LOWEST:
       return FeeAmountEnum.LOWEST
@@ -128,6 +129,15 @@ export async function mapPool(input: UniPool): Promise<Pool> {
 
 export async function mapPools(input: UniPool[]): Promise<Pool[]> {
   return Promise.all(input.map(mapPool))
+}
+
+export async function mapPosition(input: UniPosition): Promise<Position> {
+  return {
+    pool: await mapPool(input.pool),
+    tickLower: input.tickLower,
+    tickUpper: input.tickUpper,
+    liquidity: input.liquidity.toString(),
+  }
 }
 
 export async function mapRoute<TIn extends UniCurrency, TOut extends UniCurrency>(

@@ -5,6 +5,7 @@ import JSBI from 'jsbi'
 import { useMemo } from 'react'
 import { InterfaceTrade, TradeState } from 'state/routing/types'
 
+import { reverseMapRoute } from '../polywrap-utils'
 import { useSingleContractWithCallData } from '../state/multicall/hooks'
 import { useAllV3Routes } from './useAllV3Routes'
 import { useV3Quoter } from './useContract'
@@ -42,7 +43,9 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
   const quotesResults = useSingleContractWithCallData(
     quoter,
     amountSpecified
-      ? routes.map((route) => SwapQuoter.quoteCallParameters(route, amountSpecified, tradeType).calldata)
+      ? routes.map(
+          (route) => SwapQuoter.quoteCallParameters(reverseMapRoute(route), amountSpecified, tradeType).calldata
+        )
       : [],
     {
       gasRequired: chainId ? QUOTE_GAS_OVERRIDES[chainId] ?? DEFAULT_GAS_QUOTE : undefined,
@@ -90,7 +93,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
           const amountOut = CurrencyAmount.fromRawAmount(currencyOut, result.amountOut.toString())
           if (currentBest.amountOut === null || JSBI.lessThan(currentBest.amountOut.quotient, amountOut.quotient)) {
             return {
-              bestRoute: routes[i],
+              bestRoute: reverseMapRoute(routes[i]),
               amountIn: amountSpecified,
               amountOut,
             }
@@ -99,7 +102,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
           const amountIn = CurrencyAmount.fromRawAmount(currencyIn, result.amountIn.toString())
           if (currentBest.amountIn === null || JSBI.greaterThan(currentBest.amountIn.quotient, amountIn.quotient)) {
             return {
-              bestRoute: routes[i],
+              bestRoute: reverseMapRoute(routes[i]),
               amountIn,
               amountOut: amountSpecified,
             }

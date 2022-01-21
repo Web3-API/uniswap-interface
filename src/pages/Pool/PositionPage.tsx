@@ -41,6 +41,7 @@ import RateToggle from '../../components/RateToggle'
 import { SwitchLocaleLink } from '../../components/SwitchLocaleLink'
 import { usePositionTokenURI } from '../../hooks/usePositionTokenURI'
 import useTheme from '../../hooks/useTheme'
+import { useAsync, useMapPosition, usePolywrapDapp } from '../../polywrap-utils'
 import { TransactionType } from '../../state/transactions/actions'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { ExplorerDataType, getExplorerLink } from '../../utils/getExplorerLink'
@@ -319,6 +320,7 @@ export function PositionPage({
 }: RouteComponentProps<{ tokenId?: string }>) {
   const { chainId, account, library } = useActiveWeb3React()
   const theme = useTheme()
+  const dapp = usePolywrapDapp()
 
   const parsedTokenId = tokenIdFromUrl ? BigNumber.from(tokenIdFromUrl) : undefined
   const { loading, position: positionDetails } = useV3PositionFromTokenId(parsedTokenId)
@@ -354,10 +356,15 @@ export function PositionPage({
     }
     return undefined
   }, [liquidity, pool, tickLower, tickUpper])
+  const polyPosition = useMapPosition(position)
 
   const tickAtLimit = useIsTickAtLimit(feeAmount, tickLower, tickUpper)
 
-  const pricesFromPosition = getPriceOrderingFromPositionForUI(position)
+  const pricesFromPosition = useAsync(
+    () => getPriceOrderingFromPositionForUI(dapp.uniswap, polyPosition),
+    [dapp.uniswap, polyPosition],
+    {}
+  )
   const [manuallyInverted, setManuallyInverted] = useState(false)
 
   // handle manual inversion
