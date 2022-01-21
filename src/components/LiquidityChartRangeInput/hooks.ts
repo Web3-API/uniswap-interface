@@ -1,9 +1,10 @@
 import { Currency } from '@uniswap/sdk-core'
-import { FeeAmount } from '@uniswap/v3-sdk'
 import { usePoolActiveLiquidity } from 'hooks/usePoolTickData'
 import JSBI from 'jsbi'
 import { useCallback, useMemo } from 'react'
 
+import { FeeAmountEnum } from '../../polywrap'
+import { reverseMapFeeAmount } from '../../polywrap-utils'
 import { ChartEntry } from './types'
 
 export interface TickProcessed {
@@ -18,9 +19,13 @@ export function useDensityChartData({
 }: {
   currencyA: Currency | undefined
   currencyB: Currency | undefined
-  feeAmount: FeeAmount | undefined
+  feeAmount: FeeAmountEnum | undefined
 }) {
-  const { isLoading, isUninitialized, isError, error, data } = usePoolActiveLiquidity(currencyA, currencyB, feeAmount)
+  const { isLoading, isUninitialized, isError, error, data } = usePoolActiveLiquidity(
+    currencyA,
+    currencyB,
+    feeAmount ? reverseMapFeeAmount(feeAmount) : undefined
+  )
 
   const formatData = useCallback(() => {
     if (!data?.length) {

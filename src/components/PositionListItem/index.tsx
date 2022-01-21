@@ -1,6 +1,5 @@
 import { Trans } from '@lingui/macro'
-import { Percent, Price, Token } from '@uniswap/sdk-core'
-import { Position } from '@uniswap/v3-sdk'
+import { Percent, Price, Token as UniToken } from '@uniswap/sdk-core'
 import Badge from 'components/Badge'
 import RangeBadge from 'components/Badge/RangeBadge'
 import DoubleCurrencyLogo from 'components/DoubleLogo'
@@ -10,7 +9,7 @@ import { RowBetween } from 'components/Row'
 import { useToken } from 'hooks/Tokens'
 import useIsTickAtLimit from 'hooks/useIsTickAtLimit'
 import { usePool } from 'hooks/usePools'
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bound } from 'state/mint/v3/actions'
 import styled from 'styled-components/macro'
@@ -20,6 +19,8 @@ import { formatTickPrice } from 'utils/formatTickPrice'
 import { unwrappedToken } from 'utils/unwrappedToken'
 
 import { DAI, USDC, USDT, WBTC, WRAPPED_NATIVE_CURRENCY } from '../../constants/tokens'
+import { PolywrapDapp, Position, Price as PWPrice, TokenAmount as PWTokenAmount, Uniswap } from '../../polywrap'
+import { mapPool, reverseMapPrice, reverseMapToken, usePolywrapDapp } from '../../polywrap-utils'
 
 const LinkRow = styled(Link)`
   align-items: center;
@@ -131,25 +132,35 @@ interface PositionListItemProps {
   positionDetails: PositionDetails
 }
 
-export function getPriceOrderingFromPositionForUI(position?: Position): {
-  priceLower?: Price<Token, Token>
-  priceUpper?: Price<Token, Token>
-  quote?: Token
-  base?: Token
-} {
+export async function getPriceOrderingFromPositionForUI(
+  uni: Uniswap,
+  position?: Position
+): Promise<{
+  priceLower?: Price<UniToken, UniToken>
+  priceUpper?: Price<UniToken, UniToken>
+  quote?: UniToken
+  base?: UniToken
+}> {
   if (!position) {
     return {}
   }
 
-  const token0 = position.amount0.currency
-  const token1 = position.amount1.currency
+  const amount0: PWTokenAmount = await uni.query.positionAmount0({ position })
+  const amount1: PWTokenAmount = await uni.query.positionAmount1({ position })
+  const token0: UniToken = reverseMapToken(amount0.token) as UniToken
+  const token1: UniToken = reverseMapToken(amount1.token) as UniToken
+
+  const pwToken0PriceUpper: PWPrice = await uni.query.positionToken0PriceUpper({ position })
+  const pwToken0PriceLower: PWPrice = await uni.query.positionToken0PriceLower({ position })
+  const token0PriceUpper = reverseMapPrice(pwToken0PriceUpper) as Price<UniToken, UniToken>
+  const token0PriceLower = reverseMapPrice(pwToken0PriceLower) as Price<UniToken, UniToken>
 
   // if token0 is a dollar-stable asset, set it as the quote token
   const stables = [DAI, USDC, USDT]
   if (stables.some((stable) => stable.equals(token0))) {
     return {
-      priceLower: position.token0PriceUpper.invert(),
-      priceUpper: position.token0PriceLower.invert(),
+      priceLower: token0PriceUpper.invert(),
+      priceUpper: token0PriceLower.invert(),
       quote: token0,
       base: token1,
     }
@@ -159,18 +170,18 @@ export function getPriceOrderingFromPositionForUI(position?: Position): {
   const bases = [...Object.values(WRAPPED_NATIVE_CURRENCY), WBTC]
   if (bases.some((base) => base.equals(token1))) {
     return {
-      priceLower: position.token0PriceUpper.invert(),
-      priceUpper: position.token0PriceLower.invert(),
+      priceLower: token0PriceUpper.invert(),
+      priceUpper: token0PriceLower.invert(),
       quote: token0,
       base: token1,
     }
   }
 
   // if both prices are below 1, invert
-  if (position.token0PriceUpper.lessThan(1)) {
+  if (token0PriceUpper.lessThan(1)) {
     return {
-      priceLower: position.token0PriceUpper.invert(),
-      priceUpper: position.token0PriceLower.invert(),
+      priceLower: token0PriceUpper.invert(),
+      priceUpper: token0PriceLower.invert(),
       quote: token0,
       base: token1,
     }
@@ -178,8 +189,8 @@ export function getPriceOrderingFromPositionForUI(position?: Position): {
 
   // otherwise, just return the default
   return {
-    priceLower: position.token0PriceLower,
-    priceUpper: position.token0PriceUpper,
+    priceLower: token0PriceLower,
+    priceUpper: token0PriceUpper,
     quote: token1,
     base: token0,
   }
@@ -195,26 +206,43 @@ export default function PositionListItem({ positionDetails }: PositionListItemPr
     tickUpper,
   } = positionDetails
 
+  const dapp: PolywrapDapp = usePolywrapDapp()
+
   const token0 = useToken(token0Address)
   const token1 = useToken(token1Address)
 
   const currency0 = token0 ? unwrappedToken(token0) : undefined
   const currency1 = token1 ? unwrappedToken(token1) : undefined
 
-  // construct Position from details returned
   const [, pool] = usePool(currency0 ?? undefined, currency1 ?? undefined, feeAmount)
 
-  const position = useMemo(() => {
-    if (pool) {
-      return new Position({ pool, liquidity: liquidity.toString(), tickLower, tickUpper })
+  // construct Position from details returned
+  const [prices, setPrices] = useState<{
+    priceLower?: Price<UniToken, UniToken>
+    priceUpper?: Price<UniToken, UniToken>
+    quote?: UniToken
+    base?: UniToken
+  }>({})
+
+  useEffect(() => {
+    const updateAsync = async () => {
+      if (pool) {
+        const newPosition = await dapp.uniswap.query.createPosition({
+          pool: await mapPool(pool),
+          liquidity: liquidity.toString(),
+          tickLower,
+          tickUpper,
+        })
+        setPrices(await getPriceOrderingFromPositionForUI(dapp.uniswap, newPosition))
+      }
     }
-    return undefined
-  }, [liquidity, pool, tickLower, tickUpper])
+    void updateAsync()
+  }, [liquidity, pool, tickLower, tickUpper, dapp])
 
   const tickAtLimit = useIsTickAtLimit(feeAmount, tickLower, tickUpper)
 
   // prices
-  const { priceLower, priceUpper, quote, base } = getPriceOrderingFromPositionForUI(position)
+  const { priceLower, priceUpper, quote, base } = prices
 
   const currencyQuote = quote && unwrappedToken(quote)
   const currencyBase = base && unwrappedToken(base)

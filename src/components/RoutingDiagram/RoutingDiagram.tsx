@@ -1,22 +1,24 @@
 import { Trans } from '@lingui/macro'
 import { Protocol } from '@uniswap/router-sdk'
 import { Currency, Percent } from '@uniswap/sdk-core'
-import { FeeAmount } from '@uniswap/v3-sdk'
 import Badge from 'components/Badge'
 import CurrencyLogo from 'components/CurrencyLogo'
 import DoubleCurrencyLogo from 'components/DoubleLogo'
 import Row, { AutoRow } from 'components/Row'
 import { useTokenInfoFromActiveList } from 'hooks/useTokenInfoFromActiveList'
+import { useEffect, useState } from 'react'
 import { Box } from 'rebass'
 import styled from 'styled-components/macro'
 import { ThemedText, Z_INDEX } from 'theme'
 
 import { ReactComponent as DotLine } from '../../assets/svg/dot_line.svg'
+import { FeeAmountEnum } from '../../polywrap'
+import { usePolywrapDapp } from '../../polywrap-utils'
 import { MouseoverTooltip } from '../Tooltip'
 
 export interface RoutingDiagramEntry {
   percent: Percent
-  path: [Currency, Currency, FeeAmount][]
+  path: [Currency, Currency, FeeAmountEnum][]
   protocol: Protocol
 }
 
@@ -131,15 +133,31 @@ function Route({ entry: { percent, path, protocol } }: { entry: RoutingDiagramEn
   )
 }
 
-function Pool({ currency0, currency1, feeAmount }: { currency0: Currency; currency1: Currency; feeAmount: FeeAmount }) {
+function Pool({
+  currency0,
+  currency1,
+  feeAmount,
+}: {
+  currency0: Currency
+  currency1: Currency
+  feeAmount: FeeAmountEnum
+}) {
   const tokenInfo0 = useTokenInfoFromActiveList(currency0)
   const tokenInfo1 = useTokenInfoFromActiveList(currency1)
 
+  const dapp = usePolywrapDapp()
+  const [fee, setFee] = useState<number>(0)
+  useEffect(() => {
+    const updateAsync = async () => {
+      const newFee: number = await dapp.uniswap.query.getFeeAmount({ feeAmount })
+      setFee(newFee)
+    }
+    void updateAsync()
+  }, [feeAmount, dapp])
+
   // TODO - link pool icon to info.uniswap.org via query params
   return (
-    <MouseoverTooltip
-      text={<Trans>{tokenInfo0?.symbol + '/' + tokenInfo1?.symbol + ' ' + feeAmount / 10000}% pool</Trans>}
-    >
+    <MouseoverTooltip text={<Trans>{tokenInfo0?.symbol + '/' + tokenInfo1?.symbol + ' ' + fee / 10000}% pool</Trans>}>
       <PoolBadge>
         <Box margin="0 4px 0 12px">
           <DoubleCurrencyLogo currency0={tokenInfo1} currency1={tokenInfo0} size={20} />

@@ -1,5 +1,4 @@
 import { Trans } from '@lingui/macro'
-import { FeeAmount } from '@uniswap/v3-sdk'
 import { ButtonRadioChecked } from 'components/Button'
 import { AutoColumn } from 'components/Column'
 import { useFeeTierDistribution } from 'hooks/useFeeTierDistribution'
@@ -8,6 +7,7 @@ import React from 'react'
 import styled from 'styled-components/macro'
 import { ThemedText } from 'theme'
 
+import { FeeAmountEnum } from '../../polywrap'
 import { FeeTierPercentageBadge } from './FeeTierPercentageBadge'
 import { FEE_AMOUNT_DETAIL } from './shared'
 
@@ -22,7 +22,7 @@ const ResponsiveText = styled(ThemedText.Label)`
 `
 
 interface FeeOptionProps {
-  feeAmount: FeeAmount
+  feeAmount: FeeAmountEnum
   active: boolean
   distributions: ReturnType<typeof useFeeTierDistribution>['distributions']
   poolState: PoolState

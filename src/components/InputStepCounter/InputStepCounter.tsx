@@ -1,5 +1,4 @@
 import { Trans } from '@lingui/macro'
-import { FeeAmount } from '@uniswap/v3-sdk'
 import { ButtonGray } from 'components/Button'
 import { OutlineCard } from 'components/Card'
 import { AutoColumn } from 'components/Column'
@@ -8,6 +7,7 @@ import { Minus, Plus } from 'react-feather'
 import styled, { keyframes } from 'styled-components/macro'
 import { ThemedText } from 'theme'
 
+import { FeeAmountEnum } from '../../polywrap'
 import { Input as NumericalInput } from '../NumericalInput'
 
 const pulse = (color: string) => keyframes`
@@ -74,7 +74,7 @@ interface StepCounterProps {
   increment: () => string
   decrementDisabled?: boolean
   incrementDisabled?: boolean
-  feeAmount?: FeeAmount
+  feeAmount?: FeeAmountEnum
   label?: string
   width?: string
   locked?: boolean // disable input

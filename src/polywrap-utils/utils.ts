@@ -1,5 +1,9 @@
-import * as Poly from "../polywrap";
-import { ETHER } from "./constants";
+import { Fraction } from '@uniswap/sdk-core'
+import JSBI from 'jsbi'
+import { DependencyList, useEffect, useState } from 'react'
+
+import * as Poly from '../polywrap'
+import { ETHER } from './constants'
 
 export function isEther(token: Poly.Token | undefined): boolean {
   if (!token) return false
@@ -39,26 +43,21 @@ export function currencyEquals(currencyA?: Poly.Currency, currencyB?: Poly.Curre
   )
 }
 
-// export function toSignificant(tokenAmount?: Poly.TokenAmount, sd = 6): string | undefined {
-//   if (!tokenAmount) {
-//     return undefined
-//   }
-//   const numerator = new Decimal(tokenAmount.amount)
-//   const denominator = new Decimal(10).pow(tokenAmount.token.currency.decimals)
-//   return numerator
-//     .div(denominator)
-//     .toSignificantDigits(sd)
-//     .toString()
+// export function poolInvolvesToken(pool: Poly.Pool, token: Poly.Token): boolean {
+//   return tokenEquals(pool.token0, token) || tokenEquals(pool.token1, token)
 // }
-//
-// export function toExact(tokenAmount?: Poly.TokenAmount): string | undefined {
-//   if (!tokenAmount) {
-//     return undefined
-//   }
-//   const numerator = new Decimal(tokenAmount.amount)
-//   const denominator = new Decimal(10).pow(tokenAmount.token.currency.decimals)
-//   return numerator.div(denominator).toString()
-// }
+
+export function toSignificant(tokenAmount: Poly.TokenAmount, sd = 6): string {
+  const numerator = tokenAmount.amount
+  const denominator = JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(tokenAmount.token.currency.decimals))
+  return new Fraction(numerator, denominator).toSignificant(sd)
+}
+
+export function toFixed(tokenAmount: Poly.TokenAmount, digits = 6): string {
+  const numerator = tokenAmount.amount
+  const denominator = JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(tokenAmount.token.currency.decimals))
+  return new Fraction(numerator, denominator).toFixed(digits)
+}
 
 // export function tokenDeps(token: Poly.Token | undefined) {
 //   if (!token) {
@@ -83,3 +82,16 @@ export function currencyEquals(currencyA?: Poly.Currency, currencyB?: Poly.Curre
 //     return [...tokenAmountDeps(pair.tokenAmount0), ...tokenAmountDeps(pair.tokenAmount1)]
 //   }
 // }
+
+export function useAsync<T>(callback: () => Promise<T>, deps: DependencyList, initialValue: T): T {
+  const [val, setVal] = useState<T>(initialValue)
+
+  useEffect(() => {
+    const updateAsync = async () => {
+      setVal(await callback())
+    }
+    void updateAsync()
+  }, [...deps, callback])
+
+  return val
+}

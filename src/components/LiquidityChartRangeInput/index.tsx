@@ -1,6 +1,5 @@
 import { Trans } from '@lingui/macro'
 import { Currency, Price, Token } from '@uniswap/sdk-core'
-import { FeeAmount } from '@uniswap/v3-sdk'
 import { AutoColumn, ColumnCenter } from 'components/Column'
 import Loader from 'components/Loader'
 import { format } from 'd3'
@@ -14,31 +13,32 @@ import { batch } from 'react-redux'
 import { Bound } from 'state/mint/v3/actions'
 import styled from 'styled-components/macro'
 
+import { FeeAmountEnum } from '../../polywrap'
 import { ThemedText } from '../../theme'
 import { Chart } from './Chart'
 import { useDensityChartData } from './hooks'
 import { ZoomLevels } from './types'
 
-const ZOOM_LEVELS: Record<FeeAmount, ZoomLevels> = {
-  [FeeAmount.LOWEST]: {
+const ZOOM_LEVELS: Record<FeeAmountEnum, ZoomLevels> = {
+  [FeeAmountEnum.LOWEST]: {
     initialMin: 0.999,
     initialMax: 1.001,
     min: 0.00001,
     max: 1.5,
   },
-  [FeeAmount.LOW]: {
+  [FeeAmountEnum.LOW]: {
     initialMin: 0.999,
     initialMax: 1.001,
     min: 0.00001,
     max: 1.5,
   },
-  [FeeAmount.MEDIUM]: {
+  [FeeAmountEnum.MEDIUM]: {
     initialMin: 0.5,
     initialMax: 2,
     min: 0.00001,
     max: 20,
   },
-  [FeeAmount.HIGH]: {
+  [FeeAmountEnum.HIGH]: {
     initialMin: 0.5,
     initialMax: 2,
     min: 0.00001,
@@ -80,7 +80,7 @@ export default function LiquidityChartRangeInput({
 }: {
   currencyA: Currency | undefined
   currencyB: Currency | undefined
-  feeAmount?: FeeAmount
+  feeAmount?: FeeAmountEnum
   ticksAtLimit: { [bound in Bound]?: boolean | undefined }
   price: number | undefined
   priceLower?: Price<Token, Token>
@@ -205,7 +205,7 @@ export default function LiquidityChartRangeInput({
             brushLabels={brushLabelValue}
             brushDomain={brushDomain}
             onBrushDomainChange={onBrushDomainChangeEnded}
-            zoomLevels={ZOOM_LEVELS[feeAmount ?? FeeAmount.MEDIUM]}
+            zoomLevels={ZOOM_LEVELS[feeAmount ?? FeeAmountEnum.MEDIUM]}
             ticksAtLimit={ticksAtLimit}
           />
         </ChartWrapper>

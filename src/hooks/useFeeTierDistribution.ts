@@ -1,6 +1,5 @@
 import { skipToken } from '@reduxjs/toolkit/query/react'
 import { Currency, Token } from '@uniswap/sdk-core'
-import { FeeAmount } from '@uniswap/v3-sdk'
 import ms from 'ms.macro'
 import { useMemo } from 'react'
 import ReactGA from 'react-ga'
@@ -8,6 +7,8 @@ import { useBlockNumber } from 'state/application/hooks'
 import { useFeeTierDistributionQuery } from 'state/data/enhanced'
 import { FeeTierDistributionQuery } from 'state/data/generated'
 
+import { FeeAmountEnum } from '../polywrap'
+import { reverseMapFeeAmount } from '../polywrap-utils'
 import { PoolState, usePool } from './usePools'
 
 // maximum number of blocks past which we consider the data stale
@@ -16,10 +17,10 @@ const MAX_DATA_BLOCK_AGE = 20
 interface FeeTierDistribution {
   isLoading: boolean
   isError: boolean
-  largestUsageFeeTier?: FeeAmount | undefined
+  largestUsageFeeTier?: FeeAmountEnum | undefined
 
   // distributions as percentages of overall liquidity
-  distributions?: Record<FeeAmount, number | undefined>
+  distributions?: Record<FeeAmountEnum, number | undefined>
 }
 
 export function useFeeTierDistribution(
@@ -32,10 +33,10 @@ export function useFeeTierDistribution(
   )
 
   // fetch all pool states to determine pool state
-  const [poolStateVeryLow] = usePool(currencyA, currencyB, FeeAmount.LOWEST)
-  const [poolStateLow] = usePool(currencyA, currencyB, FeeAmount.LOW)
-  const [poolStateMedium] = usePool(currencyA, currencyB, FeeAmount.MEDIUM)
-  const [poolStateHigh] = usePool(currencyA, currencyB, FeeAmount.HIGH)
+  const [poolStateVeryLow] = usePool(currencyA, currencyB, reverseMapFeeAmount(FeeAmountEnum.LOWEST))
+  const [poolStateLow] = usePool(currencyA, currencyB, reverseMapFeeAmount(FeeAmountEnum.LOW))
+  const [poolStateMedium] = usePool(currencyA, currencyB, reverseMapFeeAmount(FeeAmountEnum.MEDIUM))
+  const [poolStateHigh] = usePool(currencyA, currencyB, reverseMapFeeAmount(FeeAmountEnum.HIGH))
 
   return useMemo(() => {
     if (isLoading || isFetching || isUninitialized || isError || !distributions) {
@@ -48,8 +49,8 @@ export function useFeeTierDistribution(
 
     const largestUsageFeeTier = Object.keys(distributions)
       .map((d) => Number(d))
-      .filter((d: FeeAmount) => distributions[d] !== 0 && distributions[d] !== undefined)
-      .reduce((a: FeeAmount, b: FeeAmount) => ((distributions[a] ?? 0) > (distributions[b] ?? 0) ? a : b), -1)
+      .filter((d: FeeAmountEnum) => distributions[d] !== 0 && distributions[d] !== undefined)
+      .reduce((a: FeeAmountEnum, b: FeeAmountEnum) => ((distributions[a] ?? 0) > (distributions[b] ?? 0) ? a : b), -1)
 
     const percentages =
       !isLoading &&
@@ -60,13 +61,14 @@ export function useFeeTierDistribution(
       poolStateMedium !== PoolState.LOADING &&
       poolStateHigh !== PoolState.LOADING
         ? {
-            [FeeAmount.LOWEST]:
-              poolStateVeryLow === PoolState.EXISTS ? (distributions[FeeAmount.LOWEST] ?? 0) * 100 : undefined,
-            [FeeAmount.LOW]: poolStateLow === PoolState.EXISTS ? (distributions[FeeAmount.LOW] ?? 0) * 100 : undefined,
-            [FeeAmount.MEDIUM]:
-              poolStateMedium === PoolState.EXISTS ? (distributions[FeeAmount.MEDIUM] ?? 0) * 100 : undefined,
-            [FeeAmount.HIGH]:
-              poolStateHigh === PoolState.EXISTS ? (distributions[FeeAmount.HIGH] ?? 0) * 100 : undefined,
+            [FeeAmountEnum.LOWEST]:
+              poolStateVeryLow === PoolState.EXISTS ? (distributions[FeeAmountEnum.LOWEST] ?? 0) * 100 : undefined,
+            [FeeAmountEnum.LOW]:
+              poolStateLow === PoolState.EXISTS ? (distributions[FeeAmountEnum.LOW] ?? 0) * 100 : undefined,
+            [FeeAmountEnum.MEDIUM]:
+              poolStateMedium === PoolState.EXISTS ? (distributions[FeeAmountEnum.MEDIUM] ?? 0) * 100 : undefined,
+            [FeeAmountEnum.HIGH]:
+              poolStateHigh === PoolState.EXISTS ? (distributions[FeeAmountEnum.HIGH] ?? 0) * 100 : undefined,
           }
         : undefined
 
@@ -126,6 +128,7 @@ function usePoolTVL(token0: Token | undefined, token1: Token | undefined) {
 
     const all = asToken0.concat(asToken1)
 
+    // TODO: will this work without changing FeeAmountEnum to contain fee amount values?
     // sum tvl for token0 and token1 by fee tier
     const tvlByFeeTier = all.reduce<{ [feeAmount: number]: [number | undefined, number | undefined] }>(
       (acc, value) => {
@@ -134,11 +137,11 @@ function usePoolTVL(token0: Token | undefined, token1: Token | undefined) {
         return acc
       },
       {
-        [FeeAmount.LOWEST]: [undefined, undefined],
-        [FeeAmount.LOW]: [undefined, undefined],
-        [FeeAmount.MEDIUM]: [undefined, undefined],
-        [FeeAmount.HIGH]: [undefined, undefined],
-      } as Record<FeeAmount, [number | undefined, number | undefined]>
+        [FeeAmountEnum.LOWEST]: [undefined, undefined],
+        [FeeAmountEnum.LOW]: [undefined, undefined],
+        [FeeAmountEnum.MEDIUM]: [undefined, undefined],
+        [FeeAmountEnum.HIGH]: [undefined, undefined],
+      } as Record<FeeAmountEnum, [number | undefined, number | undefined]>
     )
 
     // sum total tvl for token0 and token1
@@ -155,24 +158,29 @@ function usePoolTVL(token0: Token | undefined, token1: Token | undefined) {
     const mean = (tvl0: number | undefined, sumTvl0: number, tvl1: number | undefined, sumTvl1: number) =>
       tvl0 === undefined && tvl1 === undefined ? undefined : ((tvl0 ?? 0) + (tvl1 ?? 0)) / (sumTvl0 + sumTvl1) || 0
 
-    const distributions: Record<FeeAmount, number | undefined> = {
-      [FeeAmount.LOWEST]: mean(
-        tvlByFeeTier[FeeAmount.LOWEST][0],
+    const distributions: Record<FeeAmountEnum, number | undefined> = {
+      [FeeAmountEnum.LOWEST]: mean(
+        tvlByFeeTier[FeeAmountEnum.LOWEST][0],
         sumToken0Tvl,
-        tvlByFeeTier[FeeAmount.LOWEST][1],
+        tvlByFeeTier[FeeAmountEnum.LOWEST][1],
         sumToken1Tvl
       ),
-      [FeeAmount.LOW]: mean(tvlByFeeTier[FeeAmount.LOW][0], sumToken0Tvl, tvlByFeeTier[FeeAmount.LOW][1], sumToken1Tvl),
-      [FeeAmount.MEDIUM]: mean(
-        tvlByFeeTier[FeeAmount.MEDIUM][0],
+      [FeeAmountEnum.LOW]: mean(
+        tvlByFeeTier[FeeAmountEnum.LOW][0],
         sumToken0Tvl,
-        tvlByFeeTier[FeeAmount.MEDIUM][1],
+        tvlByFeeTier[FeeAmountEnum.LOW][1],
         sumToken1Tvl
       ),
-      [FeeAmount.HIGH]: mean(
-        tvlByFeeTier[FeeAmount.HIGH][0],
+      [FeeAmountEnum.MEDIUM]: mean(
+        tvlByFeeTier[FeeAmountEnum.MEDIUM][0],
         sumToken0Tvl,
-        tvlByFeeTier[FeeAmount.HIGH][1],
+        tvlByFeeTier[FeeAmountEnum.MEDIUM][1],
+        sumToken1Tvl
+      ),
+      [FeeAmountEnum.HIGH]: mean(
+        tvlByFeeTier[FeeAmountEnum.HIGH][0],
+        sumToken0Tvl,
+        tvlByFeeTier[FeeAmountEnum.HIGH][1],
         sumToken1Tvl
       ),
     }

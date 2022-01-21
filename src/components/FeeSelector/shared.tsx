@@ -1,28 +1,29 @@
 import { Trans } from '@lingui/macro'
-import { FeeAmount } from '@uniswap/v3-sdk'
 import { ALL_SUPPORTED_CHAIN_IDS, SupportedChainId } from 'constants/chains'
 import { ReactNode } from 'react'
 
+import { FeeAmountEnum } from '../../polywrap'
+
 export const FEE_AMOUNT_DETAIL: Record<
-  FeeAmount,
+  FeeAmountEnum,
   { label: string; description: ReactNode; supportedChains: SupportedChainId[] }
 > = {
-  [FeeAmount.LOWEST]: {
+  [FeeAmountEnum.LOWEST]: {
     label: '0.01',
     description: <Trans>Best for very stable pairs.</Trans>,
     supportedChains: [SupportedChainId.MAINNET],
   },
-  [FeeAmount.LOW]: {
+  [FeeAmountEnum.LOW]: {
     label: '0.05',
     description: <Trans>Best for stable pairs.</Trans>,
     supportedChains: ALL_SUPPORTED_CHAIN_IDS,
   },
-  [FeeAmount.MEDIUM]: {
+  [FeeAmountEnum.MEDIUM]: {
     label: '0.3',
     description: <Trans>Best for most pairs.</Trans>,
     supportedChains: ALL_SUPPORTED_CHAIN_IDS,
   },
-  [FeeAmount.HIGH]: {
+  [FeeAmountEnum.HIGH]: {
     label: '1',
     description: <Trans>Best for exotic pairs.</Trans>,
     supportedChains: ALL_SUPPORTED_CHAIN_IDS,

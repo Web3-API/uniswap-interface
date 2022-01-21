@@ -19,6 +19,7 @@ export enum PoolState {
   INVALID,
 }
 
+// TODO: fix useV3SwapPools after modifying this
 export function usePools(
   poolKeys: [Currency | undefined, Currency | undefined, FeeAmount | undefined][]
 ): [PoolState, Pool | null][] {

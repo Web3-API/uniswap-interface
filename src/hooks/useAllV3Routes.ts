@@ -1,7 +1,7 @@
 import { Currency } from '@uniswap/sdk-core'
-import { Pool, Route } from '@uniswap/v3-sdk'
-import { useMemo } from 'react'
 
+import { PolywrapDapp, Pool, Route, Token, Uniswap } from '../polywrap'
+import { mapToken, tokenEquals, useAsync, usePolywrapDapp } from '../polywrap-utils'
 import { useV3SwapPools } from './useV3SwapPools'
 import { useActiveWeb3React } from './web3'
 
@@ -13,32 +13,43 @@ import { useActiveWeb3React } from './web3'
 function poolEquals(poolA: Pool, poolB: Pool): boolean {
   return (
     poolA === poolB ||
-    (poolA.token0.equals(poolB.token0) && poolA.token1.equals(poolB.token1) && poolA.fee === poolB.fee)
+    (tokenEquals(poolA.token0, poolB.token0) && tokenEquals(poolA.token1, poolB.token1) && poolA.fee === poolB.fee)
   )
 }
 
-function computeAllRoutes(
-  currencyIn: Currency,
-  currencyOut: Currency,
+async function computeAllRoutes(
+  uni: Uniswap,
+  currencyIn: Token,
+  currencyOut: Token,
   pools: Pool[],
   chainId: number,
   currentPath: Pool[] = [],
-  allPaths: Route<Currency, Currency>[] = [],
-  startCurrencyIn: Currency = currencyIn,
+  allPaths: Route[] = [],
+  startCurrencyIn: Token = currencyIn,
   maxHops = 2
-): Route<Currency, Currency>[] {
-  const tokenIn = currencyIn?.wrapped
-  const tokenOut = currencyOut?.wrapped
+): Promise<Route[]> {
+  const tokenIn = await uni.query.wrapToken({ token: currencyIn })
+  const tokenOut = await uni.query.wrapToken({ token: currencyOut })
   if (!tokenIn || !tokenOut) throw new Error('Missing tokenIn/tokenOut')
 
   for (const pool of pools) {
-    if (!pool.involvesToken(tokenIn) || currentPath.find((pathPool) => poolEquals(pool, pathPool))) continue
+    const involved = await uni.query.poolInvolvesToken({ pool, token: tokenIn })
+    if (!involved || currentPath.find((pathPool) => poolEquals(pool, pathPool))) continue
 
-    const outputToken = pool.token0.equals(tokenIn) ? pool.token1 : pool.token0
-    if (outputToken.equals(tokenOut)) {
-      allPaths.push(new Route([...currentPath, pool], startCurrencyIn, currencyOut))
+    const outputToken = (await uni.query.tokenEquals({ tokenA: pool.token0, tokenB: tokenIn }))
+      ? pool.token1
+      : pool.token0
+    if (await uni.query.tokenEquals({ tokenA: outputToken, tokenB: tokenOut })) {
+      allPaths.push(
+        await uni.query.createRoute({
+          pools: [...currentPath, pool],
+          inToken: startCurrencyIn,
+          outToken: currencyOut,
+        })
+      )
     } else if (maxHops > 1) {
       computeAllRoutes(
+        uni,
         outputToken,
         currencyOut,
         pools,
@@ -59,17 +70,22 @@ function computeAllRoutes(
  * @param currencyIn the input currency
  * @param currencyOut the output currency
  */
-export function useAllV3Routes(
-  currencyIn?: Currency,
-  currencyOut?: Currency
-): { loading: boolean; routes: Route<Currency, Currency>[] } {
+export function useAllV3Routes(currencyIn?: Currency, currencyOut?: Currency): { loading: boolean; routes: Route[] } {
   const { chainId } = useActiveWeb3React()
   const { pools, loading: poolsLoading } = useV3SwapPools(currencyIn, currencyOut)
+  const dapp: PolywrapDapp = usePolywrapDapp()
 
-  return useMemo(() => {
-    if (poolsLoading || !chainId || !pools || !currencyIn || !currencyOut) return { loading: true, routes: [] }
+  return useAsync(
+    async () => {
+      if (poolsLoading || !chainId || !pools || !currencyIn || !currencyOut) return { loading: true, routes: [] }
 
-    const routes = computeAllRoutes(currencyIn, currencyOut, pools, chainId, [], [], currencyIn, 2)
-    return { loading: false, routes }
-  }, [chainId, currencyIn, currencyOut, pools, poolsLoading])
+      const currIn: Token = mapToken(currencyIn)
+      const currOut: Token = mapToken(currencyOut)
+
+      const routes = await computeAllRoutes(dapp.uniswap, currIn, currOut, pools, chainId, [], [], currIn, 2)
+      return { loading: false, routes }
+    },
+    [chainId, currencyIn, currencyOut, pools, poolsLoading],
+    { loading: true, routes: [] }
+  )
 }

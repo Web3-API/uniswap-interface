@@ -1,6 +1,6 @@
 import { Trans } from '@lingui/macro'
 import { useWeb3React } from '@web3-react/core'
-import { PluginRegistration } from '@web3api/client-js'
+import { PluginRegistration } from '@web3api/core-js'
 import { ethereumPlugin } from '@web3api/ethereum-plugin-js'
 import { Web3ApiProvider } from '@web3api/react'
 import { ethersSolidity } from 'ethers-solidity-plugin-js'
@@ -10,7 +10,7 @@ import styled from 'styled-components/macro'
 import { network } from '../../connectors'
 import { NetworkContextName } from '../../constants/misc'
 import { useEagerConnect, useInactiveListener } from '../../hooks/web3'
-import { ethereumPluginUri, ethersSolidityPluginUri, networks } from '../../polywrap-utils/constants'
+import { ethereumPluginUri, ethersSolidityPluginUri, networks } from '../../polywrap-utils'
 
 const MessageWrapper = styled.div`
   display: flex;

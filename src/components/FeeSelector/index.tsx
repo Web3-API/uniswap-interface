@@ -1,6 +1,5 @@
 import { Trans } from '@lingui/macro'
 import { Currency } from '@uniswap/sdk-core'
-import { FeeAmount } from '@uniswap/v3-sdk'
 import { ButtonGray } from 'components/Button'
 import Card from 'components/Card'
 import { AutoColumn } from 'components/Column'
@@ -16,6 +15,8 @@ import { Box } from 'rebass'
 import styled, { keyframes } from 'styled-components/macro'
 import { ThemedText } from 'theme'
 
+import { FeeAmountEnum } from '../../polywrap'
+import { mapFeeAmount, reverseMapFeeAmount } from '../../polywrap-utils'
 import { FeeOption } from './FeeOption'
 import { FeeTierPercentageBadge } from './FeeTierPercentageBadge'
 import { FEE_AMOUNT_DETAIL } from './shared'
@@ -54,8 +55,8 @@ export default function FeeSelector({
   currencyB,
 }: {
   disabled?: boolean
-  feeAmount?: FeeAmount
-  handleFeePoolSelect: (feeAmount: FeeAmount) => void
+  feeAmount?: FeeAmountEnum
+  handleFeePoolSelect: (feeAmount: FeeAmountEnum) => void
   currencyA?: Currency | undefined
   currencyB?: Currency | undefined
 }) {
@@ -65,28 +66,30 @@ export default function FeeSelector({
 
   // get pool data on-chain for latest states
   const pools = usePools([
-    [currencyA, currencyB, FeeAmount.LOWEST],
-    [currencyA, currencyB, FeeAmount.LOW],
-    [currencyA, currencyB, FeeAmount.MEDIUM],
-    [currencyA, currencyB, FeeAmount.HIGH],
+    [currencyA, currencyB, reverseMapFeeAmount(FeeAmountEnum.LOWEST)],
+    [currencyA, currencyB, reverseMapFeeAmount(FeeAmountEnum.LOW)],
+    [currencyA, currencyB, reverseMapFeeAmount(FeeAmountEnum.MEDIUM)],
+    [currencyA, currencyB, reverseMapFeeAmount(FeeAmountEnum.HIGH)],
   ])
 
-  const poolsByFeeTier: Record<FeeAmount, PoolState> = useMemo(
+  const poolsByFeeTier: Record<FeeAmountEnum, PoolState> = useMemo(
     () =>
       pools.reduce(
         (acc, [curPoolState, curPool]) => {
-          acc = {
-            ...acc,
-            ...{ [curPool?.fee as FeeAmount]: curPoolState },
+          if (curPool) {
+            acc = {
+              ...acc,
+              ...{ [mapFeeAmount(curPool.fee)]: curPoolState },
+            }
           }
           return acc
         },
         {
           // default all states to NOT_EXISTS
-          [FeeAmount.LOWEST]: PoolState.NOT_EXISTS,
-          [FeeAmount.LOW]: PoolState.NOT_EXISTS,
-          [FeeAmount.MEDIUM]: PoolState.NOT_EXISTS,
-          [FeeAmount.HIGH]: PoolState.NOT_EXISTS,
+          [FeeAmountEnum.LOWEST]: PoolState.NOT_EXISTS,
+          [FeeAmountEnum.LOW]: PoolState.NOT_EXISTS,
+          [FeeAmountEnum.MEDIUM]: PoolState.NOT_EXISTS,
+          [FeeAmountEnum.HIGH]: PoolState.NOT_EXISTS,
         }
       ),
     [pools]
@@ -100,7 +103,7 @@ export default function FeeSelector({
   const recommended = useRef(false)
 
   const handleFeePoolSelectWithEvent = useCallback(
-    (fee: FeeAmount) => {
+    (fee: FeeAmountEnum) => {
       ReactGA.event({
         category: 'FeePoolSelect',
         action: 'Manual',
@@ -182,22 +185,24 @@ export default function FeeSelector({
 
         {chainId && showOptions && (
           <Select>
-            {[FeeAmount.LOWEST, FeeAmount.LOW, FeeAmount.MEDIUM, FeeAmount.HIGH].map((_feeAmount, i) => {
-              const { supportedChains } = FEE_AMOUNT_DETAIL[_feeAmount]
-              if (supportedChains.includes(chainId)) {
-                return (
-                  <FeeOption
-                    feeAmount={_feeAmount}
-                    active={feeAmount === _feeAmount}
-                    onClick={() => handleFeePoolSelectWithEvent(_feeAmount)}
-                    distributions={distributions}
-                    poolState={poolsByFeeTier[_feeAmount]}
-                    key={i}
-                  />
-                )
+            {[FeeAmountEnum.LOWEST, FeeAmountEnum.LOW, FeeAmountEnum.MEDIUM, FeeAmountEnum.HIGH].map(
+              (_feeAmount, i) => {
+                const { supportedChains } = FEE_AMOUNT_DETAIL[_feeAmount]
+                if (supportedChains.includes(chainId)) {
+                  return (
+                    <FeeOption
+                      feeAmount={_feeAmount}
+                      active={feeAmount === _feeAmount}
+                      onClick={() => handleFeePoolSelectWithEvent(_feeAmount)}
+                      distributions={distributions}
+                      poolState={poolsByFeeTier[_feeAmount]}
+                      key={i}
+                    />
+                  )
+                }
+                return null
               }
-              return null
-            })}
+            )}
           </Select>
         )}
       </DynamicSection>

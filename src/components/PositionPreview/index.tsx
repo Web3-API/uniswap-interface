@@ -1,6 +1,5 @@
 import { Trans } from '@lingui/macro'
-import { Currency } from '@uniswap/sdk-core'
-import { Position } from '@uniswap/v3-sdk'
+import { Currency as UniCurrency, Price as UniPrice, Token as UniToken } from '@uniswap/sdk-core'
 import RangeBadge from 'components/Badge/RangeBadge'
 import { LightCard } from 'components/Card'
 import { AutoColumn } from 'components/Column'
@@ -10,12 +9,21 @@ import { Break } from 'components/earn/styled'
 import RateToggle from 'components/RateToggle'
 import { RowBetween, RowFixed } from 'components/Row'
 import JSBI from 'jsbi'
-import { ReactNode, useCallback, useContext, useState } from 'react'
+import { ReactNode, useCallback, useContext, useEffect, useState } from 'react'
 import { Bound } from 'state/mint/v3/actions'
 import { ThemeContext } from 'styled-components/macro'
 import { ThemedText } from 'theme'
 import { formatTickPrice } from 'utils/formatTickPrice'
 import { unwrappedToken } from 'utils/unwrappedToken'
+
+import { PolywrapDapp, Position, Price, TokenAmount } from '../../polywrap'
+import {
+  reverseMapFeeAmount,
+  reverseMapPrice,
+  reverseMapToken,
+  toSignificant,
+  usePolywrapDapp,
+} from '../../polywrap-utils'
 
 export const PositionPreview = ({
   position,
@@ -27,13 +35,13 @@ export const PositionPreview = ({
   position: Position
   title?: ReactNode
   inRange: boolean
-  baseCurrencyDefault?: Currency | undefined
+  baseCurrencyDefault?: UniCurrency | undefined
   ticksAtLimit: { [bound: string]: boolean | undefined }
 }) => {
   const theme = useContext(ThemeContext)
 
-  const currency0 = unwrappedToken(position.pool.token0)
-  const currency1 = unwrappedToken(position.pool.token1)
+  const currency0 = unwrappedToken(reverseMapToken(position.pool.token0) as UniCurrency)
+  const currency1 = unwrappedToken(reverseMapToken(position.pool.token1) as UniCurrency)
 
   // track which currency should be base
   const [baseCurrency, setBaseCurrency] = useState(
@@ -49,16 +57,43 @@ export const PositionPreview = ({
   const sorted = baseCurrency === currency0
   const quoteCurrency = sorted ? currency1 : currency0
 
-  const price = sorted ? position.pool.priceOf(position.pool.token0) : position.pool.priceOf(position.pool.token1)
+  const dapp: PolywrapDapp = usePolywrapDapp()
+  const [price, setPrice] = useState<UniPrice<UniCurrency, UniCurrency>>(
+    new UniPrice(baseCurrency, quoteCurrency, 0, 0)
+  )
+  const [priceLower, setPriceLower] = useState<UniPrice<UniCurrency, UniCurrency>>(
+    new UniPrice(baseCurrency, quoteCurrency, 0, 0)
+  )
+  const [priceUpper, setPriceUpper] = useState<UniPrice<UniCurrency, UniCurrency>>(
+    new UniPrice(baseCurrency, quoteCurrency, 0, 0)
+  )
+  const [amount0, setAmount0] = useState<TokenAmount>({ token: position.pool.token0, amount: '0' })
+  const [amount1, setAmount1] = useState<TokenAmount>({ token: position.pool.token1, amount: '0' })
 
-  const priceLower = sorted ? position.token0PriceLower : position.token0PriceUpper.invert()
-  const priceUpper = sorted ? position.token0PriceUpper : position.token0PriceLower.invert()
+  useEffect(() => {
+    const updateAsync = async () => {
+      const tokenToPrice = sorted ? position.pool.token0 : position.pool.token1
+      const price: Price = await dapp.uniswap.query.poolPriceOf({ pool: position.pool, token: tokenToPrice })
+      const token0PriceLower: Price = await dapp.uniswap.query.positionToken0PriceLower({ position })
+      const token0PriceUpper: Price = await dapp.uniswap.query.positionToken0PriceUpper({ position })
+      const priceLower = sorted ? reverseMapPrice(token0PriceLower) : reverseMapPrice(token0PriceUpper).invert()
+      const priceUpper = sorted ? reverseMapPrice(token0PriceUpper) : reverseMapPrice(token0PriceLower).invert()
+      const amount0 = await dapp.uniswap.query.positionAmount0({ position })
+      const amount1 = await dapp.uniswap.query.positionAmount1({ position })
+      setPrice(reverseMapPrice(price))
+      setPriceLower(priceLower)
+      setPriceUpper(priceUpper)
+      setAmount0(amount0)
+      setAmount1(amount1)
+    }
+    void updateAsync()
+  }, [sorted, position, dapp])
 
   const handleRateChange = useCallback(() => {
     setBaseCurrency(quoteCurrency)
   }, [quoteCurrency])
 
-  const removed = position?.liquidity && JSBI.equal(position?.liquidity, JSBI.BigInt(0))
+  const removed = JSBI.equal(JSBI.BigInt(position.liquidity), JSBI.BigInt(0))
 
   return (
     <AutoColumn gap="md" style={{ marginTop: '0.5rem' }}>
@@ -85,7 +120,7 @@ export const PositionPreview = ({
               <ThemedText.Label ml="8px">{currency0?.symbol}</ThemedText.Label>
             </RowFixed>
             <RowFixed>
-              <ThemedText.Label mr="8px">{position.amount0.toSignificant(4)}</ThemedText.Label>
+              <ThemedText.Label mr="8px">{toSignificant(amount0, 4)}</ThemedText.Label>
             </RowFixed>
           </RowBetween>
           <RowBetween>
@@ -94,7 +129,7 @@ export const PositionPreview = ({
               <ThemedText.Label ml="8px">{currency1?.symbol}</ThemedText.Label>
             </RowFixed>
             <RowFixed>
-              <ThemedText.Label mr="8px">{position.amount1.toSignificant(4)}</ThemedText.Label>
+              <ThemedText.Label mr="8px">{toSignificant(amount1, 4)}</ThemedText.Label>
             </RowFixed>
           </RowBetween>
           <Break />
@@ -103,7 +138,7 @@ export const PositionPreview = ({
               <Trans>Fee Tier</Trans>
             </ThemedText.Label>
             <ThemedText.Label>
-              <Trans>{position?.pool?.fee / 10000}%</Trans>
+              <Trans>{reverseMapFeeAmount(position.pool.fee) / 10000}%</Trans>
             </ThemedText.Label>
           </RowBetween>
         </AutoColumn>
@@ -126,7 +161,7 @@ export const PositionPreview = ({
                 <Trans>Min Price</Trans>
               </ThemedText.Main>
               <ThemedText.MediumHeader textAlign="center">{`${formatTickPrice(
-                priceLower,
+                priceLower as UniPrice<UniToken, UniToken>,
                 ticksAtLimit,
                 Bound.LOWER
               )}`}</ThemedText.MediumHeader>
@@ -147,7 +182,7 @@ export const PositionPreview = ({
                 <Trans>Max Price</Trans>
               </ThemedText.Main>
               <ThemedText.MediumHeader textAlign="center">{`${formatTickPrice(
-                priceUpper,
+                priceUpper as UniPrice<UniToken, UniToken>,
                 ticksAtLimit,
                 Bound.UPPER
               )}`}</ThemedText.MediumHeader>
