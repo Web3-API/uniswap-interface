@@ -20,7 +20,7 @@ import { unwrappedToken } from 'utils/unwrappedToken'
 
 import { DAI, USDC, USDT, WBTC, WRAPPED_NATIVE_CURRENCY } from '../../constants/tokens'
 import { PolywrapDapp, Position, Price as PWPrice, TokenAmount as PWTokenAmount, Uniswap } from '../../polywrap'
-import { mapPool, reverseMapPrice, reverseMapToken, usePolywrapDapp } from '../../polywrap-utils'
+import { reverseMapPrice, reverseMapToken, usePolywrapDapp } from '../../polywrap-utils'
 
 const LinkRow = styled(Link)`
   align-items: center;
@@ -228,7 +228,7 @@ export default function PositionListItem({ positionDetails }: PositionListItemPr
     const updateAsync = async () => {
       if (pool) {
         const newPosition = await dapp.uniswap.query.createPosition({
-          pool: await mapPool(pool),
+          pool,
           liquidity: liquidity.toString(),
           tickLower,
           tickUpper,

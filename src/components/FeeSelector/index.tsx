@@ -16,7 +16,6 @@ import styled, { keyframes } from 'styled-components/macro'
 import { ThemedText } from 'theme'
 
 import { FeeAmountEnum } from '../../polywrap'
-import { mapFeeAmount, reverseMapFeeAmount } from '../../polywrap-utils'
 import { FeeOption } from './FeeOption'
 import { FeeTierPercentageBadge } from './FeeTierPercentageBadge'
 import { FEE_AMOUNT_DETAIL } from './shared'
@@ -66,10 +65,10 @@ export default function FeeSelector({
 
   // get pool data on-chain for latest states
   const pools = usePools([
-    [currencyA, currencyB, reverseMapFeeAmount(FeeAmountEnum.LOWEST)],
-    [currencyA, currencyB, reverseMapFeeAmount(FeeAmountEnum.LOW)],
-    [currencyA, currencyB, reverseMapFeeAmount(FeeAmountEnum.MEDIUM)],
-    [currencyA, currencyB, reverseMapFeeAmount(FeeAmountEnum.HIGH)],
+    [currencyA, currencyB, FeeAmountEnum.LOWEST],
+    [currencyA, currencyB, FeeAmountEnum.LOW],
+    [currencyA, currencyB, FeeAmountEnum.MEDIUM],
+    [currencyA, currencyB, FeeAmountEnum.HIGH],
   ])
 
   const poolsByFeeTier: Record<FeeAmountEnum, PoolState> = useMemo(
@@ -79,7 +78,7 @@ export default function FeeSelector({
           if (curPool) {
             acc = {
               ...acc,
-              ...{ [mapFeeAmount(curPool.fee)]: curPoolState },
+              ...{ [curPool.fee]: curPoolState },
             }
           }
           return acc
@@ -114,7 +113,7 @@ export default function FeeSelector({
   )
 
   useEffect(() => {
-    if (feeAmount || isLoading || isError) {
+    if (feeAmount !== undefined || isLoading || isError) {
       return
     }
 
@@ -139,7 +138,7 @@ export default function FeeSelector({
   }, [isError])
 
   useEffect(() => {
-    if (feeAmount && previousFeeAmount !== feeAmount) {
+    if (feeAmount !== undefined && previousFeeAmount !== feeAmount) {
       setPulsing(true)
     }
   }, [previousFeeAmount, feeAmount])
@@ -150,7 +149,7 @@ export default function FeeSelector({
         <FocusedOutlineCard pulsing={pulsing} onAnimationEnd={() => setPulsing(false)}>
           <RowBetween>
             <AutoColumn id="add-liquidity-selected-fee">
-              {!feeAmount ? (
+              {feeAmount === undefined ? (
                 <>
                   <ThemedText.Label>
                     <Trans>Fee tier</Trans>

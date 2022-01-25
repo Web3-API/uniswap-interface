@@ -58,6 +58,7 @@ export const PositionPreview = ({
   const quoteCurrency = sorted ? currency1 : currency0
 
   const dapp: PolywrapDapp = usePolywrapDapp()
+
   const [price, setPrice] = useState<UniPrice<UniCurrency, UniCurrency>>(
     new UniPrice(baseCurrency, quoteCurrency, 0, 0)
   )

@@ -1,4 +1,6 @@
+import { Trade as RouterTrade } from '@uniswap/router-sdk'
 import { Fraction } from '@uniswap/sdk-core'
+import { Trade as V2Trade } from '@uniswap/v2-sdk'
 import JSBI from 'jsbi'
 
 import * as Poly from '../polywrap'
@@ -24,6 +26,38 @@ export function isToken(object: unknown): object is Poly.Token {
     Object.prototype.hasOwnProperty.call((object as any)?.currency, 'decimals') &&
     Object.prototype.hasOwnProperty.call((object as any)?.currency, 'symbol') &&
     Object.prototype.hasOwnProperty.call((object as any)?.currency, 'name')
+  )
+}
+
+export function isPool(object: unknown): object is Poly.Pool {
+  if (object === null || object === undefined) {
+    return false
+  }
+  return (
+    Object.prototype.hasOwnProperty.call(object, 'token0') &&
+    Object.prototype.hasOwnProperty.call(object, 'token1') &&
+    Object.prototype.hasOwnProperty.call(object, 'fee') &&
+    Object.prototype.hasOwnProperty.call(object, 'sqrtRatioX96') &&
+    Object.prototype.hasOwnProperty.call(object, 'liquidity') &&
+    Object.prototype.hasOwnProperty.call(object, 'tickCurrent') &&
+    Object.prototype.hasOwnProperty.call(object, 'tickDataProvider') &&
+    isToken((object as any)?.token0)
+  )
+}
+
+export function isTrade(object: unknown): object is Poly.Trade {
+  if (object === null || object === undefined) {
+    return false
+  }
+  return (
+    !(object instanceof V2Trade) &&
+    !(object instanceof RouterTrade) &&
+    Object.prototype.hasOwnProperty.call(object, 'swaps') &&
+    Object.prototype.hasOwnProperty.call(object, 'tradeType') &&
+    Object.prototype.hasOwnProperty.call(object, 'inputAmount') &&
+    Object.prototype.hasOwnProperty.call(object, 'outputAmount') &&
+    Object.prototype.hasOwnProperty.call(object, 'executionPrice') &&
+    Object.prototype.hasOwnProperty.call(object, 'priceImpact')
   )
 }
 

@@ -3,7 +3,6 @@ import { SupportedChainId } from 'constants/chains'
 import { useMemo } from 'react'
 
 import { FeeAmountEnum, Pool } from '../polywrap'
-import { mapPool, reverseMapFeeAmount, useAsync } from '../polywrap-utils'
 import { useAllCurrencyCombinations } from './useAllCurrencyCombinations'
 import { PoolState, usePools } from './usePools'
 import { useActiveWeb3React } from './web3'
@@ -43,43 +42,8 @@ export function useV3SwapPools(
     [allCurrencyCombinations, chainId]
   )
 
-  const usePoolsResult = usePools(
-    allCurrencyCombinationsWithAllFees.map(([token0, token1, feeAmountEnum]) => [
-      token0,
-      token1,
-      reverseMapFeeAmount(feeAmountEnum),
-    ])
-  )
-
-  // this block is just for mapping
-  // const [pools, setPools] = useState<[PoolState, Pool | null][]>([])
-  // useEffect(() => {
-  //   const updateAsync = async () => {
-  //     const poolsAsync = usePoolsResult.map(
-  //       async ([poolState, pool]): Promise<[PoolState, Pool | null]> => [
-  //         poolState,
-  //         pool === null ? null : await mapPool(pool),
-  //       ]
-  //     )
-  //     const pools = await Promise.all(poolsAsync)
-  //     setPools(pools)
-  //   }
-  //   void updateAsync()
-  // }, [usePoolsResult])
-
-  // this block is just for mapping
-  const pools = useAsync(
-    () => {
-      const poolsAsync = usePoolsResult.map(
-        async ([poolState, pool]): Promise<[PoolState, Pool | null]> => [
-          poolState,
-          pool === null ? null : await mapPool(pool),
-        ]
-      )
-      return Promise.all(poolsAsync)
-    },
-    [usePoolsResult],
-    []
+  const pools = usePools(
+    allCurrencyCombinationsWithAllFees.map(([token0, token1, feeAmountEnum]) => [token0, token1, feeAmountEnum])
   )
 
   return useMemo(() => {

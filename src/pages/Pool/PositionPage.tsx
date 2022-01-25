@@ -320,6 +320,7 @@ export function PositionPage({
 }: RouteComponentProps<{ tokenId?: string }>) {
   const { chainId, account, library } = useActiveWeb3React()
   const theme = useTheme()
+
   const dapp = usePolywrapDapp()
 
   const parsedTokenId = tokenIdFromUrl ? BigNumber.from(tokenIdFromUrl) : undefined

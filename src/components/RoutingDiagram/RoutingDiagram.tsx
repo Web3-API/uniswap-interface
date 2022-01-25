@@ -146,6 +146,7 @@ function Pool({
   const tokenInfo1 = useTokenInfoFromActiveList(currency1)
 
   const dapp = usePolywrapDapp()
+
   const [fee, setFee] = useState<number>(0)
   useEffect(() => {
     const updateAsync = async () => {

@@ -1,11 +1,11 @@
 import { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
-import { Route, SwapQuoter } from '@uniswap/v3-sdk'
 import { SupportedChainId } from 'constants/chains'
 import JSBI from 'jsbi'
 import { useMemo } from 'react'
 import { InterfaceTrade, TradeState } from 'state/routing/types'
 
-import { reverseMapRoute } from '../polywrap-utils'
+import { Route, TokenAmount } from '../polywrap'
+import { mapTokenAmount, mapTradeType, reverseMapRoute, useAsync, usePolywrapDapp } from '../polywrap-utils'
 import { useSingleContractWithCallData } from '../state/multicall/hooks'
 import { useAllV3Routes } from './useAllV3Routes'
 import { useV3Quoter } from './useContract'
@@ -29,6 +29,8 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
   amountSpecified?: CurrencyAmount<Currency>,
   otherCurrency?: Currency
 ): { state: TradeState; trade: InterfaceTrade<Currency, Currency, TTradeType> | undefined } {
+  const dapp = usePolywrapDapp()
+
   const [currencyIn, currencyOut] = useMemo(
     () =>
       tradeType === TradeType.EXACT_INPUT
@@ -40,17 +42,27 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
 
   const quoter = useV3Quoter()
   const { chainId } = useActiveWeb3React()
-  const quotesResults = useSingleContractWithCallData(
-    quoter,
-    amountSpecified
-      ? routes.map(
-          (route) => SwapQuoter.quoteCallParameters(reverseMapRoute(route), amountSpecified, tradeType).calldata
-        )
-      : [],
-    {
-      gasRequired: chainId ? QUOTE_GAS_OVERRIDES[chainId] ?? DEFAULT_GAS_QUOTE : undefined,
-    }
+  const callParams = useAsync(
+    async () => {
+      if (amountSpecified) {
+        const calldatas = routes.map(async (route) => {
+          const params = await dapp.uniswap.query.quoteCallParameters({
+            route,
+            amount: mapTokenAmount(amountSpecified) as TokenAmount,
+            tradeType: mapTradeType(tradeType),
+          })
+          return params.calldata
+        })
+        return Promise.all(calldatas)
+      }
+      return []
+    },
+    [amountSpecified, routes, dapp],
+    []
   )
+  const quotesResults = useSingleContractWithCallData(quoter, callParams, {
+    gasRequired: chainId ? QUOTE_GAS_OVERRIDES[chainId] ?? DEFAULT_GAS_QUOTE : undefined,
+  })
 
   return useMemo(() => {
     if (
@@ -79,7 +91,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
     const { bestRoute, amountIn, amountOut } = quotesResults.reduce(
       (
         currentBest: {
-          bestRoute: Route<Currency, Currency> | null
+          bestRoute: Route | null
           amountIn: CurrencyAmount<Currency> | null
           amountOut: CurrencyAmount<Currency> | null
         },
@@ -93,7 +105,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
           const amountOut = CurrencyAmount.fromRawAmount(currencyOut, result.amountOut.toString())
           if (currentBest.amountOut === null || JSBI.lessThan(currentBest.amountOut.quotient, amountOut.quotient)) {
             return {
-              bestRoute: reverseMapRoute(routes[i]),
+              bestRoute: routes[i],
               amountIn: amountSpecified,
               amountOut,
             }
@@ -102,7 +114,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
           const amountIn = CurrencyAmount.fromRawAmount(currencyIn, result.amountIn.toString())
           if (currentBest.amountIn === null || JSBI.greaterThan(currentBest.amountIn.quotient, amountIn.quotient)) {
             return {
-              bestRoute: reverseMapRoute(routes[i]),
+              bestRoute: routes[i],
               amountIn,
               amountOut: amountSpecified,
             }
@@ -131,7 +143,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
         v2Routes: [],
         v3Routes: [
           {
-            routev3: bestRoute,
+            routev3: reverseMapRoute(bestRoute),
             inputAmount: amountIn,
             outputAmount: amountOut,
           },

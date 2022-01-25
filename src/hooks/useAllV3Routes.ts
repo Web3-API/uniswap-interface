@@ -76,7 +76,7 @@ export function useAllV3Routes(currencyIn?: Currency, currencyOut?: Currency): {
   const dapp: PolywrapDapp = usePolywrapDapp()
 
   return useAsync(
-    async () => {
+    async (): Promise<{ loading: boolean; routes: Route[] }> => {
       if (poolsLoading || !chainId || !pools || !currencyIn || !currencyOut) return { loading: true, routes: [] }
 
       const currIn: Token = mapToken(currencyIn)
@@ -85,7 +85,7 @@ export function useAllV3Routes(currencyIn?: Currency, currencyOut?: Currency): {
       const routes = await computeAllRoutes(dapp.uniswap, currIn, currOut, pools, chainId, [], [], currIn, 2)
       return { loading: false, routes }
     },
-    [chainId, currencyIn, currencyOut, pools, poolsLoading],
+    [chainId, currencyIn, currencyOut, pools, poolsLoading, dapp],
     { loading: true, routes: [] }
   )
 }

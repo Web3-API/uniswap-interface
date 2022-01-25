@@ -1,23 +1,34 @@
-import { FeeAmount, nearestUsableTick, TICK_SPACINGS, TickMath } from '@uniswap/v3-sdk'
-import { useMemo } from 'react'
 import { Bound } from 'state/mint/v3/actions'
 
+import { FeeAmountEnum, PolywrapDapp } from '../polywrap'
+import { useAsync, usePolywrapDapp } from '../polywrap-utils'
+
 export default function useIsTickAtLimit(
-  feeAmount: FeeAmount | undefined,
+  feeAmount: FeeAmountEnum | undefined,
   tickLower: number | undefined,
   tickUpper: number | undefined
 ) {
-  return useMemo(
-    () => ({
+  const dapp: PolywrapDapp = usePolywrapDapp()
+  return useAsync(
+    async () => ({
       [Bound.LOWER]:
-        feeAmount && tickLower
-          ? tickLower === nearestUsableTick(TickMath.MIN_TICK, TICK_SPACINGS[feeAmount as FeeAmount])
+        feeAmount !== undefined && tickLower
+          ? tickLower ===
+            (await dapp.uniswap.query.nearestUsableTick({
+              tick: await dapp.uniswap.query.MIN_TICK({}),
+              tickSpacing: await dapp.uniswap.query.feeAmountToTickSpacing({ feeAmount }),
+            }))
           : undefined,
       [Bound.UPPER]:
-        feeAmount && tickUpper
-          ? tickUpper === nearestUsableTick(TickMath.MAX_TICK, TICK_SPACINGS[feeAmount as FeeAmount])
+        feeAmount !== undefined && tickUpper
+          ? tickUpper ===
+            (await dapp.uniswap.query.nearestUsableTick({
+              tick: await dapp.uniswap.query.MAX_TICK({}),
+              tickSpacing: await dapp.uniswap.query.feeAmountToTickSpacing({ feeAmount }),
+            }))
           : undefined,
     }),
-    [feeAmount, tickLower, tickUpper]
+    [feeAmount, tickLower, tickUpper, dapp],
+    { [Bound.LOWER]: undefined, [Bound.UPPER]: undefined }
   )
 }

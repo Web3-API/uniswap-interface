@@ -2,12 +2,13 @@ import { splitSignature } from '@ethersproject/bytes'
 import { Trade } from '@uniswap/router-sdk'
 import { Currency, CurrencyAmount, Percent, Token, TradeType } from '@uniswap/sdk-core'
 import { Trade as V2Trade } from '@uniswap/v2-sdk'
-import { Trade as V3Trade } from '@uniswap/v3-sdk'
 import JSBI from 'jsbi'
 import { useMemo, useState } from 'react'
 
 import { SWAP_ROUTER_ADDRESSES, V3_ROUTER_ADDRESS } from '../constants/addresses'
 import { DAI, UNI, USDC } from '../constants/tokens'
+import { PolywrapDapp, Trade as PolyTrade } from '../polywrap'
+import { isTrade, reverseMapTokenAmount, useAsync, usePolywrapDapp } from '../polywrap-utils'
 import { useSingleCallResult } from '../state/multicall/hooks'
 import { useEIP2612Contract } from './useContract'
 import useIsArgentWallet from './useIsArgentWallet'
@@ -273,25 +274,35 @@ export function useV2LiquidityTokenPermit(
 }
 
 export function useERC20PermitFromTrade(
-  trade:
-    | V2Trade<Currency, Currency, TradeType>
-    | V3Trade<Currency, Currency, TradeType>
-    | Trade<Currency, Currency, TradeType>
-    | undefined,
+  trade: V2Trade<Currency, Currency, TradeType> | PolyTrade | Trade<Currency, Currency, TradeType> | undefined,
   allowedSlippage: Percent
 ) {
+  const dapp: PolywrapDapp = usePolywrapDapp()
   const { chainId } = useActiveWeb3React()
   const swapRouterAddress = chainId
     ? // v2 router does not support
       trade instanceof V2Trade
       ? undefined
-      : trade instanceof V3Trade
+      : isTrade(trade)
       ? V3_ROUTER_ADDRESS[chainId]
       : SWAP_ROUTER_ADDRESSES[chainId]
     : undefined
-  const amountToApprove = useMemo(
-    () => (trade ? trade.maximumAmountIn(allowedSlippage) : undefined),
-    [trade, allowedSlippage]
+
+  const amountToApprove = useAsync(
+    async () => {
+      if (!trade) return undefined
+      if (isTrade(trade)) {
+        const maxAmountIn = await dapp.uniswap.query.tradeMaximumAmountIn({
+          slippageTolerance: allowedSlippage.toFixed(36),
+          amountIn: trade.inputAmount,
+          tradeType: trade.tradeType,
+        })
+        return reverseMapTokenAmount(maxAmountIn)
+      }
+      return trade.maximumAmountIn(allowedSlippage)
+    },
+    [trade, allowedSlippage, dapp],
+    undefined
   )
 
   return useERC20Permit(amountToApprove, swapRouterAddress, null)

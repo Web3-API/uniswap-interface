@@ -1,13 +1,24 @@
 import { MaxUint256 } from '@ethersproject/constants'
 import { TransactionResponse } from '@ethersproject/providers'
-import { Protocol, Trade } from '@uniswap/router-sdk'
+import { Protocol, Trade as RouterTrade } from '@uniswap/router-sdk'
 import { Currency, CurrencyAmount, Percent, TradeType } from '@uniswap/sdk-core'
 import { Pair, Route as V2Route, Trade as V2Trade } from '@uniswap/v2-sdk'
-import { Pool, Route as V3Route, Trade as V3Trade } from '@uniswap/v3-sdk'
+import { Pool } from '@uniswap/v3-sdk'
 import { useCallback, useMemo } from 'react'
 import { getTxOptimizedSwapRouter, SwapRouterVersion } from 'utils/getTxOptimizedSwapRouter'
 
 import { SWAP_ROUTER_ADDRESSES, V2_ROUTER_ADDRESS, V3_ROUTER_ADDRESS } from '../constants/addresses'
+import { TokenAmount, Trade as PolyTrade } from '../polywrap'
+import {
+  isTrade,
+  mapPools,
+  mapToken,
+  mapTokenAmount,
+  mapTradeType,
+  reverseMapTokenAmount,
+  useAsync,
+  usePolywrapDapp,
+} from '../polywrap-utils'
 import { TransactionType } from '../state/transactions/actions'
 import { useHasPendingApproval, useTransactionAdder } from '../state/transactions/hooks'
 import { calculateGasMargin } from '../utils/calculateGasMargin'
@@ -46,7 +57,7 @@ export function useApprovalState(amountToApprove?: CurrencyAmount<Currency>, spe
 
 /** Returns approval state for all known swap routers */
 export function useAllApprovalStates(
-  trade: Trade<Currency, Currency, TradeType> | undefined,
+  trade: RouterTrade<Currency, Currency, TradeType> | undefined,
   allowedSlippage: Percent
 ) {
   const { chainId } = useActiveWeb3React()
@@ -135,17 +146,31 @@ export function useApproveCallback(
 
 // wraps useApproveCallback in the context of a swap
 export function useApproveCallbackFromTrade(
-  trade:
-    | V2Trade<Currency, Currency, TradeType>
-    | V3Trade<Currency, Currency, TradeType>
-    | Trade<Currency, Currency, TradeType>
-    | undefined,
+  trade: V2Trade<Currency, Currency, TradeType> | PolyTrade | RouterTrade<Currency, Currency, TradeType> | undefined,
   allowedSlippage: Percent
 ) {
   const { chainId } = useActiveWeb3React()
-  const amountToApprove = useMemo(
-    () => (trade && trade.inputAmount.currency.isToken ? trade.maximumAmountIn(allowedSlippage) : undefined),
-    [trade, allowedSlippage]
+  const dapp = usePolywrapDapp()
+
+  const amountToApprove = useAsync(
+    async () => {
+      if (!trade) return undefined
+      if (isTrade(trade)) {
+        const isEther = await dapp.uniswap.query.isEther({ token: trade.inputAmount.token })
+        if (isEther) {
+          const maxAmountIn = await dapp.uniswap.query.tradeMaximumAmountIn({
+            slippageTolerance: allowedSlippage.toFixed(36),
+            amountIn: trade.inputAmount,
+            tradeType: trade.tradeType,
+          })
+          return reverseMapTokenAmount(maxAmountIn)
+        }
+        return undefined
+      }
+      return trade.inputAmount.currency.isToken ? trade.maximumAmountIn(allowedSlippage) : undefined
+    },
+    [trade, allowedSlippage, dapp],
+    undefined
   )
 
   const approveCallback = useApproveCallback(
@@ -153,7 +178,7 @@ export function useApproveCallbackFromTrade(
     chainId
       ? trade instanceof V2Trade
         ? V2_ROUTER_ADDRESS[chainId]
-        : trade instanceof V3Trade
+        : isTrade(trade)
         ? V3_ROUTER_ADDRESS[chainId]
         : SWAP_ROUTER_ADDRESSES[chainId]
       : undefined
@@ -161,8 +186,8 @@ export function useApproveCallbackFromTrade(
 
   // TODO: remove L162-168 after testing is done. This error will help detect mistakes in the logic.
   if (
-    (Trade instanceof V2Trade && approveCallback[0] !== ApprovalState.APPROVED) ||
-    (trade instanceof V3Trade && approveCallback[0] !== ApprovalState.APPROVED)
+    (trade instanceof V2Trade && approveCallback[0] !== ApprovalState.APPROVED) ||
+    (isTrade(trade) && approveCallback[0] !== ApprovalState.APPROVED)
   ) {
     throw new Error('Trying to approve legacy router')
   }
@@ -171,13 +196,11 @@ export function useApproveCallbackFromTrade(
 }
 
 export function useApprovalOptimizedTrade(
-  trade: Trade<Currency, Currency, TradeType> | undefined,
+  trade: RouterTrade<Currency, Currency, TradeType> | undefined,
   allowedSlippage: Percent
-):
-  | V2Trade<Currency, Currency, TradeType>
-  | V3Trade<Currency, Currency, TradeType>
-  | Trade<Currency, Currency, TradeType>
-  | undefined {
+): V2Trade<Currency, Currency, TradeType> | PolyTrade | RouterTrade<Currency, Currency, TradeType> | undefined {
+  const dapp = usePolywrapDapp()
+
   const onlyV2Routes = trade?.routes.every((route) => route.protocol === Protocol.V2)
   const onlyV3Routes = trade?.routes.every((route) => route.protocol === Protocol.V3)
   const tradeHasSplits = (trade?.routes.length ?? 0) > 1
@@ -189,37 +212,43 @@ export function useApprovalOptimizedTrade(
     [approvalStates, tradeHasSplits, onlyV2Routes, onlyV3Routes]
   )
 
-  return useMemo(() => {
-    if (!trade) return undefined
+  return useAsync(
+    async () => {
+      if (!trade) return undefined
 
-    try {
-      switch (optimizedSwapRouter) {
-        case SwapRouterVersion.V2V3:
-          return trade
-        case SwapRouterVersion.V2:
-          const pairs = trade.swaps[0].route.pools.filter((pool) => pool instanceof Pair) as Pair[]
-          const v2Route = new V2Route(pairs, trade.inputAmount.currency, trade.outputAmount.currency)
-          return new V2Trade(v2Route, trade.inputAmount, trade.tradeType)
-        case SwapRouterVersion.V3:
-          return V3Trade.createUncheckedTradeWithMultipleRoutes({
-            routes: trade.swaps.map(({ route, inputAmount, outputAmount }) => ({
-              route: new V3Route(
-                route.pools.filter((p) => p instanceof Pool) as Pool[],
-                inputAmount.currency,
-                outputAmount.currency
+      try {
+        switch (optimizedSwapRouter) {
+          case SwapRouterVersion.V2V3:
+            return trade
+          case SwapRouterVersion.V2:
+            const pairs = trade.swaps[0].route.pools.filter((pool) => pool instanceof Pair) as Pair[]
+            const v2Route = new V2Route(pairs, trade.inputAmount.currency, trade.outputAmount.currency)
+            return new V2Trade(v2Route, trade.inputAmount, trade.tradeType)
+          case SwapRouterVersion.V3:
+            return await dapp.uniswap.query.createUncheckedTradeWithMultipleRoutes({
+              swaps: await Promise.all(
+                trade.swaps.map(async ({ route, inputAmount, outputAmount }) => ({
+                  route: await dapp.uniswap.query.createRoute({
+                    pools: await mapPools(route.pools.filter((p) => p instanceof Pool) as Pool[]),
+                    inToken: mapToken(inputAmount.currency),
+                    outToken: mapToken(outputAmount.currency),
+                  }),
+                  inputAmount: mapTokenAmount(inputAmount) as TokenAmount,
+                  outputAmount: mapTokenAmount(outputAmount) as TokenAmount,
+                }))
               ),
-              inputAmount,
-              outputAmount,
-            })),
-            tradeType: trade.tradeType,
-          })
-        default:
-          return undefined
+              tradeType: mapTradeType(trade.tradeType),
+            })
+          default:
+            return undefined
+        }
+      } catch (e) {
+        // TODO(#2989): remove try-catch
+        console.debug(e)
+        return undefined
       }
-    } catch (e) {
-      // TODO(#2989): remove try-catch
-      console.debug(e)
-      return undefined
-    }
-  }, [trade, optimizedSwapRouter])
+    },
+    [trade, optimizedSwapRouter, dapp],
+    undefined
+  )
 }

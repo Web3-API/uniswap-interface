@@ -1,11 +1,12 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import { Pool } from '@uniswap/v3-sdk'
 import { useEffect, useState } from 'react'
 import { useBlockNumber } from 'state/application/hooks'
 import { useSingleCallResult } from 'state/multicall/hooks'
 import { unwrappedToken } from 'utils/unwrappedToken'
 
+import { Pool } from '../polywrap'
+import { reverseMapToken } from '../polywrap-utils'
 import { useV3NFTPositionManagerContract } from './useContract'
 
 const MAX_UINT128 = BigNumber.from(2).pow(128).sub(1)
@@ -51,9 +52,11 @@ export function useV3PositionFees(
   }, [positionManager, tokenIdHexString, owner, latestBlockNumber])
 
   if (pool && amounts) {
+    const token0 = reverseMapToken(pool.token0) as Currency
+    const token1 = reverseMapToken(pool.token1) as Currency
     return [
-      CurrencyAmount.fromRawAmount(!asWETH ? unwrappedToken(pool.token0) : pool.token0, amounts[0].toString()),
-      CurrencyAmount.fromRawAmount(!asWETH ? unwrappedToken(pool.token1) : pool.token1, amounts[1].toString()),
+      CurrencyAmount.fromRawAmount(!asWETH ? unwrappedToken(token0) : token0, amounts[0].toString()),
+      CurrencyAmount.fromRawAmount(!asWETH ? unwrappedToken(token1) : token1, amounts[1].toString()),
     ]
   } else {
     return [undefined, undefined]
