@@ -7,7 +7,9 @@ import { useBlockNumber } from 'state/application/hooks'
 import { useGetQuoteQuery } from 'state/routing/slice'
 import { useClientSideRouter } from 'state/user/hooks'
 
-import { GetQuoteResult, InterfaceTrade, TradeState } from './types'
+import { PolywrapDapp, Trade } from '../../polywrap'
+import { useAsync, usePolywrapDapp } from '../../polywrap-utils'
+import { GetQuoteResult, TradeState } from './types'
 import { computeRoutes, transformRoutesToTrade } from './utils'
 
 function useFreshData<T>(data: T, dataBlockNumber: number, maxBlockAge = 10): T | undefined {
@@ -71,7 +73,7 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
   otherCurrency?: Currency
 ): {
   state: TradeState
-  trade: InterfaceTrade<Currency, Currency, TTradeType> | undefined
+  trade: Trade | undefined
 } {
   const [currencyIn, currencyOut]: [Currency | undefined, Currency | undefined] = useMemo(
     () =>
@@ -103,48 +105,56 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
   // get USD gas cost of trade in active chains stablecoin amount
   const gasUseEstimateUSD = useStablecoinAmountFromFiatValue(quoteResult?.gasUseEstimateUSD) ?? null
 
-  return useMemo(() => {
-    if (!currencyIn || !currencyOut) {
-      return {
-        state: TradeState.INVALID,
-        trade: undefined,
+  const dapp: PolywrapDapp = usePolywrapDapp()
+  return useAsync(
+    async () => {
+      if (!currencyIn || !currencyOut) {
+        return {
+          state: TradeState.INVALID,
+          trade: undefined,
+        }
       }
-    }
 
-    if (isLoading && !quoteResult) {
-      // only on first hook render
-      return {
-        state: TradeState.LOADING,
-        trade: undefined,
+      if (isLoading && !quoteResult) {
+        // only on first hook render
+        return {
+          state: TradeState.LOADING,
+          trade: undefined,
+        }
       }
-    }
 
-    const otherAmount =
-      tradeType === TradeType.EXACT_INPUT
-        ? currencyOut && quoteResult
-          ? CurrencyAmount.fromRawAmount(currencyOut, quoteResult.quote)
+      const otherAmount =
+        tradeType === TradeType.EXACT_INPUT
+          ? currencyOut && quoteResult
+            ? CurrencyAmount.fromRawAmount(currencyOut, quoteResult.quote)
+            : undefined
+          : currencyIn && quoteResult
+          ? CurrencyAmount.fromRawAmount(currencyIn, quoteResult.quote)
           : undefined
-        : currencyIn && quoteResult
-        ? CurrencyAmount.fromRawAmount(currencyIn, quoteResult.quote)
-        : undefined
 
-    if (isError || !otherAmount || !route || route.length === 0 || !queryArgs) {
-      return {
-        state: TradeState.NO_ROUTE_FOUND,
-        trade: undefined,
+      if (isError || !otherAmount || !route || route.length === 0 || !queryArgs) {
+        return {
+          state: TradeState.NO_ROUTE_FOUND,
+          trade: undefined,
+        }
       }
-    }
 
-    try {
-      const trade = transformRoutesToTrade(route, tradeType, gasUseEstimateUSD)
-      return {
-        // always return VALID regardless of isFetching status
-        state: TradeState.VALID,
-        trade,
+      try {
+        const trade = await transformRoutesToTrade<TTradeType>(dapp.uniswap, route, tradeType, gasUseEstimateUSD)
+        return {
+          // always return VALID regardless of isFetching status
+          state: TradeState.VALID,
+          trade: trade.polyTrade,
+        }
+      } catch (e) {
+        console.debug('transformRoutesToTrade failed: ', e)
+        return { state: TradeState.INVALID, trade: undefined }
       }
-    } catch (e) {
-      console.debug('transformRoutesToTrade failed: ', e)
-      return { state: TradeState.INVALID, trade: undefined }
+    },
+    [currencyIn, currencyOut, isLoading, quoteResult, tradeType, isError, route, queryArgs, gasUseEstimateUSD],
+    {
+      state: TradeState.LOADING,
+      trade: undefined,
     }
-  }, [currencyIn, currencyOut, isLoading, quoteResult, tradeType, isError, route, queryArgs, gasUseEstimateUSD])
+  )
 }

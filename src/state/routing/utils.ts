@@ -1,8 +1,17 @@
-import { Currency, CurrencyAmount, Token, TradeType } from '@uniswap/sdk-core'
+import { Currency, CurrencyAmount, Token as UniToken, TradeType } from '@uniswap/sdk-core'
 import { Pair, Route as V2Route } from '@uniswap/v2-sdk'
-import { FeeAmount, Pool, Route as V3Route } from '@uniswap/v3-sdk'
 
 import { nativeOnChain } from '../../constants/tokens'
+import { PolywrapDapp, Pool, Token, TokenAmount, TradeTypeEnum, Uniswap } from '../../polywrap'
+import {
+  mapChainId,
+  mapFeeAmount,
+  mapToken,
+  mapTokenAmount,
+  mapTradeType,
+  useAsync,
+  usePolywrapDapp,
+} from '../../polywrap-utils'
 import { GetQuoteResult, InterfaceTrade, V2PoolInRoute, V3PoolInRoute } from './types'
 
 /**
@@ -19,8 +28,8 @@ export function computeRoutes(
 
   if (quoteResult.route.length === 0) return []
 
-  const parsedTokenIn = parseToken(quoteResult.route[0][0].tokenIn)
-  const parsedTokenOut = parseToken(quoteResult.route[0][quoteResult.route[0].length - 1].tokenOut)
+  const parsedTokenIn = parseUniToken(quoteResult.route[0][0].tokenIn)
+  const parsedTokenOut = parseUniToken(quoteResult.route[0][quoteResult.route[0].length - 1].tokenOut)
 
   if (parsedTokenIn.address !== currencyIn.wrapped.address) return undefined
   if (parsedTokenOut.address !== currencyOut.wrapped.address) return undefined
@@ -41,8 +50,24 @@ export function computeRoutes(
         throw new Error('Expected both amountIn and amountOut to be present')
       }
 
+      const dapp: PolywrapDapp = usePolywrapDapp()
+      const routev3 = useAsync(
+        async () => {
+          if (isV3Route(route)) {
+            return dapp.uniswap.query.createRoute({
+              pools: await Promise.all(route.map((route) => parsePool(dapp.uniswap, route))),
+              inToken: mapToken(parsedCurrencyIn),
+              outToken: mapToken(parsedCurrencyOut),
+            })
+          }
+          return null
+        },
+        [route, parsedCurrencyIn, parsedCurrencyOut, dapp],
+        null
+      )
+
       return {
-        routev3: isV3Route(route) ? new V3Route(route.map(parsePool), parsedCurrencyIn, parsedCurrencyOut) : null,
+        routev3,
         routev2: !isV3Route(route) ? new V2Route(route.map(parsePair), parsedCurrencyIn, parsedCurrencyOut) : null,
         inputAmount: CurrencyAmount.fromRawAmount(parsedCurrencyIn, rawAmountIn),
         outputAmount: CurrencyAmount.fromRawAmount(parsedCurrencyOut, rawAmountOut),
@@ -57,43 +82,69 @@ export function computeRoutes(
   }
 }
 
-export function transformRoutesToTrade<TTradeType extends TradeType>(
+export async function transformRoutesToTrade<TTradeType extends TradeType>(
+  uni: Uniswap,
   route: ReturnType<typeof computeRoutes>,
   tradeType: TTradeType,
-  gasUseEstimateUSD?: CurrencyAmount<Token> | null
-): InterfaceTrade<Currency, Currency, TTradeType> {
+  gasUseEstimateUSD?: CurrencyAmount<UniToken> | null
+): Promise<InterfaceTrade<Currency, Currency, TTradeType>> {
   return new InterfaceTrade({
     v2Routes:
       route
         ?.filter((r): r is typeof route[0] & { routev2: NonNullable<typeof route[0]['routev2']> } => r.routev2 !== null)
         .map(({ routev2, inputAmount, outputAmount }) => ({ routev2, inputAmount, outputAmount })) ?? [],
-    v3Routes:
-      route
-        ?.filter((r): r is typeof route[0] & { routev3: NonNullable<typeof route[0]['routev3']> } => r.routev3 !== null)
-        .map(({ routev3, inputAmount, outputAmount }) => ({ routev3, inputAmount, outputAmount })) ?? [],
+    v3Routes: [],
+    polyTrade: await uni.query.createTradeFromRoutes({
+      tradeRoutes:
+        route
+          ?.filter(
+            (r): r is typeof route[0] & { routev3: NonNullable<typeof route[0]['routev3']> } => r.routev3 !== null
+          )
+          .map(({ routev3, inputAmount, outputAmount }) => ({
+            route: routev3,
+            amount: (mapTradeType(tradeType) === TradeTypeEnum.EXACT_INPUT
+              ? mapTokenAmount(inputAmount)
+              : mapTokenAmount(outputAmount)) as TokenAmount,
+          })) ?? [],
+      tradeType: mapTradeType(tradeType),
+    }),
     tradeType,
     gasUseEstimateUSD,
   })
 }
 
-const parseToken = ({ address, chainId, decimals, symbol }: GetQuoteResult['route'][0][0]['tokenIn']): Token => {
-  return new Token(chainId, address, parseInt(decimals.toString()), symbol)
+const parseUniToken = ({ address, chainId, decimals, symbol }: GetQuoteResult['route'][0][0]['tokenIn']): UniToken => {
+  return new UniToken(chainId, address, parseInt(decimals.toString()), symbol)
 }
 
-const parsePool = ({ fee, sqrtRatioX96, liquidity, tickCurrent, tokenIn, tokenOut }: V3PoolInRoute): Pool =>
-  new Pool(
-    parseToken(tokenIn),
-    parseToken(tokenOut),
-    parseInt(fee) as FeeAmount,
+const parseToken = ({ address, chainId, decimals, symbol }: GetQuoteResult['route'][0][0]['tokenIn']): Token => {
+  return {
+    chainId: mapChainId(chainId),
+    address,
+    currency: {
+      decimals: parseInt(decimals.toString()),
+      symbol,
+    },
+  }
+}
+
+const parsePool = async (
+  uni: Uniswap,
+  { fee, sqrtRatioX96, liquidity, tickCurrent, tokenIn, tokenOut }: V3PoolInRoute
+): Promise<Pool> =>
+  uni.query.createPool({
+    tokenA: parseToken(tokenIn),
+    tokenB: parseToken(tokenOut),
+    fee: mapFeeAmount(fee),
     sqrtRatioX96,
     liquidity,
-    parseInt(tickCurrent)
-  )
+    tickCurrent: parseInt(tickCurrent),
+  })
 
 const parsePair = ({ reserve0, reserve1 }: V2PoolInRoute): Pair =>
   new Pair(
-    CurrencyAmount.fromRawAmount(parseToken(reserve0.token), reserve0.quotient),
-    CurrencyAmount.fromRawAmount(parseToken(reserve1.token), reserve1.quotient)
+    CurrencyAmount.fromRawAmount(parseUniToken(reserve0.token), reserve0.quotient),
+    CurrencyAmount.fromRawAmount(parseUniToken(reserve1.token), reserve1.quotient)
   )
 
 function isV3Route(route: V3PoolInRoute[] | V2PoolInRoute[]): route is V3PoolInRoute[] {

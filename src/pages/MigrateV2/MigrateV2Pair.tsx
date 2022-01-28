@@ -160,7 +160,7 @@ function V2PairMigration({
 
   // set up v3 pool
   const [feeAmount, setFeeAmount] = useState(FeeAmount.MEDIUM)
-  const [poolState, pool] = usePool(token0, token1, feeAmount)
+  const [poolState, pool] = usePool(token0, token1, mapFeeAmount(feeAmount))
   const noLiquidity = poolState === PoolState.NOT_EXISTS
 
   const handleFeePoolSelect = (fee: FeeAmountEnum) => setFeeAmount(reverseMapFeeAmount(fee))

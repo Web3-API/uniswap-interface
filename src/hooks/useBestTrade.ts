@@ -1,7 +1,9 @@
 import { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
-import { InterfaceTrade, TradeState } from 'state/routing/types'
+import { TradeState } from 'state/routing/types'
 import { useRoutingAPITrade } from 'state/routing/useRoutingAPITrade'
 
+import { Trade } from '../polywrap'
+import { reverseMapTokenAmount } from '../polywrap-utils'
 import useAutoRouterSupported from './useAutoRouterSupported'
 import { useClientSideV3Trade } from './useClientSideV3Trade'
 import useDebounce from './useDebounce'
@@ -19,13 +21,14 @@ export function useBestTrade(
   otherCurrency?: Currency
 ): {
   state: TradeState
-  trade: InterfaceTrade<Currency, Currency, TradeType> | undefined
+  trade: Trade | undefined
 } {
   const autoRouterSupported = useAutoRouterSupported()
   const isWindowVisible = useIsWindowVisible()
 
   const [debouncedAmount, debouncedOtherCurrency] = useDebounce([amountSpecified, otherCurrency], 200)
 
+  // the trade here is always a v3 polywrap trade object
   const routingAPITrade = useRoutingAPITrade(
     tradeType,
     autoRouterSupported && isWindowVisible ? debouncedAmount : undefined,
@@ -34,17 +37,21 @@ export function useBestTrade(
 
   const isLoading = amountSpecified !== undefined && debouncedAmount === undefined
 
+  const routingAPITradeInput = reverseMapTokenAmount(routingAPITrade.trade?.inputAmount)
+  const routingAPITradeOutput = reverseMapTokenAmount(routingAPITrade.trade?.outputAmount)
+
   // consider trade debouncing when inputs/outputs do not match
   const debouncing =
-    routingAPITrade.trade &&
+    routingAPITradeInput &&
+    routingAPITradeOutput &&
     amountSpecified &&
     (tradeType === TradeType.EXACT_INPUT
-      ? !routingAPITrade.trade.inputAmount.equalTo(amountSpecified) ||
-        !amountSpecified.currency.equals(routingAPITrade.trade.inputAmount.currency) ||
-        !debouncedOtherCurrency?.equals(routingAPITrade.trade.outputAmount.currency)
-      : !routingAPITrade.trade.outputAmount.equalTo(amountSpecified) ||
-        !amountSpecified.currency.equals(routingAPITrade.trade.outputAmount.currency) ||
-        !debouncedOtherCurrency?.equals(routingAPITrade.trade.inputAmount.currency))
+      ? !routingAPITradeInput.equalTo(amountSpecified) ||
+        !amountSpecified.currency.equals(routingAPITradeInput.currency) ||
+        !debouncedOtherCurrency?.equals(routingAPITradeOutput.currency)
+      : !routingAPITradeOutput.equalTo(amountSpecified) ||
+        !amountSpecified.currency.equals(routingAPITradeOutput.currency) ||
+        !debouncedOtherCurrency?.equals(routingAPITradeInput.currency))
 
   const useFallback = !autoRouterSupported || (!debouncing && routingAPITrade.state === TradeState.NO_ROUTE_FOUND)
 

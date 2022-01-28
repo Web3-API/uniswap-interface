@@ -8,7 +8,6 @@ import { useFeeTierDistributionQuery } from 'state/data/enhanced'
 import { FeeTierDistributionQuery } from 'state/data/generated'
 
 import { FeeAmountEnum } from '../polywrap'
-import { reverseMapFeeAmount } from '../polywrap-utils'
 import { PoolState, usePool } from './usePools'
 
 // maximum number of blocks past which we consider the data stale
@@ -33,10 +32,10 @@ export function useFeeTierDistribution(
   )
 
   // fetch all pool states to determine pool state
-  const [poolStateVeryLow] = usePool(currencyA, currencyB, reverseMapFeeAmount(FeeAmountEnum.LOWEST))
-  const [poolStateLow] = usePool(currencyA, currencyB, reverseMapFeeAmount(FeeAmountEnum.LOW))
-  const [poolStateMedium] = usePool(currencyA, currencyB, reverseMapFeeAmount(FeeAmountEnum.MEDIUM))
-  const [poolStateHigh] = usePool(currencyA, currencyB, reverseMapFeeAmount(FeeAmountEnum.HIGH))
+  const [poolStateVeryLow] = usePool(currencyA, currencyB, FeeAmountEnum.LOWEST)
+  const [poolStateLow] = usePool(currencyA, currencyB, FeeAmountEnum.LOW)
+  const [poolStateMedium] = usePool(currencyA, currencyB, FeeAmountEnum.MEDIUM)
+  const [poolStateHigh] = usePool(currencyA, currencyB, FeeAmountEnum.HIGH)
 
   return useMemo(() => {
     if (isLoading || isFetching || isUninitialized || isError || !distributions) {

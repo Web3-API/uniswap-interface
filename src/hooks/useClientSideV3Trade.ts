@@ -2,10 +2,10 @@ import { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
 import { SupportedChainId } from 'constants/chains'
 import JSBI from 'jsbi'
 import { useMemo } from 'react'
-import { InterfaceTrade, TradeState } from 'state/routing/types'
+import { TradeState } from 'state/routing/types'
 
-import { Route, TokenAmount } from '../polywrap'
-import { mapTokenAmount, mapTradeType, reverseMapRoute, useAsync, usePolywrapDapp } from '../polywrap-utils'
+import { Route, TokenAmount, Trade, TradeTypeEnum } from '../polywrap'
+import { mapTokenAmount, mapTradeType, useAsync, usePolywrapDapp } from '../polywrap-utils'
 import { useSingleContractWithCallData } from '../state/multicall/hooks'
 import { useAllV3Routes } from './useAllV3Routes'
 import { useV3Quoter } from './useContract'
@@ -28,7 +28,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
   tradeType: TTradeType,
   amountSpecified?: CurrencyAmount<Currency>,
   otherCurrency?: Currency
-): { state: TradeState; trade: InterfaceTrade<Currency, Currency, TTradeType> | undefined } {
+): { state: TradeState; trade: Trade | undefined } {
   const dapp = usePolywrapDapp()
 
   const [currencyIn, currencyOut] = useMemo(
@@ -64,92 +64,97 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
     gasRequired: chainId ? QUOTE_GAS_OVERRIDES[chainId] ?? DEFAULT_GAS_QUOTE : undefined,
   })
 
-  return useMemo(() => {
-    if (
-      !amountSpecified ||
-      !currencyIn ||
-      !currencyOut ||
-      quotesResults.some(({ valid }) => !valid) ||
-      // skip when tokens are the same
-      (tradeType === TradeType.EXACT_INPUT
-        ? amountSpecified.currency.equals(currencyOut)
-        : amountSpecified.currency.equals(currencyIn))
-    ) {
-      return {
-        state: TradeState.INVALID,
-        trade: undefined,
-      }
-    }
-
-    if (routesLoading || quotesResults.some(({ loading }) => loading)) {
-      return {
-        state: TradeState.LOADING,
-        trade: undefined,
-      }
-    }
-
-    const { bestRoute, amountIn, amountOut } = quotesResults.reduce(
-      (
-        currentBest: {
-          bestRoute: Route | null
-          amountIn: CurrencyAmount<Currency> | null
-          amountOut: CurrencyAmount<Currency> | null
-        },
-        { result },
-        i
-      ) => {
-        if (!result) return currentBest
-
-        // overwrite the current best if it's not defined or if this route is better
-        if (tradeType === TradeType.EXACT_INPUT) {
-          const amountOut = CurrencyAmount.fromRawAmount(currencyOut, result.amountOut.toString())
-          if (currentBest.amountOut === null || JSBI.lessThan(currentBest.amountOut.quotient, amountOut.quotient)) {
-            return {
-              bestRoute: routes[i],
-              amountIn: amountSpecified,
-              amountOut,
-            }
-          }
-        } else {
-          const amountIn = CurrencyAmount.fromRawAmount(currencyIn, result.amountIn.toString())
-          if (currentBest.amountIn === null || JSBI.greaterThan(currentBest.amountIn.quotient, amountIn.quotient)) {
-            return {
-              bestRoute: routes[i],
-              amountIn,
-              amountOut: amountSpecified,
-            }
-          }
+  return useAsync(
+    async () => {
+      if (
+        !amountSpecified ||
+        !currencyIn ||
+        !currencyOut ||
+        quotesResults.some(({ valid }) => !valid) ||
+        // skip when tokens are the same
+        (tradeType === TradeType.EXACT_INPUT
+          ? amountSpecified.currency.equals(currencyOut)
+          : amountSpecified.currency.equals(currencyIn))
+      ) {
+        return {
+          state: TradeState.INVALID,
+          trade: undefined,
         }
-
-        return currentBest
-      },
-      {
-        bestRoute: null,
-        amountIn: null,
-        amountOut: null,
       }
-    )
 
-    if (!bestRoute || !amountIn || !amountOut) {
-      return {
-        state: TradeState.NO_ROUTE_FOUND,
-        trade: undefined,
+      if (routesLoading || quotesResults.some(({ loading }) => loading)) {
+        return {
+          state: TradeState.LOADING,
+          trade: undefined,
+        }
       }
-    }
 
-    return {
-      state: TradeState.VALID,
-      trade: new InterfaceTrade({
-        v2Routes: [],
-        v3Routes: [
-          {
-            routev3: reverseMapRoute(bestRoute),
-            inputAmount: amountIn,
-            outputAmount: amountOut,
+      const { bestRoute, amountIn, amountOut } = quotesResults.reduce(
+        (
+          currentBest: {
+            bestRoute: Route | null
+            amountIn: CurrencyAmount<Currency> | null
+            amountOut: CurrencyAmount<Currency> | null
           },
-        ],
-        tradeType,
-      }),
+          { result },
+          i
+        ) => {
+          if (!result) return currentBest
+
+          // overwrite the current best if it's not defined or if this route is better
+          if (tradeType === TradeType.EXACT_INPUT) {
+            const amountOut = CurrencyAmount.fromRawAmount(currencyOut, result.amountOut.toString())
+            if (currentBest.amountOut === null || JSBI.lessThan(currentBest.amountOut.quotient, amountOut.quotient)) {
+              return {
+                bestRoute: routes[i],
+                amountIn: amountSpecified,
+                amountOut,
+              }
+            }
+          } else {
+            const amountIn = CurrencyAmount.fromRawAmount(currencyIn, result.amountIn.toString())
+            if (currentBest.amountIn === null || JSBI.greaterThan(currentBest.amountIn.quotient, amountIn.quotient)) {
+              return {
+                bestRoute: routes[i],
+                amountIn,
+                amountOut: amountSpecified,
+              }
+            }
+          }
+
+          return currentBest
+        },
+        {
+          bestRoute: null,
+          amountIn: null,
+          amountOut: null,
+        }
+      )
+
+      if (!bestRoute || !amountIn || !amountOut) {
+        return {
+          state: TradeState.NO_ROUTE_FOUND,
+          trade: undefined,
+        }
+      }
+
+      return {
+        state: TradeState.VALID,
+        trade: await dapp.uniswap.query.createTradeFromRoute({
+          tradeRoute: {
+            route: bestRoute,
+            amount: (mapTradeType(tradeType) === TradeTypeEnum.EXACT_INPUT
+              ? mapTokenAmount(amountIn)
+              : mapTokenAmount(amountOut)) as TokenAmount,
+          },
+          tradeType: mapTradeType(tradeType),
+        }),
+      }
+    },
+    [amountSpecified, currencyIn, currencyOut, quotesResults, routes, routesLoading, tradeType, dapp],
+    {
+      state: TradeState.LOADING,
+      trade: undefined,
     }
-  }, [amountSpecified, currencyIn, currencyOut, quotesResults, routes, routesLoading, tradeType])
+  )
 }

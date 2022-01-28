@@ -46,7 +46,7 @@ import { useUSDCValue } from '../../hooks/useUSDCPrice'
 import { useV3PositionFromTokenId } from '../../hooks/useV3Positions'
 import { useActiveWeb3React } from '../../hooks/web3'
 import { FeeAmountEnum } from '../../polywrap'
-import { mapFeeAmount, reverseMapFeeAmount, useMapPosition } from '../../polywrap-utils'
+import { mapFeeAmount, reverseMapFeeAmount, reverseMapPosition, useAsync, useMapPosition } from '../../polywrap-utils'
 import { useWalletModalToggle } from '../../state/application/hooks'
 import { Bound, Field } from '../../state/mint/v3/actions'
 import { TransactionType } from '../../state/transactions/actions'
@@ -94,9 +94,13 @@ export default function AddLiquidity({
     tokenId ? BigNumber.from(tokenId) : undefined
   )
   const hasExistingPosition = !!existingPositionDetails && !positionLoading
-  const { position: uniExistingPosition } = useDerivedPositionInfo(existingPositionDetails)
+  const { position: existingPosition } = useDerivedPositionInfo(existingPositionDetails)
 
-  const existingPosition = useMapPosition(uniExistingPosition)
+  const uniExistingPosition = useAsync(
+    async () => (existingPosition ? reverseMapPosition(existingPosition) : undefined),
+    [existingPosition],
+    undefined
+  )
 
   // fee selection from url
   const feeAmount: FeeAmount | undefined =

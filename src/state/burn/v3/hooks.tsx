@@ -1,15 +1,16 @@
 import { Trans } from '@lingui/macro'
 import { Currency, CurrencyAmount, Percent } from '@uniswap/sdk-core'
-import { Position } from '@uniswap/v3-sdk'
 import { useToken } from 'hooks/Tokens'
 import { usePool } from 'hooks/usePools'
 import { useV3PositionFees } from 'hooks/useV3PositionFees'
 import { useActiveWeb3React } from 'hooks/web3'
-import { ReactNode, useCallback, useMemo } from 'react'
+import { ReactNode, useCallback } from 'react'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 import { PositionDetails } from 'types/position'
 import { unwrappedToken } from 'utils/unwrappedToken'
 
+import { PolywrapDapp, Position, TokenAmount } from '../../../polywrap'
+import { useAsync, usePolywrapDapp } from '../../../polywrap-utils'
 import { AppState } from '../../index'
 import { selectPercent } from './actions'
 
@@ -30,6 +31,7 @@ export function useDerivedV3BurnInfo(
   outOfRange: boolean
   error?: ReactNode
 } {
+  const dapp: PolywrapDapp = usePolywrapDapp()
   const { account } = useActiveWeb3React()
   const { percent } = useBurnV3State()
 
@@ -38,27 +40,44 @@ export function useDerivedV3BurnInfo(
 
   const [, pool] = usePool(token0 ?? undefined, token1 ?? undefined, position?.fee)
 
-  const positionSDK = useMemo(
-    () =>
-      pool && position?.liquidity && typeof position?.tickLower === 'number' && typeof position?.tickUpper === 'number'
-        ? new Position({
-            pool,
-            liquidity: position.liquidity.toString(),
-            tickLower: position.tickLower,
-            tickUpper: position.tickUpper,
-          })
-        : undefined,
-    [pool, position]
+  const { positionSDK, amount0, amount1 } = useAsync(
+    async (): Promise<{ positionSDK?: Position; amount0?: TokenAmount; amount1?: TokenAmount }> => {
+      if (
+        pool &&
+        position?.liquidity &&
+        typeof position?.tickLower === 'number' &&
+        typeof position?.tickUpper === 'number'
+      ) {
+        const positionSDK = await dapp.uniswap.query.createPosition({
+          pool,
+          liquidity: position.liquidity.toString(),
+          tickLower: position.tickLower,
+          tickUpper: position.tickUpper,
+        })
+        return {
+          positionSDK,
+          amount0: await dapp.uniswap.query.positionAmount0({ position: positionSDK }),
+          amount1: await dapp.uniswap.query.positionAmount1({ position: positionSDK }),
+        }
+      }
+      return {
+        positionSDK: undefined,
+        amount0: undefined,
+        amount1: undefined,
+      }
+    },
+    [pool, position],
+    {
+      positionSDK: undefined,
+      amount0: undefined,
+      amount1: undefined,
+    }
   )
 
   const liquidityPercentage = new Percent(percent, 100)
 
-  const discountedAmount0 = positionSDK
-    ? liquidityPercentage.multiply(positionSDK.amount0.quotient).quotient
-    : undefined
-  const discountedAmount1 = positionSDK
-    ? liquidityPercentage.multiply(positionSDK.amount1.quotient).quotient
-    : undefined
+  const discountedAmount0 = amount0 ? liquidityPercentage.multiply(amount0.amount).quotient : undefined
+  const discountedAmount1 = amount1 ? liquidityPercentage.multiply(amount1.amount).quotient : undefined
 
   const liquidityValue0 =
     token0 && discountedAmount0

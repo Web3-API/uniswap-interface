@@ -1,7 +1,8 @@
-import { Trade } from '@uniswap/router-sdk'
+import { RouteV3, Trade } from '@uniswap/router-sdk'
 import { Currency, CurrencyAmount, Token, TradeType } from '@uniswap/sdk-core'
 import { Route as V2Route } from '@uniswap/v2-sdk'
-import { Route as V3Route } from '@uniswap/v3-sdk'
+
+import { Trade as PolyTrade } from '../../polywrap'
 
 export enum TradeState {
   LOADING,
@@ -74,19 +75,22 @@ export class InterfaceTrade<
   TTradeType extends TradeType
 > extends Trade<TInput, TOutput, TTradeType> {
   gasUseEstimateUSD: CurrencyAmount<Token> | null | undefined
+  polyTrade: PolyTrade
 
   constructor({
     gasUseEstimateUSD,
+    polyTrade,
     ...routes
   }: {
     gasUseEstimateUSD?: CurrencyAmount<Token> | undefined | null
+    polyTrade: PolyTrade
     v2Routes: {
       routev2: V2Route<TInput, TOutput>
       inputAmount: CurrencyAmount<TInput>
       outputAmount: CurrencyAmount<TOutput>
     }[]
     v3Routes: {
-      routev3: V3Route<TInput, TOutput>
+      routev3: RouteV3<TInput, TOutput>
       inputAmount: CurrencyAmount<TInput>
       outputAmount: CurrencyAmount<TOutput>
     }[]
@@ -94,5 +98,6 @@ export class InterfaceTrade<
   }) {
     super(routes)
     this.gasUseEstimateUSD = gasUseEstimateUSD
+    this.polyTrade = polyTrade
   }
 }

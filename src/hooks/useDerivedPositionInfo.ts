@@ -2,7 +2,7 @@ import { usePool } from 'hooks/usePools'
 import { PositionDetails } from 'types/position'
 
 import { PolywrapDapp, Pool, Position } from '../polywrap'
-import { mapPool, useAsync, usePolywrapDapp } from '../polywrap-utils'
+import { useAsync, usePolywrapDapp } from '../polywrap-utils'
 import { useCurrency } from './Tokens'
 
 export function useDerivedPositionInfo(positionDetails: PositionDetails | undefined): {
@@ -15,14 +15,13 @@ export function useDerivedPositionInfo(positionDetails: PositionDetails | undefi
   const currency1 = useCurrency(positionDetails?.token1)
 
   // construct pool data
-  const [, uniPool] = usePool(currency0 ?? undefined, currency1 ?? undefined, positionDetails?.fee)
+  const [, pool] = usePool(currency0 ?? undefined, currency1 ?? undefined, positionDetails?.fee)
 
   return useAsync<{
     position: Position | undefined
     pool: Pool | undefined
   }>(
     async () => {
-      const pool: Pool | undefined = uniPool ? await mapPool(uniPool) : undefined
       let position = undefined
       if (pool && positionDetails) {
         position = await dapp.uniswap.query.createPosition({
@@ -37,7 +36,7 @@ export function useDerivedPositionInfo(positionDetails: PositionDetails | undefi
         pool: pool ?? undefined,
       }
     },
-    [positionDetails, uniPool, dapp],
+    [positionDetails, pool, dapp],
     { position: undefined, pool: undefined }
   )
 }

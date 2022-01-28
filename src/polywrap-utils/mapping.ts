@@ -1,6 +1,7 @@
 import {
   Currency as UniCurrency,
   CurrencyAmount as UniCurrencyAmount,
+  Price as UniPrice,
   Token as UniToken,
   TradeType as UniTradeType,
 } from '@uniswap/sdk-core'
@@ -21,6 +22,7 @@ import {
   FeeAmountEnum,
   Pool,
   Position,
+  Price,
   Route,
   Tick,
   Token,
@@ -83,16 +85,26 @@ export function mapTokenAmount<T extends UniCurrency>(
   }
 }
 
-export function mapFeeAmount(input: UniFeeAmount): FeeAmountEnum {
+export function mapFeeAmount(input: UniFeeAmount | string | number): FeeAmountEnum {
   switch (input) {
     case UniFeeAmount.LOWEST:
+    case 100:
+    case '100':
       return FeeAmountEnum.LOWEST
     case UniFeeAmount.LOW:
+    case 500:
+    case '500':
       return FeeAmountEnum.LOW
     case UniFeeAmount.MEDIUM:
+    case 3000:
+    case '3000':
       return FeeAmountEnum.MEDIUM
     case UniFeeAmount.HIGH:
+    case 10000:
+    case '10000':
       return FeeAmountEnum.HIGH
+    default:
+      throw Error('unknown fee amount')
   }
 }
 
@@ -180,5 +192,15 @@ export async function mapTrade<TIn extends UniCurrency, TOut extends UniCurrency
     outputAmount: mapTokenAmount(input.outputAmount)!,
     executionPrice,
     priceImpact: input.priceImpact.toFixed(19),
+  }
+}
+
+export function mapPrice<TBase extends UniCurrency, TQuote extends UniCurrency>(price: UniPrice<TBase, TQuote>): Price {
+  return {
+    baseToken: mapToken(price.baseCurrency),
+    quoteToken: mapToken(price.quoteCurrency),
+    denominator: price.denominator.toString(),
+    numerator: price.numerator.toString(),
+    price: price.toFixed(18),
   }
 }

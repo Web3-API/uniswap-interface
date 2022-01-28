@@ -6,7 +6,13 @@ import {
   Token as UniToken,
   TradeType as UniTradeType,
 } from '@uniswap/sdk-core'
-import { FeeAmount as UniFeeAmount, Pool as UniPool, Route as UniRoute, Trade as UniTrade } from '@uniswap/v3-sdk'
+import {
+  FeeAmount as UniFeeAmount,
+  Pool as UniPool,
+  Position as UniPosition,
+  Route as UniRoute,
+  Trade as UniTrade,
+} from '@uniswap/v3-sdk'
 
 import {
   ChainId,
@@ -14,6 +20,7 @@ import {
   FeeAmount,
   FeeAmountEnum,
   Pool,
+  Position,
   Price,
   Route,
   Token,
@@ -91,6 +98,15 @@ export function reverseMapPools(input: Pool[]): UniPool[] {
   return input.map(reverseMapPool)
 }
 
+export async function reverseMapPosition(input: Position): Promise<UniPosition> {
+  return new UniPosition({
+    pool: reverseMapPool(input.pool),
+    tickLower: input.tickLower,
+    tickUpper: input.tickUpper,
+    liquidity: input.liquidity,
+  })
+}
+
 export function reverseMapRoute(input: Route): UniRoute<UniCurrency, UniCurrency> {
   return new UniRoute(reverseMapPools(input.pools), reverseMapToken(input.input)!, reverseMapToken(input.output)!)
 }
@@ -113,8 +129,10 @@ export function reverseMapTrade<TType extends UniTradeType>(input: Trade): UniTr
   })
 }
 
-export function reverseMapPrice(input: Price): UniPrice<UniCurrency, UniCurrency> {
-  const baseCurrency = reverseMapToken(input.baseToken) as UniCurrency
-  const quoteCurrency = reverseMapToken(input.quoteToken) as UniCurrency
+export function reverseMapPrice<TBase extends UniCurrency = UniCurrency, TQuote extends UniCurrency = UniCurrency>(
+  input: Price
+): UniPrice<TBase, TQuote> {
+  const baseCurrency = reverseMapToken(input.baseToken) as TBase
+  const quoteCurrency = reverseMapToken(input.quoteToken) as TQuote
   return new UniPrice(baseCurrency, quoteCurrency, input.denominator, input.numerator)
 }

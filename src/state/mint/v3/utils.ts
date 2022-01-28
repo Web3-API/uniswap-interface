@@ -1,13 +1,8 @@
 import { Price, Token } from '@uniswap/sdk-core'
-import {
-  encodeSqrtRatioX96,
-  FeeAmount,
-  nearestUsableTick,
-  priceToClosestTick,
-  TICK_SPACINGS,
-  TickMath,
-} from '@uniswap/v3-sdk'
 import JSBI from 'jsbi'
+
+import { FeeAmountEnum, Uniswap } from '../../../polywrap'
+import { mapPrice } from '../../../polywrap-utils'
 
 export function tryParsePrice(baseToken?: Token, quoteToken?: Token, value?: string) {
   if (!baseToken || !quoteToken || !value) {
@@ -31,13 +26,14 @@ export function tryParsePrice(baseToken?: Token, quoteToken?: Token, value?: str
   )
 }
 
-export function tryParseTick(
+export async function tryParseTick(
+  uni: Uniswap,
   baseToken?: Token,
   quoteToken?: Token,
-  feeAmount?: FeeAmount,
+  feeAmount?: FeeAmountEnum,
   value?: string
-): number | undefined {
-  if (!baseToken || !quoteToken || !feeAmount || !value) {
+): Promise<number | undefined> {
+  if (!baseToken || !quoteToken || feeAmount === undefined || !value) {
     return undefined
   }
 
@@ -50,16 +46,20 @@ export function tryParseTick(
   let tick: number
 
   // check price is within min/max bounds, if outside return min/max
-  const sqrtRatioX96 = encodeSqrtRatioX96(price.numerator, price.denominator)
+  const sqrtRatioX96 = await uni.query.encodeSqrtRatioX96({
+    amount1: price.numerator.toString(),
+    amount0: price.denominator.toString(),
+  })
 
-  if (JSBI.greaterThanOrEqual(sqrtRatioX96, TickMath.MAX_SQRT_RATIO)) {
-    tick = TickMath.MAX_TICK
-  } else if (JSBI.lessThanOrEqual(sqrtRatioX96, TickMath.MIN_SQRT_RATIO)) {
-    tick = TickMath.MIN_TICK
+  if (JSBI.greaterThanOrEqual(JSBI.BigInt(sqrtRatioX96), JSBI.BigInt(await uni.query.MAX_SQRT_RATIO({})))) {
+    tick = await uni.query.MAX_TICK({})
+  } else if (JSBI.lessThanOrEqual(JSBI.BigInt(sqrtRatioX96), JSBI.BigInt(await uni.query.MIN_SQRT_RATIO({})))) {
+    tick = await uni.query.MIN_TICK({})
   } else {
     // this function is agnostic to the base, will always return the correct tick
-    tick = priceToClosestTick(price)
+    tick = await uni.query.priceToClosestTick({ price: mapPrice(price) })
   }
 
-  return nearestUsableTick(tick, TICK_SPACINGS[feeAmount])
+  const tickSpacing = await uni.query.feeAmountToTickSpacing({ feeAmount })
+  return await uni.query.nearestUsableTick({ tick, tickSpacing })
 }
