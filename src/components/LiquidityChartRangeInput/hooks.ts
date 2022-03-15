@@ -3,7 +3,7 @@ import { usePoolActiveLiquidity } from 'hooks/usePoolTickData'
 import JSBI from 'jsbi'
 import { useCallback, useMemo } from 'react'
 
-import { FeeAmountEnum } from '../../polywrap'
+import { Uni_FeeAmountEnum as FeeAmountEnum } from '../../polywrap'
 import { ChartEntry } from './types'
 
 export interface TickProcessed {

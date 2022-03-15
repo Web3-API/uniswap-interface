@@ -2,7 +2,8 @@ import { BigNumber } from '@ethersproject/bignumber'
 import { TransactionResponse } from '@ethersproject/providers'
 import { Trans } from '@lingui/macro'
 import { Percent } from '@uniswap/sdk-core'
-import { NonfungiblePositionManager } from '@uniswap/v3-sdk'
+import { Web3ApiClient } from '@web3api/client-js'
+import { useWeb3ApiClient } from '@web3api/react'
 import RangeBadge from 'components/Badge/RangeBadge'
 import { ButtonConfirmed, ButtonPrimary } from 'components/Button'
 import { LightCard } from 'components/Card'
@@ -33,6 +34,8 @@ import { ThemedText } from 'theme'
 
 import TransactionConfirmationModal, { ConfirmationModalContent } from '../../components/TransactionConfirmationModal'
 import { WRAPPED_NATIVE_CURRENCY } from '../../constants/tokens'
+import { Uni_MethodParameters, Uni_Query, Uni_TokenAmount as TokenAmount } from '../../polywrap'
+import { mapTokenAmount } from '../../polywrap-utils'
 import { TransactionType } from '../../state/transactions/actions'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { currencyId } from '../../utils/currencyId'
@@ -66,6 +69,8 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
   const { position } = useV3PositionFromTokenId(tokenId)
   const theme = useTheme()
   const { account, chainId, library } = useActiveWeb3React()
+
+  const client: Web3ApiClient = useWeb3ApiClient()
 
   // flag for receiving WETH
   const [receiveWETH, setReceiveWETH] = useState(false)
@@ -115,17 +120,26 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
       return
     }
 
-    const { calldata, value } = NonfungiblePositionManager.removeCallParameters(positionSDK, {
-      tokenId: tokenId.toString(),
-      liquidityPercentage,
-      slippageTolerance: allowedSlippage,
-      deadline: deadline.toString(),
-      collectOptions: {
-        expectedCurrencyOwed0: feeValue0,
-        expectedCurrencyOwed1: feeValue1,
-        recipient: account,
+    const invoke = await Uni_Query.removeCallParameters(
+      {
+        position: positionSDK,
+        options: {
+          tokenId: tokenId.toString(),
+          liquidityPercentage: liquidityPercentage.toFixed(18),
+          slippageTolerance: allowedSlippage.toFixed(18),
+          deadline: deadline.toString(),
+          collectOptions: {
+            tokenId: '',
+            expectedCurrencyOwed0: mapTokenAmount(feeValue0) as TokenAmount,
+            expectedCurrencyOwed1: mapTokenAmount(feeValue1) as TokenAmount,
+            recipient: account,
+          },
+        },
       },
-    })
+      client
+    )
+    if (invoke.error) throw invoke.error
+    const { calldata, value } = invoke.data as Uni_MethodParameters
 
     const txn = {
       to: positionManager.address,
@@ -181,6 +195,7 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
     tokenId,
     allowedSlippage,
     addTransaction,
+    client,
   ])
 
   const handleDismissConfirmation = useCallback(() => {

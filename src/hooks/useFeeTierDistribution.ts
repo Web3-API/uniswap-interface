@@ -7,7 +7,7 @@ import { useBlockNumber } from 'state/application/hooks'
 import { useFeeTierDistributionQuery } from 'state/data/enhanced'
 import { FeeTierDistributionQuery } from 'state/data/generated'
 
-import { FeeAmountEnum } from '../polywrap'
+import { Uni_FeeAmountEnum as FeeAmountEnum } from '../polywrap'
 import { PoolState, usePool } from './usePools'
 
 // maximum number of blocks past which we consider the data stale

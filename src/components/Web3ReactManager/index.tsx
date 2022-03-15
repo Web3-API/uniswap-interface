@@ -3,14 +3,13 @@ import { useWeb3React } from '@web3-react/core'
 import { PluginRegistration } from '@web3api/core-js'
 import { ethereumPlugin } from '@web3api/ethereum-plugin-js'
 import { Web3ApiProvider } from '@web3api/react'
-import { ethersSolidity } from 'ethers-solidity-plugin-js'
 import { useEffect, useState } from 'react'
 import styled from 'styled-components/macro'
 
 import { network } from '../../connectors'
 import { NetworkContextName } from '../../constants/misc'
 import { useEagerConnect, useInactiveListener } from '../../hooks/web3'
-import { ethereumPluginUri, ethersSolidityPluginUri, networks } from '../../polywrap-utils'
+import { ethereumPluginUri, networks } from '../../polywrap-utils'
 
 const MessageWrapper = styled.div`
   display: flex;
@@ -42,10 +41,6 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
     {
       uri: ethereumPluginUri,
       plugin: ethPlugin,
-    },
-    {
-      uri: ethersSolidityPluginUri,
-      plugin: ethersSolidity({}),
     },
   ]
 

@@ -1,13 +1,15 @@
 import { skipToken } from '@reduxjs/toolkit/query/react'
 import { Currency, Price } from '@uniswap/sdk-core'
+import { Web3ApiClient } from '@web3api/client-js'
+import { useWeb3ApiClient } from '@web3api/react'
 import JSBI from 'jsbi'
 import ms from 'ms.macro'
 import { useAllV3TicksQuery } from 'state/data/enhanced'
 import { AllV3TicksQuery } from 'state/data/generated'
 import computeSurroundingTicks from 'utils/computeSurroundingTicks'
 
-import { FeeAmountEnum, PolywrapDapp, Uniswap } from '../polywrap'
-import { mapToken, reverseMapToken, useAsync, usePolywrapDapp } from '../polywrap-utils'
+import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Price, Uni_Query } from '../polywrap'
+import { mapToken, reverseMapToken, useAsync } from '../polywrap-utils'
 import { PoolState, usePool } from './usePools'
 
 const PRICE_FIXED_DIGITS = 8
@@ -20,9 +22,15 @@ export interface TickProcessed {
   price0: string
 }
 
-const getActiveTick = async (uni: Uniswap, tickCurrent: number | undefined, feeAmount: FeeAmountEnum | undefined) => {
+const getActiveTick = async (
+  client: Web3ApiClient,
+  tickCurrent: number | undefined,
+  feeAmount: FeeAmountEnum | undefined
+) => {
   if (tickCurrent && feeAmount !== undefined) {
-    const tickSpacing = await uni.query.feeAmountToTickSpacing({ feeAmount })
+    const invoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+    if (invoke.error) throw invoke.error
+    const tickSpacing = invoke.data as number
     return Math.floor(tickCurrent / tickSpacing) * tickSpacing
   }
   return undefined
@@ -34,20 +42,25 @@ export function useAllV3Ticks(
   currencyB: Currency | undefined,
   feeAmount: FeeAmountEnum | undefined
 ) {
-  const dapp: PolywrapDapp = usePolywrapDapp()
+  const client: Web3ApiClient = useWeb3ApiClient()
 
   const poolAddress = useAsync(
     async () => {
       if (currencyA && currencyB && feeAmount !== undefined) {
-        return dapp.uniswap.query.getPoolAddress({
-          tokenA: mapToken(currencyA),
-          tokenB: mapToken(currencyB),
-          fee: feeAmount,
-        })
+        const invoke = await Uni_Query.getPoolAddress(
+          {
+            tokenA: mapToken(currencyA),
+            tokenB: mapToken(currencyB),
+            fee: feeAmount,
+          },
+          client
+        )
+        if (invoke.error) throw invoke.error
+        return invoke.data
       }
       return undefined
     },
-    [currencyA, currencyB, feeAmount, dapp],
+    [currencyA, currencyB, feeAmount, client],
     undefined
   )
 
@@ -79,13 +92,13 @@ export function usePoolActiveLiquidity(
   activeTick: number | undefined
   data: TickProcessed[] | undefined
 } {
-  const dapp: PolywrapDapp = usePolywrapDapp()
+  const client: Web3ApiClient = useWeb3ApiClient()
   const pool = usePool(currencyA, currencyB, feeAmount)
 
   // Find nearest valid tick for pool in case tick is not initialized.
   const activeTick = useAsync(
-    async () => getActiveTick(dapp.uniswap, pool[1]?.tickCurrent, feeAmount),
-    [pool, feeAmount, dapp],
+    async () => getActiveTick(client, pool[1]?.tickCurrent, feeAmount),
+    [pool, feeAmount, client],
     undefined
   )
 
@@ -134,11 +147,16 @@ export function usePoolActiveLiquidity(
         }
       }
 
-      const { baseToken, quoteToken, numerator, denominator } = await dapp.uniswap.query.tickToPrice({
-        baseToken: mapToken(token0),
-        quoteToken: mapToken(token1),
-        tick: activeTick,
-      })
+      const priceInvoke = await Uni_Query.tickToPrice(
+        {
+          baseToken: mapToken(token0),
+          quoteToken: mapToken(token1),
+          tick: activeTick,
+        },
+        client
+      )
+      if (priceInvoke.error) throw priceInvoke.error
+      const { baseToken, quoteToken, numerator, denominator } = priceInvoke.data as Uni_Price
 
       const activeTickProcessed: TickProcessed = {
         liquidityActive: JSBI.BigInt(pool[1]?.liquidity ?? 0),
@@ -168,7 +186,7 @@ export function usePoolActiveLiquidity(
         data: ticksProcessed,
       }
     },
-    [currencyA, currencyB, activeTick, pool, ticks, isLoading, isUninitialized, isError, error, dapp],
+    [currencyA, currencyB, activeTick, pool, ticks, isLoading, isUninitialized, isError, error, client],
     {
       isLoading,
       isUninitialized,

@@ -1,5 +1,7 @@
 import { Trans } from '@lingui/macro'
 import { Percent, Price, Token as UniToken } from '@uniswap/sdk-core'
+import { Web3ApiClient } from '@web3api/client-js'
+import { useWeb3ApiClient } from '@web3api/react'
 import Badge from 'components/Badge'
 import RangeBadge from 'components/Badge/RangeBadge'
 import DoubleCurrencyLogo from 'components/DoubleLogo'
@@ -9,7 +11,6 @@ import { RowBetween } from 'components/Row'
 import { useToken } from 'hooks/Tokens'
 import useIsTickAtLimit from 'hooks/useIsTickAtLimit'
 import { usePool } from 'hooks/usePools'
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bound } from 'state/mint/v3/actions'
 import styled from 'styled-components/macro'
@@ -19,8 +20,8 @@ import { formatTickPrice } from 'utils/formatTickPrice'
 import { unwrappedToken } from 'utils/unwrappedToken'
 
 import { DAI, USDC, USDT, WBTC, WRAPPED_NATIVE_CURRENCY } from '../../constants/tokens'
-import { PolywrapDapp, Position, Price as PWPrice, TokenAmount as PWTokenAmount, Uniswap } from '../../polywrap'
-import { reverseMapPrice, reverseMapToken, usePolywrapDapp } from '../../polywrap-utils'
+import { Uni_Position, Uni_Query } from '../../polywrap'
+import { reverseMapPrice, reverseMapToken, useAsync } from '../../polywrap-utils'
 
 const LinkRow = styled(Link)`
   align-items: center;
@@ -132,28 +133,20 @@ interface PositionListItemProps {
   positionDetails: PositionDetails
 }
 
-export async function getPriceOrderingFromPositionForUI(
-  uni: Uniswap,
-  position?: Position
-): Promise<{
+export function getPriceOrderingFromPositionForUI(position?: Uni_Position): {
   priceLower?: Price<UniToken, UniToken>
   priceUpper?: Price<UniToken, UniToken>
   quote?: UniToken
   base?: UniToken
-}> {
+} {
   if (!position) {
     return {}
   }
 
-  const amount0: PWTokenAmount = await uni.query.positionAmount0({ position })
-  const amount1: PWTokenAmount = await uni.query.positionAmount1({ position })
-  const token0: UniToken = reverseMapToken(amount0.token) as UniToken
-  const token1: UniToken = reverseMapToken(amount1.token) as UniToken
-
-  const pwToken0PriceUpper: PWPrice = await uni.query.positionToken0PriceUpper({ position })
-  const pwToken0PriceLower: PWPrice = await uni.query.positionToken0PriceLower({ position })
-  const token0PriceUpper = reverseMapPrice(pwToken0PriceUpper) as Price<UniToken, UniToken>
-  const token0PriceLower = reverseMapPrice(pwToken0PriceLower) as Price<UniToken, UniToken>
+  const token0: UniToken = reverseMapToken(position.token0Amount.token) as UniToken
+  const token1: UniToken = reverseMapToken(position.token1Amount.token) as UniToken
+  const token0PriceUpper = reverseMapPrice(position.token0PriceUpper) as Price<UniToken, UniToken>
+  const token0PriceLower = reverseMapPrice(position.token0PriceLower) as Price<UniToken, UniToken>
 
   // if token0 is a dollar-stable asset, set it as the quote token
   const stables = [DAI, USDC, USDT]
@@ -206,7 +199,7 @@ export default function PositionListItem({ positionDetails }: PositionListItemPr
     tickUpper,
   } = positionDetails
 
-  const dapp: PolywrapDapp = usePolywrapDapp()
+  const client: Web3ApiClient = useWeb3ApiClient()
 
   const token0 = useToken(token0Address)
   const token1 = useToken(token1Address)
@@ -217,32 +210,31 @@ export default function PositionListItem({ positionDetails }: PositionListItemPr
   const [, pool] = usePool(currency0 ?? undefined, currency1 ?? undefined, feeAmount)
 
   // construct Position from details returned
-  const [prices, setPrices] = useState<{
-    priceLower?: Price<UniToken, UniToken>
-    priceUpper?: Price<UniToken, UniToken>
-    quote?: UniToken
-    base?: UniToken
-  }>({})
-
-  useEffect(() => {
-    const updateAsync = async () => {
-      if (pool) {
-        const newPosition = await dapp.uniswap.query.createPosition({
+  const position = useAsync(
+    async () => {
+      if (!pool) {
+        return undefined
+      }
+      const posInvoke = await Uni_Query.createPosition(
+        {
           pool,
           liquidity: liquidity.toString(),
           tickLower,
           tickUpper,
-        })
-        setPrices(await getPriceOrderingFromPositionForUI(dapp.uniswap, newPosition))
-      }
-    }
-    void updateAsync()
-  }, [liquidity, pool, tickLower, tickUpper, dapp])
+        },
+        client
+      )
+      if (posInvoke.error) throw posInvoke.error
+      return posInvoke.data
+    },
+    [liquidity, pool, tickLower, tickUpper, client],
+    undefined
+  )
 
   const tickAtLimit = useIsTickAtLimit(feeAmount, tickLower, tickUpper)
 
   // prices
-  const { priceLower, priceUpper, quote, base } = prices
+  const { priceLower, priceUpper, quote, base } = getPriceOrderingFromPositionForUI(position)
 
   const currencyQuote = quote && unwrappedToken(quote)
   const currencyBase = base && unwrappedToken(base)

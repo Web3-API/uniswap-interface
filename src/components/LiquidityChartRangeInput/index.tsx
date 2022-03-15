@@ -13,7 +13,7 @@ import { batch } from 'react-redux'
 import { Bound } from 'state/mint/v3/actions'
 import styled from 'styled-components/macro'
 
-import { FeeAmountEnum } from '../../polywrap'
+import { Uni_FeeAmountEnum as FeeAmountEnum } from '../../polywrap'
 import { ThemedText } from '../../theme'
 import { Chart } from './Chart'
 import { useDensityChartData } from './hooks'

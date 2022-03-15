@@ -2,7 +2,7 @@ import { Trans } from '@lingui/macro'
 import { ALL_SUPPORTED_CHAIN_IDS, SupportedChainId } from 'constants/chains'
 import { ReactNode } from 'react'
 
-import { FeeAmountEnum } from '../../polywrap'
+import { Uni_FeeAmountEnum as FeeAmountEnum } from '../../polywrap'
 
 export const FEE_AMOUNT_DETAIL: Record<
   FeeAmountEnum,

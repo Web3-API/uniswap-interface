@@ -4,12 +4,22 @@ import { t, Trans } from '@lingui/macro'
 import { SwapRouter, Trade as RouterTrade } from '@uniswap/router-sdk'
 import { Currency, CurrencyAmount, Percent, TradeType } from '@uniswap/sdk-core'
 import { Router as V2SwapRouter, Trade as V2Trade } from '@uniswap/v2-sdk'
+import { Web3ApiClient } from '@web3api/client-js'
+import { useWeb3ApiClient } from '@web3api/react'
 import { ReactNode, useMemo } from 'react'
 
 import { ArgentWalletContract } from '../abis/types'
 import { SWAP_ROUTER_ADDRESSES, V3_ROUTER_ADDRESS } from '../constants/addresses'
-import { MethodParameters, PermitV, PolywrapDapp, Trade as PolyTrade, TradeTypeEnum } from '../polywrap'
-import { isEther, isTrade, reverseMapToken, reverseMapTokenAmount, usePolywrapDapp } from '../polywrap-utils'
+import {
+  Uni_MethodParameters as MethodParameters,
+  Uni_MethodParameters,
+  Uni_PermitV as PermitV,
+  Uni_Query,
+  Uni_TokenAmount,
+  Uni_Trade as PolyTrade,
+  Uni_TradeTypeEnum as TradeTypeEnum,
+} from '../polywrap'
+import { isEther, isTrade, reverseMapToken, reverseMapTokenAmount } from '../polywrap-utils'
 import { TransactionType } from '../state/transactions/actions'
 import { useTransactionAdder } from '../state/transactions/hooks'
 import approveAmountCalldata from '../utils/approveAmountCalldata'
@@ -57,7 +67,7 @@ interface FailedCall extends SwapCallEstimate {
 }
 
 async function createArgentParams(
-  dapp: PolywrapDapp,
+  client: Web3ApiClient,
   asyncParams: MethodParameters | Promise<MethodParameters>,
   trade: PolyTrade | RouterTrade<Currency, Currency, TradeType>,
   allowedSlippage: Percent,
@@ -65,15 +75,21 @@ async function createArgentParams(
   swapRouterAddress: string
 ): Promise<MethodParameters> {
   const params = await asyncParams
-  const maxIn = isTrade(trade)
-    ? reverseMapTokenAmount(
-        await dapp.uniswap.query.tradeMaximumAmountIn({
-          slippageTolerance: allowedSlippage.toFixed(18),
-          amountIn: trade.inputAmount,
-          tradeType: trade.tradeType,
-        })
-      )
-    : trade.maximumAmountIn(allowedSlippage)
+  let maxIn
+  if (isTrade(trade)) {
+    const maxInInvoke = await Uni_Query.tradeMaximumAmountIn(
+      {
+        slippageTolerance: allowedSlippage.toFixed(18),
+        amountIn: trade.inputAmount,
+        tradeType: trade.tradeType,
+      },
+      client
+    )
+    if (maxInInvoke.error) throw maxInInvoke.error
+    maxIn = reverseMapTokenAmount(maxInInvoke.data)
+  } else {
+    maxIn = trade.maximumAmountIn(allowedSlippage)
+  }
   return {
     calldata: argentWalletContract.interface.encodeFunctionData('wc_multiCall', [
       [
@@ -103,7 +119,7 @@ function useSwapCallArguments(
   signatureData: SignatureData | null | undefined
 ): (SwapCall | SwapCallAsync)[] {
   const { account, chainId, library } = useActiveWeb3React()
-  const dapp: PolywrapDapp = usePolywrapDapp()
+  const client: Web3ApiClient = useWeb3ApiClient()
 
   const { address: recipientAddress } = useENS(recipientAddressOrName)
   const recipient = recipientAddressOrName === null ? account : recipientAddress
@@ -195,8 +211,10 @@ function useSwapCallArguments(
         : undefined
       if (!swapRouterAddress) return []
 
-      const swapParams = isTrade(trade)
-        ? dapp.uniswap.query.swapCallParameters({
+      let swapParams
+      if (isTrade(trade)) {
+        swapParams = Uni_Query.swapCallParameters(
+          {
             trades: [trade],
             options: {
               slippageTolerance: sharedSwapOptions.slippageTolerance.toFixed(18),
@@ -214,11 +232,18 @@ function useSwapCallArguments(
                   }
                 : undefined,
             },
-          })
-        : SwapRouter.swapCallParameters(trade, {
-            ...sharedSwapOptions,
-            deadlineOrPreviousBlockhash: deadline.toString(),
-          })
+          },
+          client
+        ).then((paramsInvoke) => {
+          if (paramsInvoke.error) throw paramsInvoke.error
+          return paramsInvoke.data as Uni_MethodParameters
+        })
+      } else {
+        swapParams = SwapRouter.swapCallParameters(trade, {
+          ...sharedSwapOptions,
+          deadlineOrPreviousBlockhash: deadline.toString(),
+        })
+      }
 
       if (
         argentWalletContract &&
@@ -229,7 +254,7 @@ function useSwapCallArguments(
           {
             address: argentWalletContract.address,
             params: createArgentParams(
-              dapp,
+              client,
               swapParams,
               trade,
               allowedSlippage,
@@ -257,7 +282,7 @@ function useSwapCallArguments(
     allowedSlippage,
     argentWalletContract,
     signatureData,
-    dapp,
+    client,
   ])
 }
 
@@ -347,7 +372,7 @@ export function useSwapCallback(
   signatureData: SignatureData | undefined | null
 ): { state: SwapCallbackState; callback: null | (() => Promise<string>); error: ReactNode | null } {
   const { account, chainId, library } = useActiveWeb3React()
-  const dapp: PolywrapDapp = usePolywrapDapp()
+  const client: Web3ApiClient = useWeb3ApiClient()
 
   const swapCallsMaybeAsync = useSwapCallArguments(trade, allowedSlippage, recipientAddressOrName, signatureData)
 
@@ -467,13 +492,17 @@ export function useSwapCallback(
                       inputCurrencyAmountRaw: trade.inputAmount.amount,
                       expectedOutputCurrencyAmountRaw: trade.outputAmount.amount,
                       outputCurrencyId: currencyId(reverseMapToken(trade.outputAmount.token) as Currency),
-                      minimumOutputCurrencyAmountRaw: (
-                        await dapp.uniswap.query.tradeMinimumAmountOut({
+                      minimumOutputCurrencyAmountRaw: await Uni_Query.tradeMinimumAmountOut(
+                        {
                           tradeType: TradeTypeEnum.EXACT_INPUT,
                           slippageTolerance: allowedSlippage.toFixed(18),
                           amountOut: trade.outputAmount,
-                        })
-                      ).amount,
+                        },
+                        client
+                      ).then((invoke) => {
+                        if (invoke.error) throw invoke.error
+                        return (invoke.data as Uni_TokenAmount).amount
+                      }),
                     }
                   : {
                       type: TransactionType.SWAP as TransactionType.SWAP,
@@ -489,13 +518,17 @@ export function useSwapCallback(
                     type: TransactionType.SWAP as TransactionType.SWAP,
                     tradeType: TradeType.EXACT_OUTPUT as TradeType.EXACT_OUTPUT,
                     inputCurrencyId: currencyId(reverseMapToken(trade.inputAmount.token) as Currency),
-                    maximumInputCurrencyAmountRaw: (
-                      await dapp.uniswap.query.tradeMaximumAmountIn({
+                    maximumInputCurrencyAmountRaw: await Uni_Query.tradeMaximumAmountIn(
+                      {
                         tradeType: TradeTypeEnum.EXACT_OUTPUT,
                         slippageTolerance: allowedSlippage.toFixed(18),
                         amountIn: trade.inputAmount,
-                      })
-                    ).amount,
+                      },
+                      client
+                    ).then((invoke) => {
+                      if (invoke.error) throw invoke.error
+                      return (invoke.data as Uni_TokenAmount).amount
+                    }),
                     outputCurrencyId: currencyId(reverseMapToken(trade.outputAmount.token) as Currency),
                     outputCurrencyAmountRaw: trade.outputAmount.amount,
                     expectedInputCurrencyAmountRaw: trade.inputAmount.amount,
@@ -537,6 +570,6 @@ export function useSwapCallback(
     swapCallsMaybeAsync,
     addTransaction,
     allowedSlippage,
-    dapp,
+    client,
   ])
 }

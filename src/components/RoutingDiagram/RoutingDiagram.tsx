@@ -1,19 +1,20 @@
 import { Trans } from '@lingui/macro'
 import { Protocol } from '@uniswap/router-sdk'
 import { Currency, Percent } from '@uniswap/sdk-core'
+import { Web3ApiClient } from '@web3api/client-js'
+import { useWeb3ApiClient } from '@web3api/react'
 import Badge from 'components/Badge'
 import CurrencyLogo from 'components/CurrencyLogo'
 import DoubleCurrencyLogo from 'components/DoubleLogo'
 import Row, { AutoRow } from 'components/Row'
 import { useTokenInfoFromActiveList } from 'hooks/useTokenInfoFromActiveList'
-import { useEffect, useState } from 'react'
 import { Box } from 'rebass'
 import styled from 'styled-components/macro'
 import { ThemedText, Z_INDEX } from 'theme'
 
 import { ReactComponent as DotLine } from '../../assets/svg/dot_line.svg'
-import { FeeAmountEnum } from '../../polywrap'
-import { usePolywrapDapp } from '../../polywrap-utils'
+import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Query } from '../../polywrap'
+import { useAsync } from '../../polywrap-utils'
 import { MouseoverTooltip } from '../Tooltip'
 
 export interface RoutingDiagramEntry {
@@ -145,16 +146,16 @@ function Pool({
   const tokenInfo0 = useTokenInfoFromActiveList(currency0)
   const tokenInfo1 = useTokenInfoFromActiveList(currency1)
 
-  const dapp = usePolywrapDapp()
-
-  const [fee, setFee] = useState<number>(0)
-  useEffect(() => {
-    const updateAsync = async () => {
-      const newFee: number = await dapp.uniswap.query.getFeeAmount({ feeAmount })
-      setFee(newFee)
-    }
-    void updateAsync()
-  }, [feeAmount, dapp])
+  const client: Web3ApiClient = useWeb3ApiClient()
+  const fee = useAsync(
+    async () => {
+      const invoke = await Uni_Query.getFeeAmount({ feeAmount }, client)
+      if (invoke.error) throw invoke.error
+      return invoke.data as number
+    },
+    [feeAmount, client],
+    0
+  )
 
   // TODO - link pool icon to info.uniswap.org via query params
   return (

@@ -1,5 +1,5 @@
 import { Trans } from '@lingui/macro'
-import { Currency, Percent, TradeType } from '@uniswap/sdk-core'
+import { Percent } from '@uniswap/sdk-core'
 import AnimatedDropdown from 'components/AnimatedDropdown'
 import Card, { OutlineCard } from 'components/Card'
 import { AutoColumn } from 'components/Column'
@@ -10,10 +10,11 @@ import { useActiveWeb3React } from 'hooks/web3'
 import { darken } from 'polished'
 import { useState } from 'react'
 import { ChevronDown, Info } from 'react-feather'
-import { InterfaceTrade } from 'state/routing/types'
 import styled, { keyframes, useTheme } from 'styled-components/macro'
 import { HideSmall, ThemedText } from 'theme'
 
+import { reverseMapPrice } from '../../polywrap-utils'
+import { ExtendedTrade } from '../../polywrap-utils/interfaces'
 import { AdvancedSwapDetails } from './AdvancedSwapDetails'
 import GasEstimateBadge, { SUPPORTED_GAS_ESTIMATE_CHAIN_IDS } from './GasEstimateBadge'
 import { ResponsiveTooltipContainer } from './styleds'
@@ -108,7 +109,7 @@ const Spinner = styled.div`
 `
 
 interface SwapDetailsInlineProps {
-  trade: InterfaceTrade<Currency, Currency, TradeType> | undefined
+  trade: ExtendedTrade | undefined
   syncing: boolean
   loading: boolean
   showInverted: boolean
@@ -160,7 +161,7 @@ export default function SwapDetailsDropdown({
             {trade ? (
               <LoadingOpacityContainer $loading={syncing}>
                 <TradePrice
-                  price={trade.executionPrice}
+                  price={reverseMapPrice(trade.executionPrice)}
                   showInverted={showInverted}
                   setShowInverted={setShowInverted}
                 />

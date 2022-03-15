@@ -1,11 +1,20 @@
 import { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
+import { Web3ApiClient } from '@web3api/client-js'
+import { useWeb3ApiClient } from '@web3api/react'
 import { SupportedChainId } from 'constants/chains'
 import JSBI from 'jsbi'
 import { useMemo } from 'react'
 import { TradeState } from 'state/routing/types'
 
-import { Route, TokenAmount, Trade, TradeTypeEnum } from '../polywrap'
-import { mapTokenAmount, mapTradeType, useAsync, usePolywrapDapp } from '../polywrap-utils'
+import {
+  Uni_MethodParameters,
+  Uni_Query,
+  Uni_Route as Route,
+  Uni_TokenAmount as TokenAmount,
+  Uni_Trade as Trade,
+  Uni_TradeTypeEnum as TradeTypeEnum,
+} from '../polywrap'
+import { mapTokenAmount, mapTradeType, useAsync } from '../polywrap-utils'
 import { useSingleContractWithCallData } from '../state/multicall/hooks'
 import { useAllV3Routes } from './useAllV3Routes'
 import { useV3Quoter } from './useContract'
@@ -29,7 +38,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
   amountSpecified?: CurrencyAmount<Currency>,
   otherCurrency?: Currency
 ): { state: TradeState; trade: Trade | undefined } {
-  const dapp = usePolywrapDapp()
+  const client: Web3ApiClient = useWeb3ApiClient()
 
   const [currencyIn, currencyOut] = useMemo(
     () =>
@@ -46,18 +55,23 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
     async () => {
       if (amountSpecified) {
         const calldatas = routes.map(async (route) => {
-          const params = await dapp.uniswap.query.quoteCallParameters({
-            route,
-            amount: mapTokenAmount(amountSpecified) as TokenAmount,
-            tradeType: mapTradeType(tradeType),
-          })
+          const invoke = await Uni_Query.quoteCallParameters(
+            {
+              route,
+              amount: mapTokenAmount(amountSpecified) as TokenAmount,
+              tradeType: mapTradeType(tradeType),
+            },
+            client
+          )
+          if (invoke.error) throw invoke.error
+          const params = invoke.data as Uni_MethodParameters
           return params.calldata
         })
         return Promise.all(calldatas)
       }
       return []
     },
-    [amountSpecified, routes, dapp],
+    [amountSpecified, routes, client],
     []
   )
   const quotesResults = useSingleContractWithCallData(quoter, callParams, {
@@ -138,9 +152,8 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
         }
       }
 
-      return {
-        state: TradeState.VALID,
-        trade: await dapp.uniswap.query.createTradeFromRoute({
+      const tradeInvoke = await Uni_Query.createTradeFromRoute(
+        {
           tradeRoute: {
             route: bestRoute,
             amount: (mapTradeType(tradeType) === TradeTypeEnum.EXACT_INPUT
@@ -148,10 +161,18 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
               : mapTokenAmount(amountOut)) as TokenAmount,
           },
           tradeType: mapTradeType(tradeType),
-        }),
+        },
+        client
+      )
+      if (tradeInvoke.error) throw tradeInvoke.error
+      const trade = tradeInvoke.data as Trade
+
+      return {
+        state: TradeState.VALID,
+        trade,
       }
     },
-    [amountSpecified, currencyIn, currencyOut, quotesResults, routes, routesLoading, tradeType, dapp],
+    [amountSpecified, currencyIn, currencyOut, quotesResults, routes, routesLoading, tradeType, client],
     {
       state: TradeState.LOADING,
       trade: undefined,

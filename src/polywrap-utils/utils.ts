@@ -3,10 +3,10 @@ import { Fraction } from '@uniswap/sdk-core'
 import { Trade as V2Trade } from '@uniswap/v2-sdk'
 import JSBI from 'jsbi'
 
-import * as Poly from '../polywrap'
+import { Uni_Currency, Uni_Pool, Uni_Token, Uni_TokenAmount, Uni_Trade } from '../polywrap'
 import { ETHER } from './constants'
 
-export function isEther(token: Poly.Token | undefined): boolean {
+export function isEther(token: Uni_Token | undefined): boolean {
   if (!token) return false
   return (
     token.currency.symbol === ETHER.symbol &&
@@ -15,7 +15,7 @@ export function isEther(token: Poly.Token | undefined): boolean {
   )
 }
 
-export function isToken(object: unknown): object is Poly.Token {
+export function isToken(object: unknown): object is Uni_Token {
   if (object === null || object === undefined) {
     return false
   }
@@ -29,7 +29,7 @@ export function isToken(object: unknown): object is Poly.Token {
   )
 }
 
-export function isPool(object: unknown): object is Poly.Pool {
+export function isPool(object: unknown): object is Uni_Pool {
   if (object === null || object === undefined) {
     return false
   }
@@ -45,7 +45,7 @@ export function isPool(object: unknown): object is Poly.Pool {
   )
 }
 
-export function isTrade(object: unknown): object is Poly.Trade {
+export function isTrade(object: unknown): object is Uni_Trade {
   if (object === null || object === undefined) {
     return false
   }
@@ -61,11 +61,11 @@ export function isTrade(object: unknown): object is Poly.Trade {
   )
 }
 
-export function tokenEquals(tokenA?: Poly.Token, tokenB?: Poly.Token): boolean {
+export function tokenEquals(tokenA?: Uni_Token, tokenB?: Uni_Token): boolean {
   return tokenA?.chainId === tokenB?.chainId && tokenA?.address === tokenB?.address
 }
 
-export function currencyEquals(currencyA?: Poly.Currency, currencyB?: Poly.Currency): boolean {
+export function currencyEquals(currencyA?: Uni_Currency, currencyB?: Uni_Currency): boolean {
   if (currencyA === undefined || currencyB === undefined) {
     return false
   }
@@ -80,13 +80,13 @@ export function currencyEquals(currencyA?: Poly.Currency, currencyB?: Poly.Curre
 //   return tokenEquals(pool.token0, token) || tokenEquals(pool.token1, token)
 // }
 
-export function toSignificant(tokenAmount: Poly.TokenAmount, sd = 6): string {
+export function toSignificant(tokenAmount: Uni_TokenAmount, sd = 6): string {
   const numerator = tokenAmount.amount
   const denominator = JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(tokenAmount.token.currency.decimals))
   return new Fraction(numerator, denominator).toSignificant(sd)
 }
 
-export function toFixed(tokenAmount: Poly.TokenAmount, digits = 6): string {
+export function toFixed(tokenAmount: Uni_TokenAmount, digits = 6): string {
   const numerator = tokenAmount.amount
   const denominator = JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(tokenAmount.token.currency.decimals))
   return new Fraction(numerator, denominator).toFixed(digits)

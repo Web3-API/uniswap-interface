@@ -48,7 +48,7 @@ export default function useUSDCPrice(currency?: Currency): Price<Currency, Token
       const { numerator, denominator } = v2USDCTrade.route.midPrice
       return new Price(currency, stablecoin, denominator, numerator)
     } else if (v3USDCTrade.trade) {
-      const { numerator, denominator } = v3USDCTrade.trade.routes[0].midPrice
+      const { numerator, denominator } = v3USDCTrade.trade.swaps[0].route.midPrice
       return new Price(currency, stablecoin, denominator, numerator)
     }
 

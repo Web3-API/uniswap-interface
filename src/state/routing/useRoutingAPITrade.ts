@@ -1,5 +1,7 @@
 import { skipToken } from '@reduxjs/toolkit/query/react'
 import { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
+import { Web3ApiClient } from '@web3api/client-js'
+import { useWeb3ApiClient } from '@web3api/react'
 import { useStablecoinAmountFromFiatValue } from 'hooks/useUSDCPrice'
 import ms from 'ms.macro'
 import { useMemo } from 'react'
@@ -7,8 +9,8 @@ import { useBlockNumber } from 'state/application/hooks'
 import { useGetQuoteQuery } from 'state/routing/slice'
 import { useClientSideRouter } from 'state/user/hooks'
 
-import { PolywrapDapp, Trade } from '../../polywrap'
-import { useAsync, usePolywrapDapp } from '../../polywrap-utils'
+import { useAsync } from '../../polywrap-utils'
+import { ExtendedTrade } from '../../polywrap-utils/interfaces'
 import { GetQuoteResult, TradeState } from './types'
 import { computeRoutes, transformRoutesToTrade } from './utils'
 
@@ -73,7 +75,7 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
   otherCurrency?: Currency
 ): {
   state: TradeState
-  trade: Trade | undefined
+  trade: ExtendedTrade | undefined
 } {
   const [currencyIn, currencyOut]: [Currency | undefined, Currency | undefined] = useMemo(
     () =>
@@ -105,7 +107,7 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
   // get USD gas cost of trade in active chains stablecoin amount
   const gasUseEstimateUSD = useStablecoinAmountFromFiatValue(quoteResult?.gasUseEstimateUSD) ?? null
 
-  const dapp: PolywrapDapp = usePolywrapDapp()
+  const client: Web3ApiClient = useWeb3ApiClient()
   return useAsync(
     async () => {
       if (!currencyIn || !currencyOut) {
@@ -140,18 +142,21 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
       }
 
       try {
-        const trade = await transformRoutesToTrade<TTradeType>(dapp.uniswap, route, tradeType, gasUseEstimateUSD)
+        const trade = await transformRoutesToTrade<TTradeType>(client, route, tradeType, gasUseEstimateUSD)
         return {
           // always return VALID regardless of isFetching status
           state: TradeState.VALID,
-          trade: trade.polyTrade,
+          trade: {
+            gasEstimateUSD: gasUseEstimateUSD,
+            ...trade.polyTrade,
+          },
         }
       } catch (e) {
         console.debug('transformRoutesToTrade failed: ', e)
-        return { state: TradeState.INVALID, trade: undefined }
+        return { state: TradeState.INVALID, trade: undefined, gasUseEstimateUSD }
       }
     },
-    [currencyIn, currencyOut, isLoading, quoteResult, tradeType, isError, route, queryArgs, gasUseEstimateUSD],
+    [currencyIn, currencyOut, isLoading, quoteResult, tradeType, isError, route, queryArgs, gasUseEstimateUSD, client],
     {
       state: TradeState.LOADING,
       trade: undefined,

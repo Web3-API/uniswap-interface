@@ -1,17 +1,18 @@
 import { Currency, CurrencyAmount, Token as UniToken, TradeType } from '@uniswap/sdk-core'
 import { Pair, Route as V2Route } from '@uniswap/v2-sdk'
+import { Web3ApiClient } from '@web3api/client-js'
+import { useWeb3ApiClient } from '@web3api/react'
 
 import { nativeOnChain } from '../../constants/tokens'
-import { PolywrapDapp, Pool, Token, TokenAmount, TradeTypeEnum, Uniswap } from '../../polywrap'
 import {
-  mapChainId,
-  mapFeeAmount,
-  mapToken,
-  mapTokenAmount,
-  mapTradeType,
-  useAsync,
-  usePolywrapDapp,
-} from '../../polywrap-utils'
+  Uni_Pool as Pool,
+  Uni_Query,
+  Uni_Token as Token,
+  Uni_TokenAmount as TokenAmount,
+  Uni_Trade,
+  Uni_TradeTypeEnum as TradeTypeEnum,
+} from '../../polywrap'
+import { mapChainId, mapFeeAmount, mapToken, mapTokenAmount, mapTradeType, useAsync } from '../../polywrap-utils'
 import { GetQuoteResult, InterfaceTrade, V2PoolInRoute, V3PoolInRoute } from './types'
 
 /**
@@ -50,19 +51,25 @@ export function computeRoutes(
         throw new Error('Expected both amountIn and amountOut to be present')
       }
 
-      const dapp: PolywrapDapp = usePolywrapDapp()
+      const client: Web3ApiClient = useWeb3ApiClient()
       const routev3 = useAsync(
         async () => {
           if (isV3Route(route)) {
-            return dapp.uniswap.query.createRoute({
-              pools: await Promise.all(route.map((route) => parsePool(dapp.uniswap, route))),
-              inToken: mapToken(parsedCurrencyIn),
-              outToken: mapToken(parsedCurrencyOut),
-            })
+            const routeInvoke = await Uni_Query.createRoute(
+              {
+                pools: await Promise.all(route.map((route) => parsePool(client, route))),
+                inToken: mapToken(parsedCurrencyIn),
+                outToken: mapToken(parsedCurrencyOut),
+              },
+              client
+            )
+            if (routeInvoke.error) throw routeInvoke.error
+
+            return routeInvoke.data ?? null
           }
           return null
         },
-        [route, parsedCurrencyIn, parsedCurrencyOut, dapp],
+        [route, parsedCurrencyIn, parsedCurrencyOut, client],
         null
       )
 
@@ -83,18 +90,13 @@ export function computeRoutes(
 }
 
 export async function transformRoutesToTrade<TTradeType extends TradeType>(
-  uni: Uniswap,
+  client: Web3ApiClient,
   route: ReturnType<typeof computeRoutes>,
   tradeType: TTradeType,
   gasUseEstimateUSD?: CurrencyAmount<UniToken> | null
 ): Promise<InterfaceTrade<Currency, Currency, TTradeType>> {
-  return new InterfaceTrade({
-    v2Routes:
-      route
-        ?.filter((r): r is typeof route[0] & { routev2: NonNullable<typeof route[0]['routev2']> } => r.routev2 !== null)
-        .map(({ routev2, inputAmount, outputAmount }) => ({ routev2, inputAmount, outputAmount })) ?? [],
-    v3Routes: [],
-    polyTrade: await uni.query.createTradeFromRoutes({
+  const polyTradeInvoke = await Uni_Query.createTradeFromRoutes(
+    {
       tradeRoutes:
         route
           ?.filter(
@@ -107,7 +109,19 @@ export async function transformRoutesToTrade<TTradeType extends TradeType>(
               : mapTokenAmount(outputAmount)) as TokenAmount,
           })) ?? [],
       tradeType: mapTradeType(tradeType),
-    }),
+    },
+    client
+  )
+  if (polyTradeInvoke.error) throw polyTradeInvoke.error
+  const polyTrade = polyTradeInvoke.data as Uni_Trade
+
+  return new InterfaceTrade({
+    v2Routes:
+      route
+        ?.filter((r): r is typeof route[0] & { routev2: NonNullable<typeof route[0]['routev2']> } => r.routev2 !== null)
+        .map(({ routev2, inputAmount, outputAmount }) => ({ routev2, inputAmount, outputAmount })) ?? [],
+    v3Routes: [],
+    polyTrade,
     tradeType,
     gasUseEstimateUSD,
   })
@@ -129,18 +143,23 @@ const parseToken = ({ address, chainId, decimals, symbol }: GetQuoteResult['rout
 }
 
 const parsePool = async (
-  uni: Uniswap,
+  client: Web3ApiClient,
   { fee, sqrtRatioX96, liquidity, tickCurrent, tokenIn, tokenOut }: V3PoolInRoute
-): Promise<Pool> =>
-  uni.query.createPool({
-    tokenA: parseToken(tokenIn),
-    tokenB: parseToken(tokenOut),
-    fee: mapFeeAmount(fee),
-    sqrtRatioX96,
-    liquidity,
-    tickCurrent: parseInt(tickCurrent),
-  })
-
+): Promise<Pool> => {
+  const poolInvoke = await Uni_Query.createPool(
+    {
+      tokenA: parseToken(tokenIn),
+      tokenB: parseToken(tokenOut),
+      fee: mapFeeAmount(fee),
+      sqrtRatioX96,
+      liquidity,
+      tickCurrent: parseInt(tickCurrent),
+    },
+    client
+  )
+  if (poolInvoke.error) throw poolInvoke.error
+  return poolInvoke.data as Pool
+}
 const parsePair = ({ reserve0, reserve1 }: V2PoolInRoute): Pair =>
   new Pair(
     CurrencyAmount.fromRawAmount(parseUniToken(reserve0.token), reserve0.quotient),

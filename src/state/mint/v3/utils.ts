@@ -1,7 +1,8 @@
 import { Price, Token } from '@uniswap/sdk-core'
+import { Web3ApiClient } from '@web3api/client-js'
 import JSBI from 'jsbi'
 
-import { FeeAmountEnum, Uniswap } from '../../../polywrap'
+import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Query } from '../../../polywrap'
 import { mapPrice } from '../../../polywrap-utils'
 
 export function tryParsePrice(baseToken?: Token, quoteToken?: Token, value?: string) {
@@ -27,7 +28,7 @@ export function tryParsePrice(baseToken?: Token, quoteToken?: Token, value?: str
 }
 
 export async function tryParseTick(
-  uni: Uniswap,
+  client: Web3ApiClient,
   baseToken?: Token,
   quoteToken?: Token,
   feeAmount?: FeeAmountEnum,
@@ -43,23 +44,42 @@ export async function tryParseTick(
     return undefined
   }
 
-  let tick: number
-
   // check price is within min/max bounds, if outside return min/max
-  const sqrtRatioX96 = await uni.query.encodeSqrtRatioX96({
-    amount1: price.numerator.toString(),
-    amount0: price.denominator.toString(),
-  })
+  const sqrtRatioX96Invoke = await Uni_Query.encodeSqrtRatioX96(
+    {
+      amount1: price.numerator.toString(),
+      amount0: price.denominator.toString(),
+    },
+    client
+  )
+  if (sqrtRatioX96Invoke.error) throw sqrtRatioX96Invoke.error
+  const sqrtRatioX96 = sqrtRatioX96Invoke.data as string
 
-  if (JSBI.greaterThanOrEqual(JSBI.BigInt(sqrtRatioX96), JSBI.BigInt(await uni.query.MAX_SQRT_RATIO({})))) {
-    tick = await uni.query.MAX_TICK({})
-  } else if (JSBI.lessThanOrEqual(JSBI.BigInt(sqrtRatioX96), JSBI.BigInt(await uni.query.MIN_SQRT_RATIO({})))) {
-    tick = await uni.query.MIN_TICK({})
+  const maxSqrtRatioInvoke = await Uni_Query.MAX_SQRT_RATIO({}, client)
+  if (maxSqrtRatioInvoke.error) throw maxSqrtRatioInvoke.error
+  const maxSqrtRatio = maxSqrtRatioInvoke.data as string
+
+  const minSqrtRatioInvoke = await Uni_Query.MIN_SQRT_RATIO({}, client)
+  if (minSqrtRatioInvoke.error) throw minSqrtRatioInvoke.error
+  const minSqrtRatio = minSqrtRatioInvoke.data as string
+
+  let tickInvoke
+  if (JSBI.greaterThanOrEqual(JSBI.BigInt(sqrtRatioX96), JSBI.BigInt(maxSqrtRatio))) {
+    tickInvoke = await Uni_Query.MAX_TICK({}, client)
+  } else if (JSBI.lessThanOrEqual(JSBI.BigInt(sqrtRatioX96), JSBI.BigInt(minSqrtRatio))) {
+    tickInvoke = await Uni_Query.MIN_TICK({}, client)
   } else {
     // this function is agnostic to the base, will always return the correct tick
-    tick = await uni.query.priceToClosestTick({ price: mapPrice(price) })
+    tickInvoke = await Uni_Query.priceToClosestTick({ price: mapPrice(price) }, client)
   }
+  if (tickInvoke.error) throw tickInvoke.error
+  const tick: number = tickInvoke.data as number
 
-  const tickSpacing = await uni.query.feeAmountToTickSpacing({ feeAmount })
-  return await uni.query.nearestUsableTick({ tick, tickSpacing })
+  const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+  if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
+  const tickSpacing = tickSpacingInvoke.data as number
+
+  const nearestTickInvoke = await Uni_Query.nearestUsableTick({ tick, tickSpacing }, client)
+  if (nearestTickInvoke.error) throw nearestTickInvoke.error
+  return nearestTickInvoke.data
 }

@@ -5,7 +5,7 @@ import { useBlockNumber } from 'state/application/hooks'
 import { useSingleCallResult } from 'state/multicall/hooks'
 import { unwrappedToken } from 'utils/unwrappedToken'
 
-import { Pool } from '../polywrap'
+import { Uni_Pool as Pool } from '../polywrap'
 import { reverseMapToken } from '../polywrap-utils'
 import { useV3NFTPositionManagerContract } from './useContract'
 

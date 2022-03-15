@@ -5,7 +5,7 @@ import { PoolState } from 'hooks/usePools'
 import React from 'react'
 import { ThemedText } from 'theme'
 
-import { FeeAmountEnum } from '../../polywrap'
+import { Uni_FeeAmountEnum as FeeAmountEnum } from '../../polywrap'
 
 export function FeeTierPercentageBadge({
   feeAmount,

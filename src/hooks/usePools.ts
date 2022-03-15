@@ -1,11 +1,13 @@
 import { Interface } from '@ethersproject/abi'
 import { Currency, Token } from '@uniswap/sdk-core'
 import { abi as IUniswapV3PoolStateABI } from '@uniswap/v3-core/artifacts/contracts/interfaces/pool/IUniswapV3PoolState.sol/IUniswapV3PoolState.json'
+import { Web3ApiClient } from '@web3api/client-js'
+import { useWeb3ApiClient } from '@web3api/react'
 import { useMemo } from 'react'
 
 import { V3_CORE_FACTORY_ADDRESSES } from '../constants/addresses'
-import { FeeAmountEnum, Pool } from '../polywrap'
-import { mapToken, useAsync, usePolywrapDapp } from '../polywrap-utils'
+import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Pool as Pool, Uni_Pool, Uni_Query } from '../polywrap'
+import { mapToken, useAsync } from '../polywrap-utils'
 import { useMultipleContractSingleData } from '../state/multicall/hooks'
 import { IUniswapV3PoolStateInterface } from '../types/v3/IUniswapV3PoolState'
 import { useActiveWeb3React } from './web3'
@@ -23,7 +25,7 @@ export function usePools(
   poolKeys: [Currency | undefined, Currency | undefined, FeeAmountEnum | undefined][]
 ): [PoolState, Pool | null][] {
   const { chainId } = useActiveWeb3React()
-  const dapp = usePolywrapDapp()
+  const client: Web3ApiClient = useWeb3ApiClient()
 
   const transformed: ([Token, Token, FeeAmountEnum] | null)[] = useMemo(() => {
     return poolKeys.map(([currencyA, currencyB, feeAmount]) => {
@@ -41,18 +43,23 @@ export function usePools(
     async () => {
       const v3CoreFactoryAddress = chainId && V3_CORE_FACTORY_ADDRESSES[chainId]
 
-      const mapped = transformed.map((value) => {
+      const mapped = transformed.map(async (value) => {
         if (!v3CoreFactoryAddress || !value) return undefined
-        return dapp.uniswap.query.computePoolAddress({
-          factoryAddress: v3CoreFactoryAddress,
-          tokenA: mapToken(value[0]),
-          tokenB: mapToken(value[1]),
-          fee: value[2],
-        })
+        const invoke = await Uni_Query.computePoolAddress(
+          {
+            factoryAddress: v3CoreFactoryAddress,
+            tokenA: mapToken(value[0]),
+            tokenB: mapToken(value[1]),
+            fee: value[2],
+          },
+          client
+        )
+        if (invoke.error) throw invoke.error
+        return invoke.data
       })
       return Promise.all(mapped)
     },
-    [chainId, transformed, dapp],
+    [chainId, transformed, client],
     []
   )
 
@@ -76,14 +83,19 @@ export function usePools(
         if (!slot0.sqrtPriceX96 || slot0.sqrtPriceX96.eq(0)) return [PoolState.NOT_EXISTS, null]
 
         try {
-          const pool = await dapp.uniswap.query.createPool({
-            tokenA: mapToken(token0),
-            tokenB: mapToken(token1),
-            fee,
-            sqrtRatioX96: slot0.sqrtPriceX96,
-            liquidity: liquidity[0],
-            tickCurrent: slot0.tick,
-          })
+          const invoke = await Uni_Query.createPool(
+            {
+              tokenA: mapToken(token0),
+              tokenB: mapToken(token1),
+              fee,
+              sqrtRatioX96: slot0.sqrtPriceX96,
+              liquidity: liquidity[0],
+              tickCurrent: slot0.tick,
+            },
+            client
+          )
+          if (invoke.error) throw invoke.error
+          const pool = invoke.data as Uni_Pool
           return [PoolState.EXISTS, pool]
         } catch (error) {
           console.error('Error when constructing the pool', error)
@@ -92,7 +104,7 @@ export function usePools(
       })
       return Promise.all(mapped)
     },
-    [liquidities, poolKeys, slot0s, transformed],
+    [liquidities, poolKeys, slot0s, transformed, client],
     [[PoolState.LOADING, null]]
   )
 }

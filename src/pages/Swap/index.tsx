@@ -1,8 +1,5 @@
 import { Trans } from '@lingui/macro'
-import { Trade } from '@uniswap/router-sdk'
-import { Currency, CurrencyAmount, Token, TradeType } from '@uniswap/sdk-core'
-import { Trade as V2Trade } from '@uniswap/v2-sdk'
-import { Trade as V3Trade } from '@uniswap/v3-sdk'
+import { Currency, CurrencyAmount, Percent, Token } from '@uniswap/sdk-core'
 import { NetworkAlert } from 'components/NetworkAlert/NetworkAlert'
 import SwapDetailsDropdown from 'components/swap/SwapDetailsDropdown'
 import UnsupportedCurrencyFooter from 'components/swap/UnsupportedCurrencyFooter'
@@ -40,6 +37,8 @@ import { useSwapCallback } from '../../hooks/useSwapCallback'
 import { useUSDCValue } from '../../hooks/useUSDCPrice'
 import useWrapCallback, { WrapErrorText, WrapType } from '../../hooks/useWrapCallback'
 import { useActiveWeb3React } from '../../hooks/web3'
+import { Uni_Trade as Trade } from '../../polywrap'
+import { reverseMapTokenAmount } from '../../polywrap-utils'
 import { useWalletModalToggle } from '../../state/application/hooks'
 import { Field } from '../../state/swap/actions'
 import {
@@ -124,8 +123,9 @@ export default function Swap({ history }: RouteComponentProps) {
             [Field.OUTPUT]: parsedAmount,
           }
         : {
-            [Field.INPUT]: independentField === Field.INPUT ? parsedAmount : trade?.inputAmount,
-            [Field.OUTPUT]: independentField === Field.OUTPUT ? parsedAmount : trade?.outputAmount,
+            [Field.INPUT]: independentField === Field.INPUT ? parsedAmount : reverseMapTokenAmount(trade?.inputAmount),
+            [Field.OUTPUT]:
+              independentField === Field.OUTPUT ? parsedAmount : reverseMapTokenAmount(trade?.outputAmount),
           },
     [independentField, parsedAmount, showWrap, trade]
   )
@@ -165,7 +165,7 @@ export default function Swap({ history }: RouteComponentProps) {
   // modal and loading
   const [{ showConfirm, tradeToConfirm, swapErrorMessage, attemptingTxn, txHash }, setSwapState] = useState<{
     showConfirm: boolean
-    tradeToConfirm: Trade<Currency, Currency, TradeType> | undefined
+    tradeToConfirm: Trade | undefined
     attemptingTxn: boolean
     swapErrorMessage: string | undefined
     txHash: string | undefined
@@ -192,12 +192,7 @@ export default function Swap({ history }: RouteComponentProps) {
   )
 
   const approvalOptimizedTrade = useApprovalOptimizedTrade(trade, allowedSlippage)
-  const approvalOptimizedTradeString =
-    approvalOptimizedTrade instanceof V2Trade
-      ? 'V2SwapRouter'
-      : approvalOptimizedTrade instanceof V3Trade
-      ? 'V3SwapRouter'
-      : 'SwapRouter'
+  const approvalOptimizedTradeString = 'V3SwapRouter'
 
   // check whether the user has approved the router on the input token
   const [approvalState, approveCallback] = useApproveCallbackFromTrade(approvalOptimizedTrade, allowedSlippage)
@@ -223,7 +218,7 @@ export default function Swap({ history }: RouteComponentProps) {
       ReactGA.event({
         category: 'Swap',
         action: 'Approve',
-        label: [approvalOptimizedTradeString, approvalOptimizedTrade?.inputAmount?.currency.symbol].join('/'),
+        label: [approvalOptimizedTradeString, approvalOptimizedTrade?.inputAmount?.token.currency.symbol].join('/'),
       })
     }
   }, [
@@ -231,7 +226,7 @@ export default function Swap({ history }: RouteComponentProps) {
     gatherPermitSignature,
     approveCallback,
     approvalOptimizedTradeString,
-    approvalOptimizedTrade?.inputAmount?.currency.symbol,
+    approvalOptimizedTrade?.inputAmount?.token.currency.symbol,
   ])
 
   // check if user has gone through approval process, used to show two step buttons, reset on token change
@@ -279,8 +274,8 @@ export default function Swap({ history }: RouteComponentProps) {
               : 'Swap w/ Send',
           label: [
             approvalOptimizedTradeString,
-            approvalOptimizedTrade?.inputAmount?.currency?.symbol,
-            approvalOptimizedTrade?.outputAmount?.currency?.symbol,
+            approvalOptimizedTrade?.inputAmount?.token.currency?.symbol,
+            approvalOptimizedTrade?.outputAmount?.token.currency?.symbol,
             'MH',
           ].join('/'),
         })
@@ -303,8 +298,8 @@ export default function Swap({ history }: RouteComponentProps) {
     recipientAddress,
     account,
     approvalOptimizedTradeString,
-    approvalOptimizedTrade?.inputAmount?.currency?.symbol,
-    approvalOptimizedTrade?.outputAmount?.currency?.symbol,
+    approvalOptimizedTrade?.inputAmount?.token.currency?.symbol,
+    approvalOptimizedTrade?.outputAmount?.token.currency?.symbol,
   ])
 
   // errors
@@ -312,7 +307,7 @@ export default function Swap({ history }: RouteComponentProps) {
 
   // warnings on the greater of fiat value price impact and execution price impact
   const priceImpactSeverity = useMemo(() => {
-    const executionPriceImpact = trade?.priceImpact
+    const executionPriceImpact = trade && new Percent(trade.priceImpact.numerator, trade.priceImpact.denominator)
     return warningSeverity(
       executionPriceImpact && priceImpact
         ? executionPriceImpact.greaterThan(priceImpact)

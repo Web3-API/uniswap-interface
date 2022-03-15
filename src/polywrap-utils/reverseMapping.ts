@@ -6,28 +6,17 @@ import {
   Token as UniToken,
   TradeType as UniTradeType,
 } from '@uniswap/sdk-core'
-import {
-  FeeAmount as UniFeeAmount,
-  Pool as UniPool,
-  Position as UniPosition,
-  Route as UniRoute,
-  Trade as UniTrade,
-} from '@uniswap/v3-sdk'
 
 import {
-  ChainId,
-  ChainIdEnum,
-  FeeAmount,
-  FeeAmountEnum,
-  Pool,
-  Position,
-  Price,
-  Route,
-  Token,
-  TokenAmount,
-  Trade,
-  TradeType,
-  TradeTypeEnum,
+  Uni_ChainId as ChainId,
+  Uni_ChainIdEnum as ChainIdEnum,
+  Uni_FeeAmount as FeeAmount,
+  Uni_FeeAmountEnum as FeeAmountEnum,
+  Uni_Price as Price,
+  Uni_Token as Token,
+  Uni_TokenAmount as TokenAmount,
+  Uni_TradeType as TradeType,
+  Uni_TradeTypeEnum as TradeTypeEnum,
 } from '../polywrap'
 import { isEther } from './utils'
 
@@ -64,52 +53,52 @@ export function reverseMapToken(input?: Token): UniCurrency | undefined {
 
 export function reverseMapTokenAmount(input?: TokenAmount): UniCurrencyAmount<UniCurrency> | undefined {
   if (!input) return undefined
-  return UniCurrencyAmount.fromRawAmount(reverseMapToken(input.token)!, input.amount)
+  return UniCurrencyAmount.fromRawAmount(reverseMapToken(input.token) as UniCurrency, input.amount)
 }
 
-export function reverseMapFeeAmount(input: FeeAmount): UniFeeAmount {
+export function reverseMapFeeAmount(input: FeeAmount): number {
   switch (input) {
     case FeeAmountEnum.LOWEST || 'LOWEST':
-      return UniFeeAmount.LOWEST
+      return 100
     case FeeAmountEnum.LOW || 'LOW':
-      return UniFeeAmount.LOW
+      return 500
     case FeeAmountEnum.MEDIUM || 'MEDIUM':
-      return UniFeeAmount.MEDIUM
+      return 3000
     case FeeAmountEnum.HIGH || 'HIGH':
-      return UniFeeAmount.HIGH
+      return 10000
     default:
       throw Error('Unrecognized fee amount: ' + input.toString())
   }
 }
 
-export function reverseMapPool(input: Pool): UniPool {
-  return new UniPool(
-    reverseMapToken(input.token0) as UniToken,
-    reverseMapToken(input.token1) as UniToken,
-    reverseMapFeeAmount(input.fee),
-    input.sqrtRatioX96,
-    input.liquidity,
-    input.tickCurrent,
-    input.tickDataProvider?.ticks
-  )
-}
-
-export function reverseMapPools(input: Pool[]): UniPool[] {
-  return input.map(reverseMapPool)
-}
-
-export async function reverseMapPosition(input: Position): Promise<UniPosition> {
-  return new UniPosition({
-    pool: reverseMapPool(input.pool),
-    tickLower: input.tickLower,
-    tickUpper: input.tickUpper,
-    liquidity: input.liquidity,
-  })
-}
-
-export function reverseMapRoute(input: Route): UniRoute<UniCurrency, UniCurrency> {
-  return new UniRoute(reverseMapPools(input.pools), reverseMapToken(input.input)!, reverseMapToken(input.output)!)
-}
+// export function reverseMapPool(input: Pool): UniPool {
+//   return new UniPool(
+//     reverseMapToken(input.token0) as UniToken,
+//     reverseMapToken(input.token1) as UniToken,
+//     reverseMapFeeAmount(input.fee),
+//     input.sqrtRatioX96,
+//     input.liquidity,
+//     input.tickCurrent,
+//     input.tickDataProvider
+//   )
+// }
+//
+// export function reverseMapPools(input: Pool[]): UniPool[] {
+//   return input.map(reverseMapPool)
+// }
+//
+// export async function reverseMapPosition(input: Position): Promise<UniPosition> {
+//   return new UniPosition({
+//     pool: reverseMapPool(input.pool),
+//     tickLower: input.tickLower,
+//     tickUpper: input.tickUpper,
+//     liquidity: input.liquidity,
+//   })
+// }
+//
+// export function reverseMapRoute(input: Route): UniRoute<UniCurrency, UniCurrency> {
+//   return new UniRoute(reverseMapPools(input.pools), reverseMapToken(input.input)!, reverseMapToken(input.output)!)
+// }
 
 export function reverseMapTradeType(input: TradeType): UniTradeType {
   if (input === TradeTypeEnum.EXACT_OUTPUT || 'EXACT_OUTPUT') {
@@ -118,16 +107,16 @@ export function reverseMapTradeType(input: TradeType): UniTradeType {
   return UniTradeType.EXACT_INPUT
 }
 
-export function reverseMapTrade<TType extends UniTradeType>(input: Trade): UniTrade<UniCurrency, UniCurrency, TType> {
-  return UniTrade.createUncheckedTradeWithMultipleRoutes({
-    routes: input.swaps.map((swap) => ({
-      route: reverseMapRoute(swap.route),
-      inputAmount: reverseMapTokenAmount(swap.inputAmount)!,
-      outputAmount: reverseMapTokenAmount(swap.outputAmount)!,
-    })),
-    tradeType: reverseMapTradeType(input.tradeType) as TType,
-  })
-}
+// export function reverseMapTrade<TType extends UniTradeType>(input: Trade): UniTrade<UniCurrency, UniCurrency, TType> {
+//   return UniTrade.createUncheckedTradeWithMultipleRoutes({
+//     routes: input.swaps.map((swap) => ({
+//       route: reverseMapRoute(swap.route),
+//       inputAmount: reverseMapTokenAmount(swap.inputAmount)!,
+//       outputAmount: reverseMapTokenAmount(swap.outputAmount)!,
+//     })),
+//     tradeType: reverseMapTradeType(input.tradeType) as TType,
+//   })
+// }
 
 export function reverseMapPrice<TBase extends UniCurrency = UniCurrency, TQuote extends UniCurrency = UniCurrency>(
   input: Price

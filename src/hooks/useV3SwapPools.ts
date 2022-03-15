@@ -2,7 +2,7 @@ import { Currency, Token } from '@uniswap/sdk-core'
 import { SupportedChainId } from 'constants/chains'
 import { useMemo } from 'react'
 
-import { FeeAmountEnum, Pool } from '../polywrap'
+import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Pool as Pool } from '../polywrap'
 import { useAllCurrencyCombinations } from './useAllCurrencyCombinations'
 import { PoolState, usePools } from './usePools'
 import { useActiveWeb3React } from './web3'

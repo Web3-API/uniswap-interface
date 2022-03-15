@@ -2,7 +2,8 @@ import { BigNumber } from '@ethersproject/bignumber'
 import { TransactionResponse } from '@ethersproject/providers'
 import { Trans } from '@lingui/macro'
 import { Currency, CurrencyAmount, Percent } from '@uniswap/sdk-core'
-import { FeeAmount, NonfungiblePositionManager } from '@uniswap/v3-sdk'
+import { Web3ApiClient } from '@web3api/client-js'
+import { useWeb3ApiClient } from '@web3api/react'
 import UnsupportedCurrencyFooter from 'components/swap/UnsupportedCurrencyFooter'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import { AlertTriangle } from 'react-feather'
@@ -45,8 +46,8 @@ import useTransactionDeadline from '../../hooks/useTransactionDeadline'
 import { useUSDCValue } from '../../hooks/useUSDCPrice'
 import { useV3PositionFromTokenId } from '../../hooks/useV3Positions'
 import { useActiveWeb3React } from '../../hooks/web3'
-import { FeeAmountEnum } from '../../polywrap'
-import { mapFeeAmount, reverseMapFeeAmount, reverseMapPosition, useAsync, useMapPosition } from '../../polywrap-utils'
+import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_MethodParameters, Uni_Query } from '../../polywrap'
+import { mapFeeAmount, mapToken, reverseMapFeeAmount } from '../../polywrap-utils'
 import { useWalletModalToggle } from '../../state/application/hooks'
 import { Bound, Field } from '../../state/mint/v3/actions'
 import { TransactionType } from '../../state/transactions/actions'
@@ -89,6 +90,8 @@ export default function AddLiquidity({
   const addTransaction = useTransactionAdder()
   const positionManager = useV3NFTPositionManagerContract()
 
+  const client: Web3ApiClient = useWeb3ApiClient()
+
   // check for existing position if tokenId in url
   const { position: existingPositionDetails, loading: positionLoading } = useV3PositionFromTokenId(
     tokenId ? BigNumber.from(tokenId) : undefined
@@ -96,17 +99,14 @@ export default function AddLiquidity({
   const hasExistingPosition = !!existingPositionDetails && !positionLoading
   const { position: existingPosition } = useDerivedPositionInfo(existingPositionDetails)
 
-  const uniExistingPosition = useAsync(
-    async () => (existingPosition ? reverseMapPosition(existingPosition) : undefined),
-    [existingPosition],
-    undefined
-  )
-
-  // fee selection from url
-  const feeAmount: FeeAmount | undefined =
-    feeAmountFromUrl && Object.values(FeeAmount).includes(parseFloat(feeAmountFromUrl))
-      ? parseFloat(feeAmountFromUrl)
-      : undefined
+  let feeAmount: FeeAmountEnum | undefined
+  if (feeAmountFromUrl) {
+    try {
+      feeAmount = mapFeeAmount(feeAmountFromUrl)
+    } catch {
+      feeAmount = undefined
+    }
+  }
 
   const baseCurrency = useCurrency(currencyIdA)
   const currencyB = useCurrency(currencyIdB)
@@ -125,7 +125,7 @@ export default function AddLiquidity({
     pricesAtTicks,
     parsedAmounts,
     currencyBalances,
-    uniPosition,
+    position,
     noLiquidity,
     currencies,
     errorMessage,
@@ -141,10 +141,8 @@ export default function AddLiquidity({
     quoteCurrency ?? undefined,
     feeAmount,
     baseCurrency ?? undefined,
-    uniExistingPosition
+    existingPosition
   )
-
-  const position = useMapPosition(uniPosition)
 
   const { onFieldAInput, onFieldBInput, onLeftRangeInput, onRightRangeInput, onStartPriceInput } =
     useV3MintActionHandlers(noLiquidity)
@@ -220,23 +218,47 @@ export default function AddLiquidity({
       return
     }
 
-    if (uniPosition && account && deadline) {
+    // {
+    //   recipient?: string | null
+    //   createPool?: boolean | null
+    //   tokenId?: BigInt | null
+    //   slippageTolerance: string
+    //   deadline: BigInt
+    //   useNative?: Token | null
+    //   token0Permit?: PermitOptions | null
+    //   token1Permit?: PermitOptions | null
+    // }
+
+    if (position && account && deadline) {
       const useNative = baseCurrency.isNative ? baseCurrency : quoteCurrency.isNative ? quoteCurrency : undefined
-      const { calldata, value } =
+      const invoke =
         hasExistingPosition && tokenId
-          ? NonfungiblePositionManager.addCallParameters(uniPosition, {
-              tokenId,
-              slippageTolerance: allowedSlippage,
-              deadline: deadline.toString(),
-              useNative,
-            })
-          : NonfungiblePositionManager.addCallParameters(uniPosition, {
-              slippageTolerance: allowedSlippage,
-              recipient: account,
-              deadline: deadline.toString(),
-              useNative,
-              createPool: noLiquidity,
-            })
+          ? await Uni_Query.addCallParameters(
+              {
+                position,
+                options: {
+                  tokenId,
+                  slippageTolerance: allowedSlippage.toFixed(18),
+                  deadline: deadline.toString(),
+                  useNative: useNative ? mapToken(useNative) : undefined,
+                },
+              },
+              client
+            )
+          : await Uni_Query.addCallParameters(
+              {
+                position,
+                options: {
+                  tokenId,
+                  slippageTolerance: allowedSlippage.toFixed(18),
+                  deadline: deadline.toString(),
+                  useNative: useNative ? mapToken(useNative) : undefined,
+                },
+              },
+              client
+            )
+      if (invoke.error) throw invoke.error
+      const { calldata, value } = invoke.data as Uni_MethodParameters
 
       let txn: { to: string; data: string; value: string } = {
         to: NONFUNGIBLE_POSITION_MANAGER_ADDRESSES[chainId],
@@ -291,7 +313,7 @@ export default function AddLiquidity({
                 createPool: Boolean(noLiquidity),
                 expectedAmountBaseRaw: parsedAmounts[Field.CURRENCY_A]?.quotient?.toString() ?? '0',
                 expectedAmountQuoteRaw: parsedAmounts[Field.CURRENCY_B]?.quotient?.toString() ?? '0',
-                feeAmount: uniPosition.pool.fee,
+                feeAmount: reverseMapFeeAmount(position.pool.fee),
               })
               setTxHash(response.hash)
               ReactGA.event({
@@ -544,7 +566,9 @@ export default function AddLiquidity({
                         onFieldAInput(formattedAmounts[Field.CURRENCY_B] ?? '')
                       }
                       history.push(
-                        `/add/${currencyIdB as string}/${currencyIdA as string}${feeAmount ? '/' + feeAmount : ''}`
+                        `/add/${currencyIdB as string}/${currencyIdA as string}${
+                          feeAmount !== undefined ? '/' + reverseMapFeeAmount(feeAmount) : ''
+                        }`
                       )
                     }}
                   />
@@ -597,7 +621,7 @@ export default function AddLiquidity({
 
                       <FeeSelector
                         disabled={!quoteCurrency || !baseCurrency}
-                        feeAmount={feeAmount ? mapFeeAmount(feeAmount) : undefined}
+                        feeAmount={feeAmount}
                         handleFeePoolSelect={handleFeePoolSelect}
                         currencyA={baseCurrency ?? undefined}
                         currencyB={quoteCurrency ?? undefined}
@@ -660,7 +684,7 @@ export default function AddLiquidity({
                     <Buttons />
                   </HideMedium>
                   <RightContainer gap="lg">
-                    <DynamicSection gap="md" disabled={!feeAmount || invalidPool}>
+                    <DynamicSection gap="md" disabled={feeAmount === undefined || invalidPool}>
                       {!noLiquidity ? (
                         <>
                           <RowBetween>
@@ -691,7 +715,7 @@ export default function AddLiquidity({
                           <LiquidityChartRangeInput
                             currencyA={baseCurrency ?? undefined}
                             currencyB={quoteCurrency ?? undefined}
-                            feeAmount={feeAmount ? mapFeeAmount(feeAmount) : undefined}
+                            feeAmount={feeAmount}
                             ticksAtLimit={ticksAtLimit}
                             price={
                               price ? parseFloat((invertPrice ? price.invert() : price).toSignificant(8)) : undefined
@@ -766,7 +790,7 @@ export default function AddLiquidity({
 
                     <DynamicSection
                       gap="md"
-                      disabled={!feeAmount || invalidPool || (noLiquidity && !startPriceTypedValue)}
+                      disabled={feeAmount === undefined || invalidPool || (noLiquidity && !startPriceTypedValue)}
                     >
                       <StackedContainer>
                         <StackedItem style={{ opacity: showCapitalEfficiencyWarning ? '0.05' : 1 }}>

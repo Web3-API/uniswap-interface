@@ -2,7 +2,8 @@ import { Contract } from '@ethersproject/contracts'
 import { TransactionResponse } from '@ethersproject/providers'
 import { Trans } from '@lingui/macro'
 import { CurrencyAmount, Fraction, Percent, Price, Token } from '@uniswap/sdk-core'
-import { FeeAmount, Pool, Position, priceToClosestTick, TickMath } from '@uniswap/v3-sdk'
+import { Web3ApiClient } from '@web3api/client-js'
+import { useWeb3ApiClient } from '@web3api/react'
 import Badge, { BadgeVariant } from 'components/Badge'
 import { ButtonConfirmed } from 'components/Button'
 import { BlueCard, DarkGreyCard, LightCard, YellowCard } from 'components/Card'
@@ -43,8 +44,16 @@ import { useV2LiquidityTokenPermit } from '../../hooks/useERC20Permit'
 import useIsArgentWallet from '../../hooks/useIsArgentWallet'
 import { useTotalSupply } from '../../hooks/useTotalSupply'
 import { useActiveWeb3React } from '../../hooks/web3'
-import { FeeAmountEnum } from '../../polywrap'
-import { mapFeeAmount, reverseMapFeeAmount } from '../../polywrap-utils'
+import {
+  Uni_FeeAmountEnum as FeeAmountEnum,
+  Uni_MintAmounts,
+  Uni_Pool,
+  Uni_Position as Position,
+  Uni_Position,
+  Uni_Query,
+  Uni_TokenAmount as TokenAmount,
+} from '../../polywrap'
+import { mapPrice, mapToken, reverseMapPrice, reverseMapTokenAmount, useAsync } from '../../polywrap-utils'
 import { NEVER_RELOAD, useSingleCallResult } from '../../state/multicall/hooks'
 import { TransactionType } from '../../state/transactions/actions'
 import { useTokenBalance } from '../../state/wallet/hooks'
@@ -126,6 +135,7 @@ function V2PairMigration({
   token0: Token
   token1: Token
 }) {
+  const client: Web3ApiClient = useWeb3ApiClient()
   const { chainId, account } = useActiveWeb3React()
   const theme = useTheme()
   const v2FactoryAddress = chainId ? V2_FACTORY_ADDRESSES[chainId] : undefined
@@ -159,18 +169,18 @@ function V2PairMigration({
   )
 
   // set up v3 pool
-  const [feeAmount, setFeeAmount] = useState(FeeAmount.MEDIUM)
-  const [poolState, pool] = usePool(token0, token1, mapFeeAmount(feeAmount))
+  const [feeAmount, setFeeAmount] = useState(FeeAmountEnum.MEDIUM)
+  const [poolState, pool] = usePool(token0, token1, feeAmount)
   const noLiquidity = poolState === PoolState.NOT_EXISTS
 
-  const handleFeePoolSelect = (fee: FeeAmountEnum) => setFeeAmount(reverseMapFeeAmount(fee))
+  const handleFeePoolSelect = (fee: FeeAmountEnum) => setFeeAmount(fee)
 
   // get spot prices + price difference
   const v2SpotPrice = useMemo(
     () => new Price(token0, token1, reserve0.quotient, reserve1.quotient),
     [token0, token1, reserve0, reserve1]
   )
-  const v3SpotPrice = poolState === PoolState.EXISTS ? pool?.token0Price : undefined
+  const v3SpotPrice = poolState === PoolState.EXISTS && pool ? reverseMapPrice(pool.token0Price) : undefined
 
   let priceDifferenceFraction: Fraction | undefined =
     v2SpotPrice && v3SpotPrice ? v3SpotPrice.divide(v2SpotPrice).subtract(1).multiply(100) : undefined
@@ -203,36 +213,111 @@ function V2PairMigration({
 
   const { onLeftRangeInput, onRightRangeInput } = useV3MintActionHandlers(noLiquidity)
 
-  // the v3 tick is either the pool's tickCurrent, or the tick closest to the v2 spot price
-  const tick = pool?.tickCurrent ?? priceToClosestTick(v2SpotPrice)
-  // the price is either the current v3 price, or the price at the tick
-  const sqrtPrice = pool?.sqrtRatioX96 ?? TickMath.getSqrtRatioAtTick(tick)
-  const position =
-    typeof tickLower === 'number' && typeof tickUpper === 'number' && !invalidRange
-      ? Position.fromAmounts({
-          pool: pool ?? new Pool(token0, token1, feeAmount, sqrtPrice, 0, tick, []),
-          tickLower,
-          tickUpper,
-          amount0: token0Value.quotient,
-          amount1: token1Value.quotient,
-          useFullPrecision: true, // we want full precision for the theoretical position
-        })
-      : undefined
+  const { sqrtPrice, position, posAmount0, posAmount1 } = useAsync<{
+    sqrtPrice: string
+    position?: Position
+    posAmount0?: TokenAmount
+    posAmount1?: TokenAmount
+  }>(
+    async () => {
+      // the v3 tick is either the pool's tickCurrent, or the tick closest to the v2 spot price
+      let tick
+      if (pool?.tickCurrent) {
+        tick = pool?.tickCurrent
+      } else {
+        const invoke = await Uni_Query.priceToClosestTick({ price: mapPrice(v2SpotPrice) }, client)
+        if (invoke.error) throw invoke.error
+        tick = invoke.data as number
+      }
+      // the price is either the current v3 price, or the price at the tick
+      let sqrtPrice
+      if (pool?.sqrtRatioX96) {
+        sqrtPrice = pool?.sqrtRatioX96
+      } else {
+        const invoke = await Uni_Query.getSqrtRatioAtTick({ tick }, client)
+        if (invoke.error) throw invoke.error
+        sqrtPrice = invoke.data as string
+      }
 
-  const { amount0: v3Amount0Min, amount1: v3Amount1Min } = useMemo(
-    () => (position ? position.mintAmountsWithSlippage(allowedSlippage) : { amount0: undefined, amount1: undefined }),
-    [position, allowedSlippage]
+      let position: Uni_Position | undefined = undefined
+      if (typeof tickLower === 'number' && typeof tickUpper === 'number' && !invalidRange) {
+        const invoke = await Uni_Query.createPositionFromAmounts(
+          {
+            pool:
+              pool ??
+              ((await Uni_Query.createPool(
+                {
+                  tokenA: mapToken(token0),
+                  tokenB: mapToken(token1),
+                  fee: feeAmount,
+                  sqrtRatioX96: sqrtPrice,
+                  liquidity: '0',
+                  tickCurrent: tick,
+                },
+                client
+              )) as Uni_Pool),
+            tickLower,
+            tickUpper,
+            amount0: token0Value.quotient.toString(),
+            amount1: token1Value.quotient.toString(),
+            useFullPrecision: true, // we want full precision for the theoretical position
+          },
+          client
+        )
+        if (invoke.error) throw invoke.error
+        position = invoke.data
+      }
+      const posAmount0 = position && position.token0Amount
+      const posAmount1 = position && position.token1Amount
+
+      return { sqrtPrice, position, posAmount0, posAmount1 }
+    },
+    [
+      pool,
+      v2SpotPrice,
+      tickLower,
+      tickUpper,
+      invalidRange,
+      token0,
+      token1,
+      feeAmount,
+      token0Value,
+      token1Value,
+      client,
+    ],
+    { sqrtPrice: pool?.sqrtRatioX96 ?? '0' }
+  )
+
+  const { amount0: v3Amount0Min, amount1: v3Amount1Min } = useAsync(
+    async () => {
+      if (position) {
+        const invoke = await Uni_Query.mintAmountsWithSlippage(
+          {
+            position,
+            slippageTolerance: allowedSlippage.toFixed(18),
+          },
+          client
+        )
+        if (invoke.error) throw invoke.error
+        return invoke.data as Uni_MintAmounts
+      }
+      return { amount0: undefined, amount1: undefined }
+    },
+    [position, allowedSlippage, client],
+    { amount0: undefined, amount1: undefined }
   )
 
   const refund0 = useMemo(
     () =>
-      position && CurrencyAmount.fromRawAmount(token0, JSBI.subtract(token0Value.quotient, position.amount0.quotient)),
-    [token0Value, position, token0]
+      posAmount0 &&
+      CurrencyAmount.fromRawAmount(token0, JSBI.subtract(token0Value.quotient, JSBI.BigInt(posAmount0.amount))),
+    [token0Value, posAmount0, token0]
   )
   const refund1 = useMemo(
     () =>
-      position && CurrencyAmount.fromRawAmount(token1, JSBI.subtract(token1Value.quotient, position.amount1.quotient)),
-    [token1Value, position, token1]
+      posAmount1 &&
+      CurrencyAmount.fromRawAmount(token1, JSBI.subtract(token1Value.quotient, JSBI.BigInt(posAmount1.amount))),
+    [token1Value, posAmount1, token1]
   )
 
   const [confirmingMigration, setConfirmingMigration] = useState<boolean>(false)
@@ -306,7 +391,7 @@ function V2PairMigration({
           token0.address,
           token1.address,
           feeAmount,
-          `0x${sqrtPrice.toString(16)}`,
+          `0x${JSBI.BigInt(sqrtPrice).toString(16)}`,
         ])
       )
     }
@@ -323,8 +408,8 @@ function V2PairMigration({
           fee: feeAmount,
           tickLower,
           tickUpper,
-          amount0Min: `0x${v3Amount0Min.toString(16)}`,
-          amount1Min: `0x${v3Amount1Min.toString(16)}`,
+          amount0Min: `0x${JSBI.BigInt(v3Amount0Min).toString(16)}`,
+          amount1Min: `0x${JSBI.BigInt(v3Amount1Min).toString(16)}`,
           recipient: account,
           deadline: deadlineToUse,
           refundAsETH: true, // hard-code this for now
@@ -436,7 +521,7 @@ function V2PairMigration({
             <Badge variant={BadgeVariant.PRIMARY}>V3</Badge>
           </RowBetween>
 
-          <FeeSelector feeAmount={mapFeeAmount(feeAmount)} handleFeePoolSelect={handleFeePoolSelect} />
+          <FeeSelector feeAmount={feeAmount} handleFeePoolSelect={handleFeePoolSelect} />
           {noLiquidity && (
             <BlueCard style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <AlertCircle color={theme.text1} style={{ marginBottom: '12px', opacity: 0.8 }} />
@@ -591,7 +676,10 @@ function V2PairMigration({
           {position ? (
             <DarkGreyCard>
               <AutoColumn gap="md">
-                <LiquidityInfo token0Amount={position.amount0} token1Amount={position.amount1} />
+                <LiquidityInfo
+                  token0Amount={reverseMapTokenAmount(posAmount0) as CurrencyAmount<Token>}
+                  token1Amount={reverseMapTokenAmount(posAmount1) as CurrencyAmount<Token>}
+                />
                 {chainId && refund0 && refund1 ? (
                   <ThemedText.Black fontSize={12}>
                     <Trans>

@@ -2,7 +2,8 @@ import { BigNumber } from '@ethersproject/bignumber'
 import { TransactionResponse } from '@ethersproject/providers'
 import { Trans } from '@lingui/macro'
 import { Currency, CurrencyAmount, Fraction, Percent, Price, Token } from '@uniswap/sdk-core'
-import { NonfungiblePositionManager, Pool, Position } from '@uniswap/v3-sdk'
+import { Web3ApiClient } from '@web3api/client-js'
+import { useWeb3ApiClient } from '@web3api/react'
 import Badge from 'components/Badge'
 import { ButtonConfirmed, ButtonGray, ButtonPrimary } from 'components/Button'
 import { DarkCard, LightCard } from 'components/Card'
@@ -41,7 +42,14 @@ import RateToggle from '../../components/RateToggle'
 import { SwitchLocaleLink } from '../../components/SwitchLocaleLink'
 import { usePositionTokenURI } from '../../hooks/usePositionTokenURI'
 import useTheme from '../../hooks/useTheme'
-import { useAsync, useMapPosition, usePolywrapDapp } from '../../polywrap-utils'
+import {
+  Uni_MethodParameters,
+  Uni_Pool as Pool,
+  Uni_Position as Position,
+  Uni_Query,
+  Uni_TokenAmount as TokenAmount,
+} from '../../polywrap'
+import { mapTokenAmount, reverseMapPrice, reverseMapTokenAmount, toSignificant, useAsync } from '../../polywrap-utils'
 import { TransactionType } from '../../state/transactions/actions'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { ExplorerDataType, getExplorerLink } from '../../utils/getExplorerLink'
@@ -166,7 +174,7 @@ function CurrentPriceCard({
           <Trans>Current price</Trans>
         </ExtentsText>
         <ThemedText.MediumHeader textAlign="center">
-          {(inverted ? pool.token1Price : pool.token0Price).toSignificant(6)}{' '}
+          {(inverted ? reverseMapPrice(pool.token1Price) : reverseMapPrice(pool.token0Price)).toSignificant(6)}{' '}
         </ThemedText.MediumHeader>
         <ExtentsText>
           <Trans>
@@ -181,7 +189,7 @@ function CurrentPriceCard({
 function LinkedCurrency({ chainId, currency }: { chainId?: number; currency?: Currency }) {
   const address = (currency as Token)?.address
 
-  if (typeof chainId === 'number' && address) {
+  if (chainId !== undefined && address) {
     return (
       <ExternalLink href={getExplorerLink(chainId, address, ExplorerDataType.TOKEN)}>
         <RowFixed>
@@ -321,7 +329,7 @@ export function PositionPage({
   const { chainId, account, library } = useActiveWeb3React()
   const theme = useTheme()
 
-  const dapp = usePolywrapDapp()
+  const client: Web3ApiClient = useWeb3ApiClient()
 
   const parsedTokenId = tokenIdFromUrl ? BigNumber.from(tokenIdFromUrl) : undefined
   const { loading, position: positionDetails } = useV3PositionFromTokenId(parsedTokenId)
@@ -351,21 +359,34 @@ export function PositionPage({
 
   // construct Position from details returned
   const [poolState, pool] = usePool(token0 ?? undefined, token1 ?? undefined, feeAmount)
-  const position = useMemo(() => {
-    if (pool && liquidity && typeof tickLower === 'number' && typeof tickUpper === 'number') {
-      return new Position({ pool, liquidity: liquidity.toString(), tickLower, tickUpper })
-    }
-    return undefined
-  }, [liquidity, pool, tickLower, tickUpper])
-  const polyPosition = useMapPosition(position)
+
+  const position = useAsync<Position | undefined>(
+    async () => {
+      if (pool && liquidity && typeof tickLower === 'number' && typeof tickUpper === 'number') {
+        const invoke = await Uni_Query.createPosition(
+          {
+            pool,
+            liquidity: liquidity.toString(),
+            tickLower,
+            tickUpper,
+          },
+          client
+        )
+        if (invoke.error) throw invoke.error
+        return invoke.data
+      }
+      return undefined
+    },
+    [liquidity, pool, tickLower, tickUpper, client],
+    undefined
+  )
+
+  const pricesFromPosition = getPriceOrderingFromPositionForUI(position)
+  // const posAmount0 = reverseMapTokenAmount(position.token0Amount)
+  //   const posAmount1 = reverseMapTokenAmount(position.token1Amount)
 
   const tickAtLimit = useIsTickAtLimit(feeAmount, tickLower, tickUpper)
 
-  const pricesFromPosition = useAsync(
-    () => getPriceOrderingFromPositionForUI(dapp.uniswap, polyPosition),
-    [dapp.uniswap, polyPosition],
-    {}
-  )
   const [manuallyInverted, setManuallyInverted] = useState(false)
 
   // handle manual inversion
@@ -385,7 +406,7 @@ export function PositionPage({
     return priceLower && pool && priceUpper
       ? getRatio(
           inverted ? priceUpper.invert() : priceLower,
-          pool.token0Price,
+          reverseMapPrice<Token, Token>(pool.token0Price),
           inverted ? priceLower.invert() : priceUpper
         )
       : undefined
@@ -419,24 +440,31 @@ export function PositionPage({
 
   const fiatValueOfLiquidity: CurrencyAmount<Token> | null = useMemo(() => {
     if (!price0 || !price1 || !position) return null
-    const amount0 = price0.quote(position.amount0)
-    const amount1 = price1.quote(position.amount1)
+    const amount0 = price0.quote(reverseMapTokenAmount(position.token0Amount) as CurrencyAmount<Currency>)
+    const amount1 = price1.quote(reverseMapTokenAmount(position.token1Amount) as CurrencyAmount<Currency>)
     return amount0.add(amount1)
   }, [price0, price1, position])
 
   const addTransaction = useTransactionAdder()
   const positionManager = useV3NFTPositionManagerContract()
-  const collect = useCallback(() => {
+  const collect = useCallback(async () => {
     if (!chainId || !feeValue0 || !feeValue1 || !positionManager || !account || !tokenId || !library) return
 
     setCollecting(true)
 
-    const { calldata, value } = NonfungiblePositionManager.collectCallParameters({
-      tokenId: tokenId.toString(),
-      expectedCurrencyOwed0: feeValue0,
-      expectedCurrencyOwed1: feeValue1,
-      recipient: account,
-    })
+    const invoke = await Uni_Query.collectCallParameters(
+      {
+        options: {
+          tokenId: tokenId.toString(),
+          expectedCurrencyOwed0: mapTokenAmount(feeValue0) as TokenAmount,
+          expectedCurrencyOwed1: mapTokenAmount(feeValue1) as TokenAmount,
+          recipient: account,
+        },
+      },
+      client
+    )
+    if (invoke.error) throw invoke.error
+    const { calldata, value } = invoke.data as Uni_MethodParameters
 
     const txn = {
       to: positionManager.address,
@@ -477,7 +505,7 @@ export function PositionPage({
         setCollecting(false)
         console.error(error)
       })
-  }, [chainId, feeValue0, feeValue1, positionManager, account, tokenId, addTransaction, library])
+  }, [chainId, feeValue0, feeValue1, positionManager, account, tokenId, addTransaction, library, client])
 
   const owner = useSingleCallResult(!!tokenId ? positionManager : null, 'ownerOf', [tokenId]).result?.[0]
   const ownsNFT = owner === account || positionDetails?.operator === account
@@ -669,7 +697,9 @@ export function PositionPage({
                         <LinkedCurrency chainId={chainId} currency={currencyQuote} />
                         <RowFixed>
                           <ThemedText.Main>
-                            {inverted ? position?.amount0.toSignificant(4) : position?.amount1.toSignificant(4)}
+                            {inverted
+                              ? position && toSignificant(position.token0Amount, 4)
+                              : position && toSignificant(position.token1Amount, 4)}
                           </ThemedText.Main>
                           {typeof ratio === 'number' && !removed ? (
                             <Badge style={{ marginLeft: '10px' }}>
@@ -684,7 +714,9 @@ export function PositionPage({
                         <LinkedCurrency chainId={chainId} currency={currencyBase} />
                         <RowFixed>
                           <ThemedText.Main>
-                            {inverted ? position?.amount1.toSignificant(4) : position?.amount0.toSignificant(4)}
+                            {inverted
+                              ? position && toSignificant(position.token1Amount, 4)
+                              : position && toSignificant(position.token0Amount, 4)}
                           </ThemedText.Main>
                           {typeof ratio === 'number' && !removed ? (
                             <Badge style={{ marginLeft: '10px' }}>

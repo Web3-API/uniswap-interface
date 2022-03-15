@@ -7,7 +7,7 @@ import { Minus, Plus } from 'react-feather'
 import styled, { keyframes } from 'styled-components/macro'
 import { ThemedText } from 'theme'
 
-import { FeeAmountEnum } from '../../polywrap'
+import { Uni_FeeAmountEnum as FeeAmountEnum } from '../../polywrap'
 import { Input as NumericalInput } from '../NumericalInput'
 
 const pulse = (color: string) => keyframes`

@@ -1,12 +1,20 @@
 import { Trans } from '@lingui/macro'
-import { Currency, Percent, TradeType } from '@uniswap/sdk-core'
+import { Percent } from '@uniswap/sdk-core'
+import { Web3ApiClient } from '@web3api/client-js'
+import { useWeb3ApiClient } from '@web3api/react'
 import { useContext, useState } from 'react'
 import { AlertTriangle, ArrowDown } from 'react-feather'
 import { Text } from 'rebass'
-import { InterfaceTrade } from 'state/routing/types'
 import styled, { ThemeContext } from 'styled-components/macro'
 
 import { useUSDCValue } from '../../hooks/useUSDCPrice'
+import {
+  Uni_Query,
+  Uni_TokenAmount as TokenAmount,
+  Uni_Trade as Trade,
+  Uni_TradeTypeEnum as TradeTypeEnum,
+} from '../../polywrap'
+import { reverseMapPrice, reverseMapToken, reverseMapTokenAmount, toSignificant, useAsync } from '../../polywrap-utils'
 import { ThemedText } from '../../theme'
 import { isAddress, shortenAddress } from '../../utils'
 import { computeFiatValuePriceImpact } from '../../utils/computeFiatValuePriceImpact'
@@ -45,18 +53,47 @@ export default function SwapModalHeader({
   showAcceptChanges,
   onAcceptChanges,
 }: {
-  trade: InterfaceTrade<Currency, Currency, TradeType>
+  trade: Trade
   allowedSlippage: Percent
   recipient: string | null
   showAcceptChanges: boolean
   onAcceptChanges: () => void
 }) {
   const theme = useContext(ThemeContext)
+  const client: Web3ApiClient = useWeb3ApiClient()
+
+  const amount = useAsync(
+    async () => {
+      const invoke =
+        trade.tradeType === TradeTypeEnum.EXACT_INPUT
+          ? await Uni_Query.tradeMinimumAmountOut(
+              {
+                slippageTolerance: allowedSlippage.toFixed(18),
+                amountOut: trade.outputAmount,
+                tradeType: trade.tradeType,
+              },
+              client
+            )
+          : await Uni_Query.tradeMaximumAmountIn(
+              {
+                slippageTolerance: allowedSlippage.toFixed(18),
+                amountIn: trade.inputAmount,
+                tradeType: trade.tradeType,
+              },
+              client
+            )
+      if (invoke.error) throw invoke.error
+      const amount: TokenAmount = invoke.data as TokenAmount
+      return toSignificant(amount, 6)
+    },
+    [trade, allowedSlippage, client],
+    ''
+  )
 
   const [showInverted, setShowInverted] = useState<boolean>(false)
 
-  const fiatValueInput = useUSDCValue(trade.inputAmount)
-  const fiatValueOutput = useUSDCValue(trade.outputAmount)
+  const fiatValueInput = useUSDCValue(reverseMapTokenAmount(trade.inputAmount))
+  const fiatValueOutput = useUSDCValue(reverseMapTokenAmount(trade.outputAmount))
 
   return (
     <AutoColumn gap={'4px'} style={{ marginTop: '1rem' }}>
@@ -67,15 +104,19 @@ export default function SwapModalHeader({
               <TruncatedText
                 fontSize={24}
                 fontWeight={500}
-                color={showAcceptChanges && trade.tradeType === TradeType.EXACT_OUTPUT ? theme.primary1 : ''}
+                color={showAcceptChanges && trade.tradeType === TradeTypeEnum.EXACT_OUTPUT ? theme.primary1 : ''}
               >
-                {trade.inputAmount.toSignificant(6)}
+                {toSignificant(trade.inputAmount, 6)}
               </TruncatedText>
             </RowFixed>
             <RowFixed gap={'0px'}>
-              <CurrencyLogo currency={trade.inputAmount.currency} size={'20px'} style={{ marginRight: '12px' }} />
+              <CurrencyLogo
+                currency={reverseMapToken(trade.inputAmount.token)}
+                size={'20px'}
+                style={{ marginRight: '12px' }}
+              />
               <Text fontSize={20} fontWeight={500}>
-                {trade.inputAmount.currency.symbol}
+                {trade.inputAmount.token.currency.symbol}
               </Text>
             </RowFixed>
           </RowBetween>
@@ -92,13 +133,17 @@ export default function SwapModalHeader({
           <RowBetween align="flex-end">
             <RowFixed gap={'0px'}>
               <TruncatedText fontSize={24} fontWeight={500}>
-                {trade.outputAmount.toSignificant(6)}
+                {toSignificant(trade.outputAmount, 6)}
               </TruncatedText>
             </RowFixed>
             <RowFixed gap={'0px'}>
-              <CurrencyLogo currency={trade.outputAmount.currency} size={'20px'} style={{ marginRight: '12px' }} />
+              <CurrencyLogo
+                currency={reverseMapToken(trade.outputAmount.token)}
+                size={'20px'}
+                style={{ marginRight: '12px' }}
+              />
               <Text fontSize={20} fontWeight={500}>
-                {trade.outputAmount.currency.symbol}
+                {trade.outputAmount.token.currency.symbol}
               </Text>
             </RowFixed>
           </RowBetween>
@@ -113,7 +158,11 @@ export default function SwapModalHeader({
         </AutoColumn>
       </LightCard>
       <RowBetween style={{ marginTop: '0.25rem', padding: '0 1rem' }}>
-        <TradePrice price={trade.executionPrice} showInverted={showInverted} setShowInverted={setShowInverted} />
+        <TradePrice
+          price={reverseMapPrice(trade.executionPrice)}
+          showInverted={showInverted}
+          setShowInverted={setShowInverted}
+        />
       </RowBetween>
       <LightCard style={{ padding: '.75rem', marginTop: '0.5rem' }}>
         <AdvancedSwapDetails trade={trade} allowedSlippage={allowedSlippage} />
@@ -138,12 +187,12 @@ export default function SwapModalHeader({
       ) : null}
 
       <AutoColumn justify="flex-start" gap="sm" style={{ padding: '.75rem 1rem' }}>
-        {trade.tradeType === TradeType.EXACT_INPUT ? (
+        {trade.tradeType === TradeTypeEnum.EXACT_INPUT ? (
           <ThemedText.Italic fontWeight={400} textAlign="left" style={{ width: '100%' }}>
             <Trans>
               Output is estimated. You will receive at least{' '}
               <b>
-                {trade.minimumAmountOut(allowedSlippage).toSignificant(6)} {trade.outputAmount.currency.symbol}
+                {amount} {trade.outputAmount.token.currency.symbol}
               </b>{' '}
               or the transaction will revert.
             </Trans>
@@ -153,7 +202,7 @@ export default function SwapModalHeader({
             <Trans>
               Input is estimated. You will sell at most{' '}
               <b>
-                {trade.maximumAmountIn(allowedSlippage).toSignificant(6)} {trade.inputAmount.currency.symbol}
+                {amount} {trade.inputAmount.token.currency.symbol}
               </b>{' '}
               or the transaction will revert.
             </Trans>

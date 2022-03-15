@@ -1,18 +1,23 @@
 import { parseUnits } from '@ethersproject/units'
 import { Trans } from '@lingui/macro'
 import { Currency, CurrencyAmount, Percent, TradeType } from '@uniswap/sdk-core'
+import { Web3ApiClient } from '@web3api/client-js'
+import { useWeb3ApiClient } from '@web3api/react'
 import { useBestTrade } from 'hooks/useBestTrade'
 import JSBI from 'jsbi'
 import { ParsedQs } from 'qs'
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
-import { InterfaceTrade, TradeState } from 'state/routing/types'
+import { TradeState } from 'state/routing/types'
 
 import { useCurrency } from '../../hooks/Tokens'
 import useENS from '../../hooks/useENS'
 import useParsedQueryString from '../../hooks/useParsedQueryString'
 import useSwapSlippageTolerance from '../../hooks/useSwapSlippageTolerance'
 import { useActiveWeb3React } from '../../hooks/web3'
+import { Uni_Query } from '../../polywrap'
+import { reverseMapTokenAmount, useAsync } from '../../polywrap-utils'
+import { ExtendedTrade } from '../../polywrap-utils/interfaces'
 import { isAddress } from '../../utils'
 import { AppState } from '../index'
 import { useCurrencyBalances } from '../wallet/hooks'
@@ -99,12 +104,13 @@ export function useDerivedSwapInfo(): {
   parsedAmount: CurrencyAmount<Currency> | undefined
   inputError?: ReactNode
   trade: {
-    trade: InterfaceTrade<Currency, Currency, TradeType> | undefined
+    trade: ExtendedTrade | undefined
     state: TradeState
   }
   allowedSlippage: Percent
 } {
   const { account } = useActiveWeb3React()
+  const client: Web3ApiClient = useWeb3ApiClient()
 
   const {
     independentField,
@@ -168,10 +174,30 @@ export function useDerivedSwapInfo(): {
     }
   }
 
-  const allowedSlippage = useSwapSlippageTolerance(trade.trade ?? undefined)
+  const allowedSlippage = useSwapSlippageTolerance(trade.trade, trade.trade?.gasUseEstimateUSD ?? undefined)
+
+  const maximumAmountIn = useAsync(
+    async () => {
+      if (trade.trade) {
+        const invoke = await Uni_Query.tradeMaximumAmountIn(
+          {
+            amountIn: trade.trade.inputAmount,
+            tradeType: trade.trade.tradeType,
+            slippageTolerance: allowedSlippage.toFixed(18),
+          },
+          client
+        )
+        if (invoke.error) throw invoke.error
+        return invoke.data
+      }
+      return undefined
+    },
+    [trade.trade, allowedSlippage, client],
+    undefined
+  )
 
   // compare input balance to max input based on version
-  const [balanceIn, amountIn] = [currencyBalances[Field.INPUT], trade.trade?.maximumAmountIn(allowedSlippage)]
+  const [balanceIn, amountIn] = [currencyBalances[Field.INPUT], reverseMapTokenAmount(maximumAmountIn)]
 
   if (balanceIn && amountIn && balanceIn.lessThan(amountIn)) {
     inputError = <Trans>Insufficient {amountIn.currency.symbol} balance</Trans>

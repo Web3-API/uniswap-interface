@@ -1,14 +1,13 @@
-import { Currency } from '../polywrap'
+import { Uni_Currency } from '../polywrap'
 
-export const ETHER: Currency = {
+export const ETHER: Uni_Currency = {
   decimals: 18,
   name: 'Ether',
   symbol: 'ETH',
 }
 
-export const ensUri = 'ens/v2.uniswap.web3api.eth'
+export const ensUri = 'ipfs://QmQW7vRg8aBdw6jGW3sPd2xYiQM5wEGc4Cd26T54QJxF9P'
 export const ethereumPluginUri = 'ens/ethereum.web3api.eth'
-export const ethersSolidityPluginUri = 'w3://ens/ethers-solidity.polywrap.eth'
 
 export const networks: any = {
   '1': {

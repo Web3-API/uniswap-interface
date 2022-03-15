@@ -1,7 +1,0 @@
-format: 0.0.1-prealpha.1
-language: dapp/typescript
-types:
-  directory: "./src/polywrap"
-packages:
-  - uri: "w3://fs/./../../integrations/uniswapv3/wrapper/build"
-    namespace: "uniswap"

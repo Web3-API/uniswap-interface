@@ -1,16 +1,15 @@
 import { Trans } from '@lingui/macro'
-import { Currency, TradeType } from '@uniswap/sdk-core'
 import { AutoColumn } from 'components/Column'
 import { LoadingOpacityContainer } from 'components/Loader/styled'
 import { RowFixed } from 'components/Row'
 import { MouseoverTooltipContent } from 'components/Tooltip'
 import ReactGA from 'react-ga'
-import { InterfaceTrade } from 'state/routing/types'
 import styled from 'styled-components/macro'
 import { ThemedText } from 'theme'
 
 import { ReactComponent as GasIcon } from '../../assets/images/gas-icon.svg'
 import { SupportedChainId } from '../../constants/chains'
+import { ExtendedTrade } from '../../polywrap-utils/interfaces'
 import { ResponsiveTooltipContainer } from './styleds'
 import SwapRoute from './SwapRoute'
 
@@ -40,7 +39,7 @@ export default function GasEstimateBadge({
   showRoute,
   disableHover,
 }: {
-  trade: InterfaceTrade<Currency, Currency, TradeType> | undefined | null // dollar amount in active chain's stablecoin
+  trade: ExtendedTrade | undefined | null // dollar amount in active chain's stablecoin
   loading: boolean
   showRoute?: boolean // show route instead of gas estimation summary
   disableHover?: boolean

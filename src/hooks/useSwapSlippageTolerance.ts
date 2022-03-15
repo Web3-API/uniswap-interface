@@ -1,11 +1,11 @@
-import { Trade } from '@uniswap/router-sdk'
-import { Currency, CurrencyAmount, Percent, TradeType } from '@uniswap/sdk-core'
+import { CurrencyAmount, Percent, Token } from '@uniswap/sdk-core'
 import { SUPPORTED_GAS_ESTIMATE_CHAIN_IDS } from 'components/swap/GasEstimateBadge'
 import { L2_CHAIN_IDS } from 'constants/chains'
 import JSBI from 'jsbi'
 import { useMemo } from 'react'
-import { InterfaceTrade } from 'state/routing/types'
 
+import { Uni_Trade as Trade } from '../polywrap'
+import { reverseMapTokenAmount } from '../polywrap-utils'
 import { useUserSlippageToleranceWithDefault } from '../state/user/hooks'
 import { useNativeCurrency } from './Tokens'
 import useGasPrice from './useGasPrice'
@@ -19,7 +19,7 @@ const ONE_TENTHS_PERCENT = new Percent(10, 10_000) // .10%
  * Return a guess of the gas cost used in computing slippage tolerance for a given trade
  * @param trade the trade for which to _guess_ the amount of gas it would cost to execute
  */
-function guesstimateGas(trade: Trade<Currency, Currency, TradeType> | undefined): number | undefined {
+function guesstimateGas(trade: Trade | undefined): number | undefined {
   if (!!trade) {
     return 100_000 + trade.swaps.reduce((memo, swap) => swap.route.pools.length + memo, 0) * 30_000
   }
@@ -30,11 +30,12 @@ const MIN_AUTO_SLIPPAGE_TOLERANCE = new Percent(5, 1000) // 0.5%
 const MAX_AUTO_SLIPPAGE_TOLERANCE = new Percent(25, 100) // 25%
 
 export default function useSwapSlippageTolerance(
-  trade: InterfaceTrade<Currency, Currency, TradeType> | undefined
+  trade: Trade | undefined,
+  gasUseEstimateUSD: CurrencyAmount<Token> | undefined
 ): Percent {
   const { chainId } = useActiveWeb3React()
   const onL2 = chainId && L2_CHAIN_IDS.includes(chainId)
-  const outputDollarValue = useUSDCValue(trade?.outputAmount)
+  const outputDollarValue = useUSDCValue(reverseMapTokenAmount(trade?.outputAmount))
   const nativeGasPrice = useGasPrice()
 
   const gasEstimate = guesstimateGas(trade)
@@ -57,8 +58,8 @@ export default function useSwapSlippageTolerance(
     // NOTE - dont use gas estimate for L2s yet - need to verify accuracy
     // if not, use local heuristic
     const dollarCostToUse =
-      chainId && SUPPORTED_GAS_ESTIMATE_CHAIN_IDS.includes(chainId) && trade?.gasUseEstimateUSD
-        ? trade.gasUseEstimateUSD
+      chainId && SUPPORTED_GAS_ESTIMATE_CHAIN_IDS.includes(chainId) && gasUseEstimateUSD
+        ? gasUseEstimateUSD
         : dollarGasCost
 
     if (outputDollarValue && dollarCostToUse) {
@@ -72,7 +73,17 @@ export default function useSwapSlippageTolerance(
     }
 
     return V3_SWAP_DEFAULT_SLIPPAGE
-  }, [trade, onL2, nativeGasPrice, gasEstimate, nativeCurrency, nativeCurrencyPrice, chainId, outputDollarValue])
+  }, [
+    trade,
+    gasUseEstimateUSD,
+    onL2,
+    nativeGasPrice,
+    gasEstimate,
+    nativeCurrency,
+    nativeCurrencyPrice,
+    chainId,
+    outputDollarValue,
+  ])
 
   return useUserSlippageToleranceWithDefault(defaultSlippageTolerance)
 }

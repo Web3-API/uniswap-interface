@@ -3,7 +3,7 @@ import { AutoColumn } from 'components/Column'
 import { PositionPreview } from 'components/PositionPreview'
 import styled from 'styled-components/macro'
 
-import { Position } from '../../polywrap'
+import { Uni_Position as Position } from '../../polywrap'
 import { Bound, Field } from '../../state/mint/v3/actions'
 
 const Wrapper = styled.div`

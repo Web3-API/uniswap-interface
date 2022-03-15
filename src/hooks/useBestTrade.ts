@@ -2,8 +2,8 @@ import { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
 import { TradeState } from 'state/routing/types'
 import { useRoutingAPITrade } from 'state/routing/useRoutingAPITrade'
 
-import { Trade } from '../polywrap'
 import { reverseMapTokenAmount } from '../polywrap-utils'
+import { ExtendedTrade } from '../polywrap-utils/interfaces'
 import useAutoRouterSupported from './useAutoRouterSupported'
 import { useClientSideV3Trade } from './useClientSideV3Trade'
 import useDebounce from './useDebounce'
@@ -21,14 +21,14 @@ export function useBestTrade(
   otherCurrency?: Currency
 ): {
   state: TradeState
-  trade: Trade | undefined
+  trade: ExtendedTrade | undefined
 } {
   const autoRouterSupported = useAutoRouterSupported()
   const isWindowVisible = useIsWindowVisible()
 
   const [debouncedAmount, debouncedOtherCurrency] = useDebounce([amountSpecified, otherCurrency], 200)
 
-  // the trade here is always a v3 polywrap trade object
+  // the trade here is always a v3 polywrap trade
   const routingAPITrade = useRoutingAPITrade(
     tradeType,
     autoRouterSupported && isWindowVisible ? debouncedAmount : undefined,

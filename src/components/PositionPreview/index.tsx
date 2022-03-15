@@ -9,21 +9,15 @@ import { Break } from 'components/earn/styled'
 import RateToggle from 'components/RateToggle'
 import { RowBetween, RowFixed } from 'components/Row'
 import JSBI from 'jsbi'
-import { ReactNode, useCallback, useContext, useEffect, useState } from 'react'
+import { ReactNode, useCallback, useContext, useState } from 'react'
 import { Bound } from 'state/mint/v3/actions'
 import { ThemeContext } from 'styled-components/macro'
 import { ThemedText } from 'theme'
 import { formatTickPrice } from 'utils/formatTickPrice'
 import { unwrappedToken } from 'utils/unwrappedToken'
 
-import { PolywrapDapp, Position, Price, TokenAmount } from '../../polywrap'
-import {
-  reverseMapFeeAmount,
-  reverseMapPrice,
-  reverseMapToken,
-  toSignificant,
-  usePolywrapDapp,
-} from '../../polywrap-utils'
+import { Uni_Position as Position } from '../../polywrap'
+import { reverseMapFeeAmount, reverseMapPrice, reverseMapToken, toSignificant } from '../../polywrap-utils'
 
 export const PositionPreview = ({
   position,
@@ -57,38 +51,15 @@ export const PositionPreview = ({
   const sorted = baseCurrency === currency0
   const quoteCurrency = sorted ? currency1 : currency0
 
-  const dapp: PolywrapDapp = usePolywrapDapp()
-
-  const [price, setPrice] = useState<UniPrice<UniCurrency, UniCurrency>>(
-    new UniPrice(baseCurrency, quoteCurrency, 0, 0)
-  )
-  const [priceLower, setPriceLower] = useState<UniPrice<UniCurrency, UniCurrency>>(
-    new UniPrice(baseCurrency, quoteCurrency, 0, 0)
-  )
-  const [priceUpper, setPriceUpper] = useState<UniPrice<UniCurrency, UniCurrency>>(
-    new UniPrice(baseCurrency, quoteCurrency, 0, 0)
-  )
-  const [amount0, setAmount0] = useState<TokenAmount>({ token: position.pool.token0, amount: '0' })
-  const [amount1, setAmount1] = useState<TokenAmount>({ token: position.pool.token1, amount: '0' })
-
-  useEffect(() => {
-    const updateAsync = async () => {
-      const tokenToPrice = sorted ? position.pool.token0 : position.pool.token1
-      const price: Price = await dapp.uniswap.query.poolPriceOf({ pool: position.pool, token: tokenToPrice })
-      const token0PriceLower: Price = await dapp.uniswap.query.positionToken0PriceLower({ position })
-      const token0PriceUpper: Price = await dapp.uniswap.query.positionToken0PriceUpper({ position })
-      const priceLower = sorted ? reverseMapPrice(token0PriceLower) : reverseMapPrice(token0PriceUpper).invert()
-      const priceUpper = sorted ? reverseMapPrice(token0PriceUpper) : reverseMapPrice(token0PriceLower).invert()
-      const amount0 = await dapp.uniswap.query.positionAmount0({ position })
-      const amount1 = await dapp.uniswap.query.positionAmount1({ position })
-      setPrice(reverseMapPrice(price))
-      setPriceLower(priceLower)
-      setPriceUpper(priceUpper)
-      setAmount0(amount0)
-      setAmount1(amount1)
-    }
-    void updateAsync()
-  }, [sorted, position, dapp])
+  const price: UniPrice<UniCurrency, UniCurrency> = sorted
+    ? reverseMapPrice(position.pool.token0Price)
+    : reverseMapPrice(position.pool.token1Price)
+  const priceLower = sorted
+    ? reverseMapPrice(position.token0PriceLower)
+    : reverseMapPrice(position.token0PriceUpper).invert()
+  const priceUpper = sorted
+    ? reverseMapPrice(position.token0PriceUpper)
+    : reverseMapPrice(position.token0PriceLower).invert()
 
   const handleRateChange = useCallback(() => {
     setBaseCurrency(quoteCurrency)
@@ -121,7 +92,7 @@ export const PositionPreview = ({
               <ThemedText.Label ml="8px">{currency0?.symbol}</ThemedText.Label>
             </RowFixed>
             <RowFixed>
-              <ThemedText.Label mr="8px">{toSignificant(amount0, 4)}</ThemedText.Label>
+              <ThemedText.Label mr="8px">{toSignificant(position.token0Amount, 4)}</ThemedText.Label>
             </RowFixed>
           </RowBetween>
           <RowBetween>
@@ -130,7 +101,7 @@ export const PositionPreview = ({
               <ThemedText.Label ml="8px">{currency1?.symbol}</ThemedText.Label>
             </RowFixed>
             <RowFixed>
-              <ThemedText.Label mr="8px">{toSignificant(amount1, 4)}</ThemedText.Label>
+              <ThemedText.Label mr="8px">{toSignificant(position.token1Amount, 4)}</ThemedText.Label>
             </RowFixed>
           </RowBetween>
           <Break />

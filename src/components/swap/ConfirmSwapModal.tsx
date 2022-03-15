@@ -1,9 +1,10 @@
 import { Trans } from '@lingui/macro'
-import { Trade } from '@uniswap/router-sdk'
-import { Currency, Percent, TradeType } from '@uniswap/sdk-core'
+import { Percent } from '@uniswap/sdk-core'
+import JSBI from 'jsbi'
 import { ReactNode, useCallback, useMemo } from 'react'
-import { InterfaceTrade } from 'state/routing/types'
 
+import { Uni_Trade as Trade } from '../../polywrap'
+import { reverseMapTokenAmount, tokenEquals, toSignificant } from '../../polywrap-utils'
 import TransactionConfirmationModal, {
   ConfirmationModalContent,
   TransactionErrorContent,
@@ -15,16 +16,14 @@ import SwapModalHeader from './SwapModalHeader'
  * Returns true if the trade requires a confirmation of details before we can submit it
  * @param args either a pair of V2 trades or a pair of V3 trades
  */
-function tradeMeaningfullyDiffers(
-  ...args: [Trade<Currency, Currency, TradeType>, Trade<Currency, Currency, TradeType>]
-): boolean {
+function tradeMeaningfullyDiffers(...args: [Trade, Trade]): boolean {
   const [tradeA, tradeB] = args
   return (
     tradeA.tradeType !== tradeB.tradeType ||
-    !tradeA.inputAmount.currency.equals(tradeB.inputAmount.currency) ||
-    !tradeA.inputAmount.equalTo(tradeB.inputAmount) ||
-    !tradeA.outputAmount.currency.equals(tradeB.outputAmount.currency) ||
-    !tradeA.outputAmount.equalTo(tradeB.outputAmount)
+    !tokenEquals(tradeA.inputAmount.token, tradeB.inputAmount.token) ||
+    !JSBI.equal(JSBI.BigInt(tradeA.inputAmount.amount), JSBI.BigInt(tradeB.inputAmount.amount)) ||
+    !tokenEquals(tradeA.outputAmount.token, tradeB.outputAmount.token) ||
+    !JSBI.equal(JSBI.BigInt(tradeA.outputAmount.amount), JSBI.BigInt(tradeB.outputAmount.amount))
   )
 }
 
@@ -42,8 +41,8 @@ export default function ConfirmSwapModal({
   txHash,
 }: {
   isOpen: boolean
-  trade: InterfaceTrade<Currency, Currency, TradeType> | undefined
-  originalTrade: Trade<Currency, Currency, TradeType> | undefined
+  trade: Trade | undefined
+  originalTrade: Trade | undefined
   attemptingTxn: boolean
   txHash: string | undefined
   recipient: string | null
@@ -84,8 +83,8 @@ export default function ConfirmSwapModal({
   // text to show while loading
   const pendingText = (
     <Trans>
-      Swapping {trade?.inputAmount?.toSignificant(6)} {trade?.inputAmount?.currency?.symbol} for{' '}
-      {trade?.outputAmount?.toSignificant(6)} {trade?.outputAmount?.currency?.symbol}
+      Swapping {trade && toSignificant(trade?.inputAmount, 6)} {trade?.inputAmount?.token.currency?.symbol} for{' '}
+      {trade && toSignificant(trade?.outputAmount, 6)} {trade?.outputAmount?.token.currency?.symbol}
     </Trans>
   )
 
@@ -112,7 +111,7 @@ export default function ConfirmSwapModal({
       hash={txHash}
       content={confirmationContent}
       pendingText={pendingText}
-      currencyToAdd={trade?.outputAmount.currency}
+      currencyToAdd={reverseMapTokenAmount(trade?.outputAmount)?.currency}
     />
   )
 }

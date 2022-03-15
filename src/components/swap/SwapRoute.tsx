@@ -1,7 +1,6 @@
 import { Trans } from '@lingui/macro'
-import { Trade } from '@uniswap/router-sdk'
-import { Currency, Percent, TradeType } from '@uniswap/sdk-core'
-import { Pair } from '@uniswap/v2-sdk'
+import { Protocol } from '@uniswap/router-sdk'
+import { Currency, CurrencyAmount, Percent } from '@uniswap/sdk-core'
 import AnimatedDropdown from 'components/AnimatedDropdown'
 import { AutoColumn } from 'components/Column'
 import { LoadingRows } from 'components/Loader/styled'
@@ -11,12 +10,13 @@ import useAutoRouterSupported from 'hooks/useAutoRouterSupported'
 import { useActiveWeb3React } from 'hooks/web3'
 import { memo, useState } from 'react'
 import { Plus } from 'react-feather'
-import { InterfaceTrade } from 'state/routing/types'
 import { useDarkModeManager } from 'state/user/hooks'
 import styled from 'styled-components/macro'
 import { Separator, ThemedText } from 'theme'
 
-import { mapFeeAmount } from '../../polywrap-utils'
+import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_TradeTypeEnum as TradeTypeEnum } from '../../polywrap'
+import { reverseMapToken, reverseMapTokenAmount } from '../../polywrap-utils'
+import { ExtendedTrade } from '../../polywrap-utils/interfaces'
 import { SUPPORTED_GAS_ESTIMATE_CHAIN_IDS } from './GasEstimateBadge'
 import { AutoRouterLabel, AutoRouterLogo } from './RouterLabel'
 
@@ -40,10 +40,8 @@ const OpenCloseIcon = styled(Plus)<{ open?: boolean }>`
   }
 `
 
-const V2_DEFAULT_FEE_TIER = 3000
-
 interface SwapRouteProps extends React.HTMLAttributes<HTMLDivElement> {
-  trade: InterfaceTrade<Currency, Currency, TradeType>
+  trade: ExtendedTrade
   syncing: boolean
   fixedOpen?: boolean // fixed in open state, hide open/close icon
 }
@@ -79,8 +77,8 @@ export default memo(function SwapRoute({ trade, syncing, fixedOpen = false, ...r
             </LoadingRows>
           ) : (
             <RoutingDiagram
-              currencyIn={trade.inputAmount.currency}
-              currencyOut={trade.outputAmount.currency}
+              currencyIn={reverseMapToken(trade.inputAmount.token) as Currency}
+              currencyOut={reverseMapToken(trade.outputAmount.token) as Currency}
               routes={routes}
             />
           )}
@@ -111,12 +109,18 @@ export default memo(function SwapRoute({ trade, syncing, fixedOpen = false, ...r
   )
 })
 
-function getTokenPath(trade: Trade<Currency, Currency, TradeType>): RoutingDiagramEntry[] {
-  return trade.swaps.map(({ route: { path: tokenPath, pools, protocol }, inputAmount, outputAmount }) => {
-    const portion =
-      trade.tradeType === TradeType.EXACT_INPUT
-        ? inputAmount.divide(trade.inputAmount)
-        : outputAmount.divide(trade.outputAmount)
+function getTokenPath(trade: ExtendedTrade): RoutingDiagramEntry[] {
+  return trade.swaps.map(({ route: { path: tokenPath, pools }, inputAmount, outputAmount }) => {
+    let portion
+    if (trade.tradeType === TradeTypeEnum.EXACT_INPUT) {
+      const uniInputAmount = reverseMapTokenAmount(inputAmount) as CurrencyAmount<Currency>
+      const uniTradeInputAmount = reverseMapTokenAmount(trade.inputAmount) as CurrencyAmount<Currency>
+      portion = uniInputAmount.divide(uniTradeInputAmount)
+    } else {
+      const uniOutputAmount = reverseMapTokenAmount(outputAmount) as CurrencyAmount<Currency>
+      const uniTradeOutputAmount = reverseMapTokenAmount(trade.outputAmount) as CurrencyAmount<Currency>
+      portion = uniOutputAmount.divide(uniTradeOutputAmount)
+    }
 
     const percent = new Percent(portion.numerator, portion.denominator)
 
@@ -127,9 +131,9 @@ function getTokenPath(trade: Trade<Currency, Currency, TradeType>): RoutingDiagr
       const tokenOut = tokenPath[i + 1]
 
       const entry: RoutingDiagramEntry['path'][0] = [
-        tokenIn,
-        tokenOut,
-        mapFeeAmount(nextPool instanceof Pair ? V2_DEFAULT_FEE_TIER : nextPool.fee),
+        reverseMapToken(tokenIn) as Currency,
+        reverseMapToken(tokenOut) as Currency,
+        nextPool.fee as FeeAmountEnum,
       ]
 
       path.push(entry)
@@ -138,7 +142,7 @@ function getTokenPath(trade: Trade<Currency, Currency, TradeType>): RoutingDiagr
     return {
       percent,
       path,
-      protocol,
+      protocol: Protocol.V3,
     }
   })
 }
