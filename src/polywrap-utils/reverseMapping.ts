@@ -22,15 +22,20 @@ import { isEther } from './utils'
 
 export function reverseMapChainId(input: ChainId | number): number {
   switch (input) {
-    case ChainIdEnum.MAINNET || 'MAINNET':
+    case 'MAINNET':
+    case ChainIdEnum.MAINNET:
       return 1
-    case ChainIdEnum.ROPSTEN || 'ROPSTEN':
+    case 'ROPSTEN':
+    case ChainIdEnum.ROPSTEN:
       return 3
-    case ChainIdEnum.RINKEBY || 'RINKEBY':
+    case 'RINKEBY':
+    case ChainIdEnum.RINKEBY:
       return 4
-    case ChainIdEnum.GOERLI || 'GOERLI':
+    case 'GOERLI':
+    case ChainIdEnum.GOERLI:
       return 5
-    case ChainIdEnum.KOVAN || 'KOVAN':
+    case 'KOVAN':
+    case ChainIdEnum.KOVAN:
       return 42
     default:
       throw new Error('Unknown chain ID. This should never happen.')
@@ -58,16 +63,20 @@ export function reverseMapTokenAmount(input?: TokenAmount): UniCurrencyAmount<Un
 
 export function reverseMapFeeAmount(input: FeeAmount): number {
   switch (input) {
-    case FeeAmountEnum.LOWEST || 'LOWEST':
+    case 'LOWEST':
+    case FeeAmountEnum.LOWEST:
       return 100
-    case FeeAmountEnum.LOW || 'LOW':
+    case 'LOW':
+    case FeeAmountEnum.LOW:
       return 500
-    case FeeAmountEnum.MEDIUM || 'MEDIUM':
+    case 'MEDIUM':
+    case FeeAmountEnum.MEDIUM:
       return 3000
-    case FeeAmountEnum.HIGH || 'HIGH':
+    case 'HIGH':
+    case FeeAmountEnum.HIGH:
       return 10000
     default:
-      throw Error('Unrecognized fee amount: ' + input.toString())
+      throw Error('Unrecognized fee amount')
   }
 }
 

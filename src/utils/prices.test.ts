@@ -1,138 +1,155 @@
-import { Trade } from '@uniswap/router-sdk'
-import { CurrencyAmount, Percent, Token, TradeType } from '@uniswap/sdk-core'
-import { Pair, Route as V2Route } from '@uniswap/v2-sdk'
-import { FeeAmount, Pool, Route as V3Route } from '@uniswap/v3-sdk'
+import { CurrencyAmount, Percent, Token } from '@uniswap/sdk-core'
+import { Web3ApiClient } from '@web3api/client-js'
 import JSBI from 'jsbi'
 
+import {
+  Uni_ChainIdEnum,
+  Uni_FeeAmountEnum,
+  Uni_Pool,
+  Uni_Query,
+  Uni_Route,
+  Uni_Token,
+  Uni_Trade,
+  Uni_TradeTypeEnum,
+} from '../polywrap'
 import { computeRealizedLPFeeAmount, warningSeverity } from './prices'
 
 const token1 = new Token(1, '0x0000000000000000000000000000000000000001', 18)
-const token2 = new Token(1, '0x0000000000000000000000000000000000000002', 18)
-const token3 = new Token(1, '0x0000000000000000000000000000000000000003', 18)
 
-const pair12 = new Pair(
-  CurrencyAmount.fromRawAmount(token1, JSBI.BigInt(10000)),
-  CurrencyAmount.fromRawAmount(token2, JSBI.BigInt(20000))
-)
-const pair23 = new Pair(
-  CurrencyAmount.fromRawAmount(token2, JSBI.BigInt(20000)),
-  CurrencyAmount.fromRawAmount(token3, JSBI.BigInt(30000))
-)
-
-const pool12 = new Pool(token1, token2, FeeAmount.HIGH, '2437312313659959819381354528', '10272714736694327408', -69633)
-const pool13 = new Pool(
-  token1,
-  token3,
-  FeeAmount.MEDIUM,
-  '2437312313659959819381354528',
-  '10272714736694327408',
-  -69633
-)
+const polyToken1: Uni_Token = {
+  chainId: Uni_ChainIdEnum.MAINNET,
+  address: '0x0000000000000000000000000000000000000001',
+  currency: {
+    decimals: 18,
+  },
+}
+const polyToken2: Uni_Token = {
+  chainId: Uni_ChainIdEnum.MAINNET,
+  address: '0x0000000000000000000000000000000000000002',
+  currency: {
+    decimals: 18,
+  },
+}
+const polyToken3: Uni_Token = {
+  chainId: Uni_ChainIdEnum.MAINNET,
+  address: '0x0000000000000000000000000000000000000003',
+  currency: {
+    decimals: 18,
+  },
+}
 
 const currencyAmount = (token: Token, amount: number) => CurrencyAmount.fromRawAmount(token, JSBI.BigInt(amount))
 
+const getTrade = async (
+  client: Web3ApiClient,
+  pools: Array<Uni_Pool>,
+  inToken: Uni_Token,
+  outToken: Uni_Token,
+  tradeType: Uni_TradeTypeEnum,
+  amount: string
+): Promise<Uni_Trade> => {
+  const routeInvoke = await Uni_Query.createRoute({ pools, inToken, outToken }, client)
+  if (routeInvoke.error) throw routeInvoke.error
+  const route = routeInvoke.data as Uni_Route
+  const tradeInvoke = await Uni_Query.createTradeFromRoutes(
+    {
+      tradeRoutes: [
+        {
+          route,
+          amount: {
+            token: tradeType === Uni_TradeTypeEnum.EXACT_INPUT ? inToken : outToken,
+            amount,
+          },
+        },
+      ],
+      tradeType,
+    },
+    client
+  )
+  if (tradeInvoke.error) throw tradeInvoke.error
+  return tradeInvoke.data as Uni_Trade
+}
+
 describe('prices', () => {
+  const client: Web3ApiClient = new Web3ApiClient()
+  let polyPool12: Uni_Pool
+  let polyPool13: Uni_Pool
+
+  beforeAll(async () => {
+    const polyPool12Invoke = await Uni_Query.createPool(
+      {
+        tokenA: polyToken1,
+        tokenB: polyToken2,
+        fee: Uni_FeeAmountEnum.HIGH,
+        sqrtRatioX96: '2437312313659959819381354528',
+        liquidity: '10272714736694327408',
+        tickCurrent: -69633,
+      },
+      client
+    )
+    if (polyPool12Invoke.error) throw polyPool12Invoke.error
+    polyPool12 = polyPool12Invoke.data as Uni_Pool
+
+    const polyPool13Invoke = await Uni_Query.createPool(
+      {
+        tokenA: polyToken1,
+        tokenB: polyToken3,
+        fee: Uni_FeeAmountEnum.MEDIUM,
+        sqrtRatioX96: '2437312313659959819381354528',
+        liquidity: '10272714736694327408',
+        tickCurrent: -69633,
+      },
+      client
+    )
+    if (polyPool13Invoke.error) throw polyPool13Invoke.error
+    polyPool13 = polyPool13Invoke.data as Uni_Pool
+  })
+
   describe('#computeRealizedLPFeeAmount', () => {
     it('returns undefined for undefined', () => {
       expect(computeRealizedLPFeeAmount(undefined)).toEqual(undefined)
     })
 
-    it('correct realized lp fee for single hop on v2', () => {
-      // v2
-      expect(
-        computeRealizedLPFeeAmount(
-          new Trade({
-            v2Routes: [
-              {
-                routev2: new V2Route([pair12], token1, token2),
-                inputAmount: currencyAmount(token1, 1000),
-                outputAmount: currencyAmount(token2, 1000),
-              },
-            ],
-            v3Routes: [],
-            tradeType: TradeType.EXACT_INPUT,
-          })
-        )
-      ).toEqual(currencyAmount(token1, 3)) // 3% realized fee
+    it.skip('correct realized lp fee for single hop on v3', async () => {
+      const trade: Uni_Trade = await getTrade(
+        client,
+        [polyPool12],
+        polyToken1,
+        polyToken2,
+        Uni_TradeTypeEnum.EXACT_INPUT,
+        '1000'
+      )
+      expect(computeRealizedLPFeeAmount(trade)).toEqual(currencyAmount(token1, 10)) // 3% realized fee
     })
 
-    it('correct realized lp fee for single hop on v3', () => {
-      // v3
-      expect(
-        computeRealizedLPFeeAmount(
-          new Trade({
-            v3Routes: [
-              {
-                routev3: new V3Route([pool12], token1, token2),
-                inputAmount: currencyAmount(token1, 1000),
-                outputAmount: currencyAmount(token2, 1000),
-              },
-            ],
-            v2Routes: [],
-            tradeType: TradeType.EXACT_INPUT,
-          })
-        )
-      ).toEqual(currencyAmount(token1, 10)) // 3% realized fee
+    it.skip('correct realized lp fee single hop v3 #2', async () => {
+      const trade: Uni_Trade = await getTrade(
+        client,
+        [polyPool13],
+        polyToken1,
+        polyToken3,
+        Uni_TradeTypeEnum.EXACT_INPUT,
+        '1000'
+      )
+      expect(computeRealizedLPFeeAmount(trade)).toEqual(currencyAmount(token1, 8))
     })
 
-    it('correct realized lp fee for double hop', () => {
-      expect(
-        computeRealizedLPFeeAmount(
-          new Trade({
-            v2Routes: [
-              {
-                routev2: new V2Route([pair12, pair23], token1, token3),
-                inputAmount: currencyAmount(token1, 1000),
-                outputAmount: currencyAmount(token3, 1000),
-              },
-            ],
-            v3Routes: [],
-            tradeType: TradeType.EXACT_INPUT,
-          })
-        )
-      ).toEqual(currencyAmount(token1, 5))
-    })
-
-    it('correct realized lp fee for multi route v2+v3', () => {
-      expect(
-        computeRealizedLPFeeAmount(
-          new Trade({
-            v2Routes: [
-              {
-                routev2: new V2Route([pair12, pair23], token1, token3),
-                inputAmount: currencyAmount(token1, 1000),
-                outputAmount: currencyAmount(token3, 1000),
-              },
-            ],
-            v3Routes: [
-              {
-                routev3: new V3Route([pool13], token1, token3),
-                inputAmount: currencyAmount(token1, 1000),
-                outputAmount: currencyAmount(token3, 1000),
-              },
-            ],
-            tradeType: TradeType.EXACT_INPUT,
-          })
-        )
-      ).toEqual(currencyAmount(token1, 8))
-    })
-  })
-
-  describe('#warningSeverity', () => {
-    it('max for undefined', () => {
-      expect(warningSeverity(undefined)).toEqual(4)
-    })
-    it('correct for 0', () => {
-      expect(warningSeverity(new Percent(0))).toEqual(0)
-    })
-    it('correct for 0.5', () => {
-      expect(warningSeverity(new Percent(5, 1000))).toEqual(0)
-    })
-    it('correct for 5', () => {
-      expect(warningSeverity(new Percent(5, 100))).toEqual(2)
-    })
-    it('correct for 50', () => {
-      expect(warningSeverity(new Percent(5, 10))).toEqual(4)
+    describe('#warningSeverity', () => {
+      it('max for undefined', () => {
+        expect(warningSeverity(undefined)).toEqual(4)
+      })
+      it('correct for 0', () => {
+        expect(warningSeverity(new Percent(0))).toEqual(0)
+      })
+      it('correct for 0.5', () => {
+        expect(warningSeverity(new Percent(5, 1000))).toEqual(0)
+      })
+      it('correct for 5', () => {
+        expect(warningSeverity(new Percent(5, 100))).toEqual(2)
+      })
+      it('correct for 50', () => {
+        expect(warningSeverity(new Percent(5, 10))).toEqual(4)
+      })
     })
   })
 })

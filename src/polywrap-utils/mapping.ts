@@ -15,8 +15,6 @@ import {
   Uni_TokenAmount as TokenAmount,
   Uni_TradeTypeEnum as TradeTypeEnum,
 } from '../polywrap'
-import { ETHER } from './constants'
-import { currencyEquals } from './utils'
 
 export function mapChainId(input: number): ChainIdEnum {
   switch (input) {
@@ -30,6 +28,14 @@ export function mapChainId(input: number): ChainIdEnum {
       return ChainIdEnum.GOERLI
     case 42:
       return ChainIdEnum.KOVAN
+    case 10:
+      return ChainIdEnum.OPTIMISM
+    case 69:
+      return ChainIdEnum.OPTIMISM_KOVAN
+    case 42161:
+      return ChainIdEnum.ARBITRUM_ONE
+    case 421611:
+      return ChainIdEnum.ARBITRUM_ONE_RINKEBY
     default:
       throw new Error('Unknown chain ID. This should never happen.')
   }
@@ -38,34 +44,30 @@ export function mapChainId(input: number): ChainIdEnum {
 export function mapCurrency(input: UniCurrency): Currency {
   return {
     decimals: input.decimals,
-    symbol: input.symbol,
-    name: input.name,
+    symbol: input.symbol ?? null,
+    name: input.name ?? null,
   }
 }
 
-export function mapToken(input: UniToken | UniCurrency, backupChainId?: number): Token {
-  const currency = mapCurrency(input)
+export function mapToken(input: UniToken | UniCurrency): Token {
   if (input instanceof UniToken) {
     return {
       chainId: mapChainId(input.chainId),
-      address: currencyEquals(currency, ETHER) ? '' : input.address,
-      currency,
+      address: input.address,
+      currency: mapCurrency(input),
     }
   }
   return {
-    chainId: backupChainId ? mapChainId(backupChainId) : 999,
+    chainId: mapChainId(input.chainId),
     address: '',
-    currency,
+    currency: mapCurrency(input),
   }
 }
 
-export function mapTokenAmount<T extends UniCurrency>(
-  input?: UniCurrencyAmount<T>,
-  backupChainId?: number
-): TokenAmount | undefined {
+export function mapTokenAmount<T extends UniCurrency>(input?: UniCurrencyAmount<T>): TokenAmount | undefined {
   if (!input) return undefined
   return {
-    token: mapToken(input.currency, backupChainId),
+    token: mapToken(input.currency),
     amount: input.numerator.toString(),
   }
 }

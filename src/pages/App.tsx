@@ -77,16 +77,16 @@ export default function App() {
       <Route component={GoogleAnalyticsReporter} />
       <Route component={DarkModeQueryParamReader} />
       <Route component={ApeModeQueryParamReader} />
-      <AppWrapper>
-        <HeaderWrapper>
-          <Header />
-        </HeaderWrapper>
-        <BodyWrapper>
-          <Popups />
-          <Polling />
-          <TopLevelModals />
-          <Suspense fallback={<Loader />}>
-            <Web3ReactManager>
+      <Web3ReactManager>
+        <AppWrapper>
+          <HeaderWrapper>
+            <Header />
+          </HeaderWrapper>
+          <BodyWrapper>
+            <Popups />
+            <Polling />
+            <TopLevelModals />
+            <Suspense fallback={<Loader />}>
               <Switch>
                 <Route strict path="/vote" component={Vote} />
                 <Route exact strict path="/create-proposal">
@@ -133,11 +133,11 @@ export default function App() {
 
                 <Route component={RedirectPathToSwapOnly} />
               </Switch>
-            </Web3ReactManager>
-          </Suspense>
-          <Marginer />
-        </BodyWrapper>
-      </AppWrapper>
+            </Suspense>
+            <Marginer />
+          </BodyWrapper>
+        </AppWrapper>
+      </Web3ReactManager>
     </ErrorBoundary>
   )
 }

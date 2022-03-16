@@ -1,25 +1,26 @@
-import { Currency, CurrencyAmount, Token as UniToken, TradeType } from '@uniswap/sdk-core'
+import { Currency, CurrencyAmount, NativeCurrency, Token as UniToken, TradeType } from '@uniswap/sdk-core'
 import { Pair, Route as V2Route } from '@uniswap/v2-sdk'
 import { Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 
 import { nativeOnChain } from '../../constants/tokens'
 import {
   Uni_Pool as Pool,
   Uni_Query,
+  Uni_Route,
   Uni_Token as Token,
   Uni_TokenAmount as TokenAmount,
   Uni_Trade,
   Uni_TradeTypeEnum as TradeTypeEnum,
 } from '../../polywrap'
-import { mapChainId, mapFeeAmount, mapToken, mapTokenAmount, mapTradeType, useAsync } from '../../polywrap-utils'
+import { mapChainId, mapFeeAmount, mapToken, mapTokenAmount, mapTradeType } from '../../polywrap-utils'
 import { GetQuoteResult, InterfaceTrade, V2PoolInRoute, V3PoolInRoute } from './types'
 
 /**
  * Transforms a Routing API quote into an array of routes that can be used to create
  * a `Trade`.
  */
-export function computeRoutes(
+export async function computeRoutes(
+  client: Web3ApiClient,
   currencyIn: Currency | undefined,
   currencyOut: Currency | undefined,
   tradeType: TradeType,
@@ -40,7 +41,7 @@ export function computeRoutes(
   const parsedCurrencyOut = currencyOut.isNative ? nativeOnChain(currencyOut.chainId) : parsedTokenOut
 
   try {
-    return quoteResult.route.map((route) => {
+    const routes = quoteResult.route.map(async (route) => {
       if (route.length === 0) {
         throw new Error('Expected route to have at least one pair or pool')
       }
@@ -51,27 +52,19 @@ export function computeRoutes(
         throw new Error('Expected both amountIn and amountOut to be present')
       }
 
-      const client: Web3ApiClient = useWeb3ApiClient()
-      const routev3 = useAsync(
-        async () => {
-          if (isV3Route(route)) {
-            const routeInvoke = await Uni_Query.createRoute(
-              {
-                pools: await Promise.all(route.map((route) => parsePool(client, route))),
-                inToken: mapToken(parsedCurrencyIn),
-                outToken: mapToken(parsedCurrencyOut),
-              },
-              client
-            )
-            if (routeInvoke.error) throw routeInvoke.error
-
-            return routeInvoke.data ?? null
-          }
-          return null
-        },
-        [route, parsedCurrencyIn, parsedCurrencyOut, client],
-        null
-      )
+      let routev3 = null
+      if (isV3Route(route)) {
+        const routeInvoke = await Uni_Query.createRoute(
+          {
+            pools: await Promise.all(route.map((route) => parsePool(client, route))),
+            inToken: mapToken(parsedCurrencyIn),
+            outToken: mapToken(parsedCurrencyOut),
+          },
+          client
+        )
+        if (routeInvoke.error) throw routeInvoke.error
+        routev3 = routeInvoke.data ?? null
+      }
 
       return {
         routev3,
@@ -80,6 +73,7 @@ export function computeRoutes(
         outputAmount: CurrencyAmount.fromRawAmount(parsedCurrencyOut, rawAmountOut),
       }
     })
+    return Promise.all(routes)
   } catch (e) {
     // `Route` constructor may throw if inputs/outputs are temporarily out of sync
     // (RTK-Query always returns the latest data which may not be the right inputs/outputs)
@@ -91,7 +85,14 @@ export function computeRoutes(
 
 export async function transformRoutesToTrade<TTradeType extends TradeType>(
   client: Web3ApiClient,
-  route: ReturnType<typeof computeRoutes>,
+  route:
+    | {
+        routev3: Uni_Route | null
+        routev2: V2Route<NativeCurrency | UniToken, NativeCurrency | UniToken> | null
+        inputAmount: CurrencyAmount<NativeCurrency | UniToken>
+        outputAmount: CurrencyAmount<NativeCurrency | UniToken>
+      }[]
+    | undefined,
   tradeType: TTradeType,
   gasUseEstimateUSD?: CurrencyAmount<UniToken> | null
 ): Promise<InterfaceTrade<Currency, Currency, TTradeType>> {

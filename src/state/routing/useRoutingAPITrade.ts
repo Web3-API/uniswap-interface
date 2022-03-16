@@ -99,15 +99,17 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
 
   const quoteResult: GetQuoteResult | undefined = useFreshData(data, Number(data?.blockNumber) || 0)
 
-  const route = useMemo(
-    () => computeRoutes(currencyIn, currencyOut, tradeType, quoteResult),
-    [currencyIn, currencyOut, quoteResult, tradeType]
+  const client: Web3ApiClient = useWeb3ApiClient()
+
+  const route = useAsync(
+    async () => computeRoutes(client, currencyIn, currencyOut, tradeType, quoteResult),
+    [currencyIn, currencyOut, quoteResult, tradeType, client],
+    undefined
   )
 
   // get USD gas cost of trade in active chains stablecoin amount
   const gasUseEstimateUSD = useStablecoinAmountFromFiatValue(quoteResult?.gasUseEstimateUSD) ?? null
 
-  const client: Web3ApiClient = useWeb3ApiClient()
   return useAsync(
     async () => {
       if (!currencyIn || !currencyOut) {
