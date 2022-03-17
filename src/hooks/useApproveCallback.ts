@@ -53,27 +53,28 @@ export function useAllApprovalStates(trade: PolyTrade | undefined, allowedSlippa
   const client: Web3ApiClient = useWeb3ApiClient()
 
   const amountToApprove = useAsync(
-    async () => {
-      if (!trade) return undefined
+    useMemo(
+      () => async () => {
+        if (!trade) return undefined
 
-      const isEtherInvoke = await Uni_Query.isEther({ token: trade.inputAmount.token }, client)
-      if (isEtherInvoke.error) throw isEtherInvoke.error
-      const isEther = isEtherInvoke.data as boolean
-      if (!isEther) return undefined
+        const isEtherInvoke = await Uni_Query.isEther({ token: trade.inputAmount.token }, client)
+        if (isEtherInvoke.error) throw isEtherInvoke.error
+        const isEther = isEtherInvoke.data as boolean
+        if (!isEther) return undefined
 
-      const maxInInvoke = await Uni_Query.tradeMaximumAmountIn(
-        {
-          amountIn: trade.inputAmount,
-          tradeType: trade.tradeType,
-          slippageTolerance: allowedSlippage.toFixed(36),
-        },
-        client
-      )
-      if (maxInInvoke.error) throw maxInInvoke.error
-      return maxInInvoke.data
-    },
-    [trade, allowedSlippage, client],
-    undefined
+        const maxInInvoke = await Uni_Query.tradeMaximumAmountIn(
+          {
+            amountIn: trade.inputAmount,
+            tradeType: trade.tradeType,
+            slippageTolerance: allowedSlippage.toFixed(36),
+          },
+          client
+        )
+        if (maxInInvoke.error) throw maxInInvoke.error
+        return maxInInvoke.data
+      },
+      [trade, allowedSlippage, client]
+    )
   )
 
   const uniAmount = reverseMapTokenAmount(amountToApprove)
@@ -163,29 +164,30 @@ export function useApproveCallbackFromTrade(
   const client: Web3ApiClient = useWeb3ApiClient()
 
   const amountToApprove = useAsync(
-    async () => {
-      if (!trade) return undefined
-      if (isTrade(trade)) {
-        const isEtherInvoke = await Uni_Query.isEther({ token: trade.inputAmount.token }, client)
-        if (isEtherInvoke.error) throw isEtherInvoke.error
-        const isEther = isEtherInvoke.data as boolean
-        if (!isEther) return undefined
+    useMemo(
+      () => async () => {
+        if (!trade) return undefined
+        if (isTrade(trade)) {
+          const isEtherInvoke = await Uni_Query.isEther({ token: trade.inputAmount.token }, client)
+          if (isEtherInvoke.error) throw isEtherInvoke.error
+          const isEther = isEtherInvoke.data as boolean
+          if (!isEther) return undefined
 
-        const maxInInvoke = await Uni_Query.tradeMaximumAmountIn(
-          {
-            amountIn: trade.inputAmount,
-            tradeType: trade.tradeType,
-            slippageTolerance: allowedSlippage.toFixed(36),
-          },
-          client
-        )
-        if (maxInInvoke.error) throw maxInInvoke.error
-        return reverseMapTokenAmount(maxInInvoke.data)
-      }
-      return trade.inputAmount.currency.isToken ? trade.maximumAmountIn(allowedSlippage) : undefined
-    },
-    [trade, allowedSlippage, client],
-    undefined
+          const maxInInvoke = await Uni_Query.tradeMaximumAmountIn(
+            {
+              amountIn: trade.inputAmount,
+              tradeType: trade.tradeType,
+              slippageTolerance: allowedSlippage.toFixed(36),
+            },
+            client
+          )
+          if (maxInInvoke.error) throw maxInInvoke.error
+          return reverseMapTokenAmount(maxInInvoke.data)
+        }
+        return trade.inputAmount.currency.isToken ? trade.maximumAmountIn(allowedSlippage) : undefined
+      },
+      [trade, allowedSlippage, client]
+    )
   )
 
   const approveCallback = useApproveCallback(

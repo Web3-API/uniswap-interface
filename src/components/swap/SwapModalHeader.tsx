@@ -2,7 +2,7 @@ import { Trans } from '@lingui/macro'
 import { Percent } from '@uniswap/sdk-core'
 import { Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
-import { useContext, useState } from 'react'
+import { useContext, useMemo, useState } from 'react'
 import { AlertTriangle, ArrowDown } from 'react-feather'
 import { Text } from 'rebass'
 import styled, { ThemeContext } from 'styled-components/macro'
@@ -62,33 +62,35 @@ export default function SwapModalHeader({
   const theme = useContext(ThemeContext)
   const client: Web3ApiClient = useWeb3ApiClient()
 
-  const amount = useAsync(
-    async () => {
-      const invoke =
-        trade.tradeType === TradeTypeEnum.EXACT_INPUT
-          ? await Uni_Query.tradeMinimumAmountOut(
-              {
-                slippageTolerance: allowedSlippage.toFixed(18),
-                amountOut: trade.outputAmount,
-                tradeType: trade.tradeType,
-              },
-              client
-            )
-          : await Uni_Query.tradeMaximumAmountIn(
-              {
-                slippageTolerance: allowedSlippage.toFixed(18),
-                amountIn: trade.inputAmount,
-                tradeType: trade.tradeType,
-              },
-              client
-            )
-      if (invoke.error) throw invoke.error
-      const amount: TokenAmount = invoke.data as TokenAmount
-      return toSignificant(amount, 6)
-    },
-    [trade, allowedSlippage, client],
-    ''
-  )
+  const amount =
+    useAsync(
+      useMemo(
+        () => async () => {
+          const invoke =
+            trade.tradeType === TradeTypeEnum.EXACT_INPUT
+              ? await Uni_Query.tradeMinimumAmountOut(
+                  {
+                    slippageTolerance: allowedSlippage.toFixed(18),
+                    amountOut: trade.outputAmount,
+                    tradeType: trade.tradeType,
+                  },
+                  client
+                )
+              : await Uni_Query.tradeMaximumAmountIn(
+                  {
+                    slippageTolerance: allowedSlippage.toFixed(18),
+                    amountIn: trade.inputAmount,
+                    tradeType: trade.tradeType,
+                  },
+                  client
+                )
+          if (invoke.error) throw invoke.error
+          const amount: TokenAmount = invoke.data as TokenAmount
+          return toSignificant(amount, 6)
+        },
+        [trade, allowedSlippage, client]
+      )
+    ) ?? ''
 
   const [showInverted, setShowInverted] = useState<boolean>(false)
 

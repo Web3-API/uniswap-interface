@@ -1,6 +1,7 @@
 import { Currency } from '@uniswap/sdk-core'
 import { Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
+import { useMemo } from 'react'
 
 import { Uni_Pool as Pool, Uni_Query, Uni_Route as Route, Uni_Token as Token } from '../polywrap'
 import { mapToken, tokenEquals, useAsync } from '../polywrap-utils'
@@ -94,17 +95,20 @@ export function useAllV3Routes(currencyIn?: Currency, currencyOut?: Currency): {
   const { pools, loading: poolsLoading } = useV3SwapPools(currencyIn, currencyOut)
   const client: Web3ApiClient = useWeb3ApiClient()
 
-  return useAsync(
-    async (): Promise<{ loading: boolean; routes: Route[] }> => {
-      if (poolsLoading || !chainId || !pools || !currencyIn || !currencyOut) return { loading: true, routes: [] }
+  return (
+    useAsync(
+      useMemo(
+        () => async (): Promise<{ loading: boolean; routes: Route[] }> => {
+          if (poolsLoading || !chainId || !pools || !currencyIn || !currencyOut) return { loading: true, routes: [] }
 
-      const currIn: Token = mapToken(currencyIn)
-      const currOut: Token = mapToken(currencyOut)
+          const currIn: Token = mapToken(currencyIn)
+          const currOut: Token = mapToken(currencyOut)
 
-      const routes = await computeAllRoutes(client, currIn, currOut, pools, chainId, [], [], currIn, 2)
-      return { loading: false, routes }
-    },
-    [chainId, currencyIn, currencyOut, pools, poolsLoading, client],
-    { loading: true, routes: [] }
+          const routes = await computeAllRoutes(client, currIn, currOut, pools, chainId, [], [], currIn, 2)
+          return { loading: false, routes }
+        },
+        [chainId, currencyIn, currencyOut, pools, poolsLoading, client]
+      )
+    ) ?? { loading: true, routes: [] }
   )
 }

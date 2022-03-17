@@ -4,7 +4,7 @@ import { Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
 import { useStablecoinAmountFromFiatValue } from 'hooks/useUSDCPrice'
 import ms from 'ms.macro'
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useBlockNumber } from 'state/application/hooks'
 import { useGetQuoteQuery } from 'state/routing/slice'
 import { useClientSideRouter } from 'state/user/hooks'
@@ -102,64 +102,76 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
   const client: Web3ApiClient = useWeb3ApiClient()
 
   const route = useAsync(
-    async () => computeRoutes(client, currencyIn, currencyOut, tradeType, quoteResult),
-    [currencyIn, currencyOut, quoteResult, tradeType, client],
-    undefined
+    useCallback(
+      async () => computeRoutes(client, currencyIn, currencyOut, tradeType, quoteResult),
+      [currencyIn, currencyOut, quoteResult, tradeType, client]
+    )
   )
 
   // get USD gas cost of trade in active chains stablecoin amount
   const gasUseEstimateUSD = useStablecoinAmountFromFiatValue(quoteResult?.gasUseEstimateUSD) ?? null
 
-  return useAsync(
-    async () => {
-      if (!currencyIn || !currencyOut) {
-        return {
-          state: TradeState.INVALID,
-          trade: undefined,
+  return (
+    useAsync(
+      useCallback(async () => {
+        if (!currencyIn || !currencyOut) {
+          return {
+            state: TradeState.INVALID,
+            trade: undefined,
+          }
         }
-      }
 
-      if (isLoading && !quoteResult) {
-        // only on first hook render
-        return {
-          state: TradeState.LOADING,
-          trade: undefined,
+        if (isLoading && !quoteResult) {
+          // only on first hook render
+          return {
+            state: TradeState.LOADING,
+            trade: undefined,
+          }
         }
-      }
 
-      const otherAmount =
-        tradeType === TradeType.EXACT_INPUT
-          ? currencyOut && quoteResult
-            ? CurrencyAmount.fromRawAmount(currencyOut, quoteResult.quote)
+        const otherAmount =
+          tradeType === TradeType.EXACT_INPUT
+            ? currencyOut && quoteResult
+              ? CurrencyAmount.fromRawAmount(currencyOut, quoteResult.quote)
+              : undefined
+            : currencyIn && quoteResult
+            ? CurrencyAmount.fromRawAmount(currencyIn, quoteResult.quote)
             : undefined
-          : currencyIn && quoteResult
-          ? CurrencyAmount.fromRawAmount(currencyIn, quoteResult.quote)
-          : undefined
 
-      if (isError || !otherAmount || !route || route.length === 0 || !queryArgs) {
-        return {
-          state: TradeState.NO_ROUTE_FOUND,
-          trade: undefined,
+        if (isError || !otherAmount || !route || route.length === 0 || !queryArgs) {
+          return {
+            state: TradeState.NO_ROUTE_FOUND,
+            trade: undefined,
+          }
         }
-      }
 
-      try {
-        const trade = await transformRoutesToTrade<TTradeType>(client, route, tradeType, gasUseEstimateUSD)
-        return {
-          // always return VALID regardless of isFetching status
-          state: TradeState.VALID,
-          trade: {
-            gasEstimateUSD: gasUseEstimateUSD,
-            ...trade.polyTrade,
-          },
+        try {
+          const trade = await transformRoutesToTrade<TTradeType>(client, route, tradeType, gasUseEstimateUSD)
+          return {
+            // always return VALID regardless of isFetching status
+            state: TradeState.VALID,
+            trade: {
+              gasEstimateUSD: gasUseEstimateUSD,
+              ...trade.polyTrade,
+            },
+          }
+        } catch (e) {
+          console.debug('transformRoutesToTrade failed: ', e)
+          return { state: TradeState.INVALID, trade: undefined, gasUseEstimateUSD }
         }
-      } catch (e) {
-        console.debug('transformRoutesToTrade failed: ', e)
-        return { state: TradeState.INVALID, trade: undefined, gasUseEstimateUSD }
-      }
-    },
-    [currencyIn, currencyOut, isLoading, quoteResult, tradeType, isError, route, queryArgs, gasUseEstimateUSD, client],
-    {
+      }, [
+        currencyIn,
+        currencyOut,
+        isLoading,
+        quoteResult,
+        tradeType,
+        isError,
+        route,
+        queryArgs,
+        gasUseEstimateUSD,
+        client,
+      ])
+    ) ?? {
       state: TradeState.LOADING,
       trade: undefined,
     }

@@ -291,25 +291,26 @@ export function useERC20PermitFromTrade(
     : undefined
 
   const amountToApprove = useAsync(
-    async () => {
-      if (!trade) return undefined
-      if (isTrade(trade)) {
-        const invoke = await Uni_Query.tradeMaximumAmountIn(
-          {
-            slippageTolerance: allowedSlippage.toFixed(36),
-            amountIn: trade.inputAmount,
-            tradeType: trade.tradeType,
-          },
-          client
-        )
-        if (invoke.error) throw invoke.error
-        const maxAmountIn = invoke.data as Uni_TokenAmount
-        return reverseMapTokenAmount(maxAmountIn)
-      }
-      return trade.maximumAmountIn(allowedSlippage)
-    },
-    [trade, allowedSlippage, client],
-    undefined
+    useMemo(
+      () => async () => {
+        if (!trade) return undefined
+        if (isTrade(trade)) {
+          const invoke = await Uni_Query.tradeMaximumAmountIn(
+            {
+              slippageTolerance: allowedSlippage.toFixed(36),
+              amountIn: trade.inputAmount,
+              tradeType: trade.tradeType,
+            },
+            client
+          )
+          if (invoke.error) throw invoke.error
+          const maxAmountIn = invoke.data as Uni_TokenAmount
+          return reverseMapTokenAmount(maxAmountIn)
+        }
+        return trade.maximumAmountIn(allowedSlippage)
+      },
+      [trade, allowedSlippage, client]
+    )
   )
 
   return useERC20Permit(amountToApprove, swapRouterAddress, null)

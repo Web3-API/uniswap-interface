@@ -219,7 +219,7 @@ function V2PairMigration({
     posAmount0?: TokenAmount
     posAmount1?: TokenAmount
   }>(
-    async () => {
+    useCallback(async () => {
       // the v3 tick is either the pool's tickCurrent, or the tick closest to the v2 spot price
       let tick
       if (pool?.tickCurrent) {
@@ -271,8 +271,7 @@ function V2PairMigration({
       const posAmount1 = position && position.token1Amount
 
       return { sqrtPrice, position, posAmount0, posAmount1 }
-    },
-    [
+    }, [
       pool,
       v2SpotPrice,
       tickLower,
@@ -284,12 +283,11 @@ function V2PairMigration({
       token0Value,
       token1Value,
       client,
-    ],
-    { sqrtPrice: pool?.sqrtRatioX96 ?? '0' }
-  )
+    ])
+  ) ?? { sqrtPrice: pool?.sqrtRatioX96 ?? '0' }
 
   const { amount0: v3Amount0Min, amount1: v3Amount1Min } = useAsync(
-    async () => {
+    useCallback(async () => {
       if (position) {
         const invoke = await Uni_Query.mintAmountsWithSlippage(
           {
@@ -302,10 +300,8 @@ function V2PairMigration({
         return invoke.data as Uni_MintAmounts
       }
       return { amount0: undefined, amount1: undefined }
-    },
-    [position, allowedSlippage, client],
-    { amount0: undefined, amount1: undefined }
-  )
+    }, [position, allowedSlippage, client])
+  ) ?? { amount0: undefined, amount1: undefined }
 
   const refund0 = useMemo(
     () =>

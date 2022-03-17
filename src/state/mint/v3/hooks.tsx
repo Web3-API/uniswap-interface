@@ -194,80 +194,86 @@ export function useV3DerivedMintInfo(
 
   // check for invalid price input (converts to invalid ratio)
   // used for ratio calculation when pool not initialized
-  const { invalidPrice, mockPool } = useAsync<{
-    invalidPrice?: boolean | ''
-    mockPool?: Pool
-  }>(
-    async () => {
-      // invalidPrice
-      let sqrtRatioX96 = undefined
-      if (price) {
-        const invoke = await Uni_Query.encodeSqrtRatioX96(
-          {
-            amount1: price.numerator.toString(),
-            amount0: price.denominator.toString(),
-          },
-          client
-        )
-        if (invoke.error) throw invoke.error
-        sqrtRatioX96 = invoke.data as string
-      }
+  const { invalidPrice, mockPool } =
+    useAsync<{
+      invalidPrice?: boolean | ''
+      mockPool?: Pool
+    }>(
+      useCallback(async () => {
+        // invalidPrice
+        let sqrtRatioX96 = undefined
+        if (price) {
+          const invoke = await Uni_Query.encodeSqrtRatioX96(
+            {
+              amount1: price.numerator.toString(),
+              amount0: price.denominator.toString(),
+            },
+            client
+          )
+          if (invoke.error) throw invoke.error
+          sqrtRatioX96 = invoke.data as string
+        }
 
-      const minSqrtRatioInvoke = await Uni_Query.MIN_SQRT_RATIO({}, client)
-      if (minSqrtRatioInvoke.error) throw minSqrtRatioInvoke.error
-      const minSqrtRatio = minSqrtRatioInvoke.data as string
-      const maxSqrtRatioInvoke = await Uni_Query.MAX_SQRT_RATIO({}, client)
-      if (maxSqrtRatioInvoke.error) throw maxSqrtRatioInvoke.error
-      const maxSqrtRatio = maxSqrtRatioInvoke.data as string
-      const invalidPrice =
-        price &&
-        sqrtRatioX96 &&
-        !(
-          JSBI.greaterThanOrEqual(JSBI.BigInt(sqrtRatioX96), JSBI.BigInt(minSqrtRatio)) &&
-          JSBI.lessThan(JSBI.BigInt(sqrtRatioX96), JSBI.BigInt(maxSqrtRatio))
-        )
+        const minSqrtRatioInvoke = await Uni_Query.MIN_SQRT_RATIO({}, client)
+        if (minSqrtRatioInvoke.error) throw minSqrtRatioInvoke.error
+        const minSqrtRatio = minSqrtRatioInvoke.data as string
+        const maxSqrtRatioInvoke = await Uni_Query.MAX_SQRT_RATIO({}, client)
+        if (maxSqrtRatioInvoke.error) throw maxSqrtRatioInvoke.error
+        const maxSqrtRatio = maxSqrtRatioInvoke.data as string
+        const invalidPrice =
+          price &&
+          sqrtRatioX96 &&
+          !(
+            JSBI.greaterThanOrEqual(JSBI.BigInt(sqrtRatioX96), JSBI.BigInt(minSqrtRatio)) &&
+            JSBI.lessThan(JSBI.BigInt(sqrtRatioX96), JSBI.BigInt(maxSqrtRatio))
+          )
 
-      // mockPool
-      let mockPool: Pool | undefined = undefined
-      if (tokenA && tokenB && feeAmount !== undefined && price && !invalidPrice) {
-        const tickInvoke = await Uni_Query.priceToClosestTick({ price: mapPrice(price) }, client)
-        if (tickInvoke.error) throw tickInvoke.error
-        const currentTick = tickInvoke.data as number
-        const sqrtInvoke = await Uni_Query.getSqrtRatioAtTick({ tick: currentTick }, client)
-        if (sqrtInvoke.error) throw sqrtInvoke.error
-        const currentSqrt = sqrtInvoke.data as string
-        const mockPoolInvoke = await Uni_Query.createPool(
-          {
-            tokenA: mapToken(tokenA),
-            tokenB: mapToken(tokenB),
-            fee: feeAmount,
-            sqrtRatioX96: currentSqrt,
-            liquidity: '0',
-            tickCurrent: currentTick,
-          },
-          client
-        )
-        if (mockPoolInvoke.error) throw mockPoolInvoke.error
-        mockPool = mockPoolInvoke.data as Uni_Pool
-      }
+        // mockPool
+        let mockPool: Pool | undefined = undefined
+        if (tokenA && tokenB && feeAmount !== undefined && price && !invalidPrice) {
+          const tickInvoke = await Uni_Query.priceToClosestTick({ price: mapPrice(price) }, client)
+          if (tickInvoke.error) throw tickInvoke.error
+          const currentTick = tickInvoke.data as number
+          const sqrtInvoke = await Uni_Query.getSqrtRatioAtTick({ tick: currentTick }, client)
+          if (sqrtInvoke.error) throw sqrtInvoke.error
+          const currentSqrt = sqrtInvoke.data as string
+          const mockPoolInvoke = await Uni_Query.createPool(
+            {
+              tokenA: mapToken(tokenA),
+              tokenB: mapToken(tokenB),
+              fee: feeAmount,
+              sqrtRatioX96: currentSqrt,
+              liquidity: '0',
+              tickCurrent: currentTick,
+            },
+            client
+          )
+          if (mockPoolInvoke.error) throw mockPoolInvoke.error
+          mockPool = mockPoolInvoke.data as Uni_Pool
+        }
 
-      return {
-        invalidPrice,
-        mockPool,
-      }
-    },
-    [price, feeAmount, tokenA, tokenB, client],
-    {}
-  )
+        return {
+          invalidPrice,
+          mockPool,
+        }
+      }, [price, feeAmount, tokenA, tokenB, client])
+    ) ?? {}
 
   // if pool exists use it, if not use the mock pool
   const poolForPosition: Pool | undefined = pool ?? mockPool
 
   // lower and upper limits in the tick space for `feeAmoun<Trans>
-  const tickSpaceLimits: {
+  let tickSpaceLimits: {
     [bound in Bound]: number | undefined
-  } = useAsync(
-    async () => {
+  } = useMemo(
+    () => ({
+      [Bound.LOWER]: undefined,
+      [Bound.UPPER]: undefined,
+    }),
+    []
+  )
+  tickSpaceLimits = useAsync(
+    useCallback(async () => {
       let lower: number | undefined = undefined
       let upper: number | undefined = undefined
       if (feeAmount !== undefined) {
@@ -307,20 +313,25 @@ export function useV3DerivedMintInfo(
         [Bound.LOWER]: lower,
         [Bound.UPPER]: upper,
       }
-    },
-    [feeAmount, client],
-    {
-      [Bound.LOWER]: undefined,
-      [Bound.UPPER]: undefined,
-    }
-  )
+    }, [feeAmount, client])
+  ) ?? {
+    [Bound.LOWER]: undefined,
+    [Bound.UPPER]: undefined,
+  }
 
   // parse typed range values and determine closest ticks
   // lower should always be a smaller tick
-  const ticks: {
+  let ticks: {
     [key: string]: number | undefined
-  } = useAsync(
-    async () => {
+  } = useMemo(
+    () => ({
+      [Bound.LOWER]: undefined,
+      [Bound.UPPER]: undefined,
+    }),
+    []
+  )
+  ticks = useAsync(
+    useCallback(async () => {
       return {
         [Bound.LOWER]:
           typeof existingPosition?.tickLower === 'number'
@@ -341,8 +352,7 @@ export function useV3DerivedMintInfo(
             ? await tryParseTick(client, token1, token0, feeAmount, leftRangeTypedValue.toString())
             : await tryParseTick(client, token0, token1, feeAmount, rightRangeTypedValue.toString()),
       }
-    },
-    [
+    }, [
       existingPosition,
       feeAmount,
       invertPrice,
@@ -352,12 +362,11 @@ export function useV3DerivedMintInfo(
       token1,
       tickSpaceLimits,
       client,
-    ],
-    {
-      [Bound.LOWER]: undefined,
-      [Bound.UPPER]: undefined,
-    }
-  )
+    ])
+  ) ?? {
+    [Bound.LOWER]: undefined,
+    [Bound.UPPER]: undefined,
+  }
 
   const { [Bound.LOWER]: tickLower, [Bound.UPPER]: tickUpper } = ticks || {}
 
@@ -394,7 +403,7 @@ export function useV3DerivedMintInfo(
   )
 
   const dependentAmount: CurrencyAmount<Currency> | undefined = useAsync(
-    async () => {
+    useCallback(async () => {
       // we wrap the currencies just to get the price in terms of the other token
       const wrappedIndependentAmount = independentAmount?.wrapped
       const dependentCurrency = dependentField === Field.CURRENCY_B ? currencyB : currencyA
@@ -448,8 +457,7 @@ export function useV3DerivedMintInfo(
       }
 
       return undefined
-    },
-    [
+    }, [
       independentAmount,
       outOfRange,
       dependentField,
@@ -460,8 +468,7 @@ export function useV3DerivedMintInfo(
       poolForPosition,
       invalidRange,
       client,
-    ],
-    undefined
+    ])
   )
 
   const parsedAmounts: { [field in Field]: CurrencyAmount<Currency> | undefined } = useMemo(() => {
@@ -495,7 +502,7 @@ export function useV3DerivedMintInfo(
 
   // create position entity based on users selection
   const position: Position | undefined = useAsync(
-    async () => {
+    useCallback(async () => {
       if (
         !poolForPosition ||
         !tokenA ||
@@ -536,8 +543,7 @@ export function useV3DerivedMintInfo(
       } else {
         return undefined
       }
-    },
-    [
+    }, [
       parsedAmounts,
       poolForPosition,
       tokenA,
@@ -548,8 +554,7 @@ export function useV3DerivedMintInfo(
       tickLower,
       tickUpper,
       client,
-    ],
-    undefined
+    ])
   )
 
   let errorMessage: ReactNode | undefined
@@ -621,185 +626,181 @@ export function useRangeHopCallbacks(
   const baseToken = useMemo(() => baseCurrency?.wrapped, [baseCurrency])
   const quoteToken = useMemo(() => quoteCurrency?.wrapped, [quoteCurrency])
 
-  const decrementLower = useAsync(
-    async () => {
-      if (baseToken && quoteToken && typeof tickLower === 'number' && feeAmount !== undefined) {
-        const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
-        if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
-        const tickSpacing = tickSpacingInvoke.data as number
+  const decrementLower =
+    useAsync(
+      useCallback(async () => {
+        if (baseToken && quoteToken && typeof tickLower === 'number' && feeAmount !== undefined) {
+          const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+          if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
+          const tickSpacing = tickSpacingInvoke.data as number
 
-        const newPriceInvoke = await Uni_Query.tickToPrice(
-          {
-            baseToken: mapToken(baseToken),
-            quoteToken: mapToken(quoteToken),
-            tick: tickLower - tickSpacing,
-          },
-          client
-        )
-        if (newPriceInvoke.error) throw newPriceInvoke.error
-        const newPrice = newPriceInvoke.data as Uni_Price
+          const newPriceInvoke = await Uni_Query.tickToPrice(
+            {
+              baseToken: mapToken(baseToken),
+              quoteToken: mapToken(quoteToken),
+              tick: tickLower - tickSpacing,
+            },
+            client
+          )
+          if (newPriceInvoke.error) throw newPriceInvoke.error
+          const newPrice = newPriceInvoke.data as Uni_Price
 
-        return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
-      }
-      // use pool current tick as starting tick if we have pool but no tick input
-      if (!(typeof tickLower === 'number') && baseToken && quoteToken && feeAmount !== undefined && pool) {
-        const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
-        if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
-        const tickSpacing = tickSpacingInvoke.data as number
+          return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
+        }
+        // use pool current tick as starting tick if we have pool but no tick input
+        if (!(typeof tickLower === 'number') && baseToken && quoteToken && feeAmount !== undefined && pool) {
+          const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+          if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
+          const tickSpacing = tickSpacingInvoke.data as number
 
-        const newPriceInvoke = await Uni_Query.tickToPrice(
-          {
-            baseToken: mapToken(baseToken),
-            quoteToken: mapToken(quoteToken),
-            tick: pool.tickCurrent - tickSpacing,
-          },
-          client
-        )
-        if (newPriceInvoke.error) throw newPriceInvoke.error
-        const newPrice = newPriceInvoke.data as Uni_Price
+          const newPriceInvoke = await Uni_Query.tickToPrice(
+            {
+              baseToken: mapToken(baseToken),
+              quoteToken: mapToken(quoteToken),
+              tick: pool.tickCurrent - tickSpacing,
+            },
+            client
+          )
+          if (newPriceInvoke.error) throw newPriceInvoke.error
+          const newPrice = newPriceInvoke.data as Uni_Price
 
-        return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
-      }
-      return ''
-    },
-    [baseToken, quoteToken, tickLower, feeAmount, pool, client],
-    ''
-  )
+          return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
+        }
+        return ''
+      }, [baseToken, quoteToken, tickLower, feeAmount, pool, client])
+    ) ?? ''
 
-  const incrementLower = useAsync(
-    async () => {
-      if (baseToken && quoteToken && typeof tickLower === 'number' && feeAmount !== undefined) {
-        const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
-        if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
-        const tickSpacing = tickSpacingInvoke.data as number
+  const incrementLower =
+    useAsync(
+      useCallback(async () => {
+        if (baseToken && quoteToken && typeof tickLower === 'number' && feeAmount !== undefined) {
+          const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+          if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
+          const tickSpacing = tickSpacingInvoke.data as number
 
-        const newPriceInvoke = await Uni_Query.tickToPrice(
-          {
-            baseToken: mapToken(baseToken),
-            quoteToken: mapToken(quoteToken),
-            tick: tickLower + tickSpacing,
-          },
-          client
-        )
-        if (newPriceInvoke.error) throw newPriceInvoke.error
-        const newPrice = newPriceInvoke.data as Uni_Price
+          const newPriceInvoke = await Uni_Query.tickToPrice(
+            {
+              baseToken: mapToken(baseToken),
+              quoteToken: mapToken(quoteToken),
+              tick: tickLower + tickSpacing,
+            },
+            client
+          )
+          if (newPriceInvoke.error) throw newPriceInvoke.error
+          const newPrice = newPriceInvoke.data as Uni_Price
 
-        return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
-      }
-      // use pool current tick as starting tick if we have pool but no tick input
-      if (!(typeof tickLower === 'number') && baseToken && quoteToken && feeAmount !== undefined && pool) {
-        const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
-        if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
-        const tickSpacing = tickSpacingInvoke.data as number
+          return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
+        }
+        // use pool current tick as starting tick if we have pool but no tick input
+        if (!(typeof tickLower === 'number') && baseToken && quoteToken && feeAmount !== undefined && pool) {
+          const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+          if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
+          const tickSpacing = tickSpacingInvoke.data as number
 
-        const newPriceInvoke = await Uni_Query.tickToPrice(
-          {
-            baseToken: mapToken(baseToken),
-            quoteToken: mapToken(quoteToken),
-            tick: pool.tickCurrent + tickSpacing,
-          },
-          client
-        )
-        if (newPriceInvoke.error) throw newPriceInvoke.error
-        const newPrice = newPriceInvoke.data as Uni_Price
+          const newPriceInvoke = await Uni_Query.tickToPrice(
+            {
+              baseToken: mapToken(baseToken),
+              quoteToken: mapToken(quoteToken),
+              tick: pool.tickCurrent + tickSpacing,
+            },
+            client
+          )
+          if (newPriceInvoke.error) throw newPriceInvoke.error
+          const newPrice = newPriceInvoke.data as Uni_Price
 
-        return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
-      }
-      return ''
-    },
-    [baseToken, quoteToken, tickLower, feeAmount, pool, client],
-    ''
-  )
+          return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
+        }
+        return ''
+      }, [baseToken, quoteToken, tickLower, feeAmount, pool, client])
+    ) ?? ''
 
-  const decrementUpper = useAsync(
-    async () => {
-      if (baseToken && quoteToken && typeof tickUpper === 'number' && feeAmount !== undefined) {
-        const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
-        if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
-        const tickSpacing = tickSpacingInvoke.data as number
+  const decrementUpper =
+    useAsync(
+      useCallback(async () => {
+        if (baseToken && quoteToken && typeof tickUpper === 'number' && feeAmount !== undefined) {
+          const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+          if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
+          const tickSpacing = tickSpacingInvoke.data as number
 
-        const newPriceInvoke = await Uni_Query.tickToPrice(
-          {
-            baseToken: mapToken(baseToken),
-            quoteToken: mapToken(quoteToken),
-            tick: tickUpper - tickSpacing,
-          },
-          client
-        )
-        if (newPriceInvoke.error) throw newPriceInvoke.error
-        const newPrice = newPriceInvoke.data as Uni_Price
+          const newPriceInvoke = await Uni_Query.tickToPrice(
+            {
+              baseToken: mapToken(baseToken),
+              quoteToken: mapToken(quoteToken),
+              tick: tickUpper - tickSpacing,
+            },
+            client
+          )
+          if (newPriceInvoke.error) throw newPriceInvoke.error
+          const newPrice = newPriceInvoke.data as Uni_Price
 
-        return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
-      }
-      // use pool current tick as starting tick if we have pool but no tick input
-      if (!(typeof tickUpper === 'number') && baseToken && quoteToken && feeAmount !== undefined && pool) {
-        const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
-        if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
-        const tickSpacing = tickSpacingInvoke.data as number
+          return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
+        }
+        // use pool current tick as starting tick if we have pool but no tick input
+        if (!(typeof tickUpper === 'number') && baseToken && quoteToken && feeAmount !== undefined && pool) {
+          const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+          if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
+          const tickSpacing = tickSpacingInvoke.data as number
 
-        const newPriceInvoke = await Uni_Query.tickToPrice(
-          {
-            baseToken: mapToken(baseToken),
-            quoteToken: mapToken(quoteToken),
-            tick: pool.tickCurrent - tickSpacing,
-          },
-          client
-        )
-        if (newPriceInvoke.error) throw newPriceInvoke.error
-        const newPrice = newPriceInvoke.data as Uni_Price
+          const newPriceInvoke = await Uni_Query.tickToPrice(
+            {
+              baseToken: mapToken(baseToken),
+              quoteToken: mapToken(quoteToken),
+              tick: pool.tickCurrent - tickSpacing,
+            },
+            client
+          )
+          if (newPriceInvoke.error) throw newPriceInvoke.error
+          const newPrice = newPriceInvoke.data as Uni_Price
 
-        return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
-      }
-      return ''
-    },
-    [baseToken, quoteToken, tickUpper, feeAmount, pool, client],
-    ''
-  )
+          return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
+        }
+        return ''
+      }, [baseToken, quoteToken, tickUpper, feeAmount, pool, client])
+    ) ?? ''
 
-  const incrementUpper = useAsync(
-    async () => {
-      if (baseToken && quoteToken && typeof tickUpper === 'number' && feeAmount !== undefined) {
-        const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
-        if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
-        const tickSpacing = tickSpacingInvoke.data as number
+  const incrementUpper =
+    useAsync(
+      useCallback(async () => {
+        if (baseToken && quoteToken && typeof tickUpper === 'number' && feeAmount !== undefined) {
+          const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+          if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
+          const tickSpacing = tickSpacingInvoke.data as number
 
-        const newPriceInvoke = await Uni_Query.tickToPrice(
-          {
-            baseToken: mapToken(baseToken),
-            quoteToken: mapToken(quoteToken),
-            tick: tickUpper + tickSpacing,
-          },
-          client
-        )
-        if (newPriceInvoke.error) throw newPriceInvoke.error
-        const newPrice = newPriceInvoke.data as Uni_Price
+          const newPriceInvoke = await Uni_Query.tickToPrice(
+            {
+              baseToken: mapToken(baseToken),
+              quoteToken: mapToken(quoteToken),
+              tick: tickUpper + tickSpacing,
+            },
+            client
+          )
+          if (newPriceInvoke.error) throw newPriceInvoke.error
+          const newPrice = newPriceInvoke.data as Uni_Price
 
-        return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
-      }
-      // use pool current tick as starting tick if we have pool but no tick input
-      if (!(typeof tickUpper === 'number') && baseToken && quoteToken && feeAmount !== undefined && pool) {
-        const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
-        if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
-        const tickSpacing = tickSpacingInvoke.data as number
+          return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
+        }
+        // use pool current tick as starting tick if we have pool but no tick input
+        if (!(typeof tickUpper === 'number') && baseToken && quoteToken && feeAmount !== undefined && pool) {
+          const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+          if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
+          const tickSpacing = tickSpacingInvoke.data as number
 
-        const newPriceInvoke = await Uni_Query.tickToPrice(
-          {
-            baseToken: mapToken(baseToken),
-            quoteToken: mapToken(quoteToken),
-            tick: pool.tickCurrent + tickSpacing,
-          },
-          client
-        )
-        if (newPriceInvoke.error) throw newPriceInvoke.error
-        const newPrice = newPriceInvoke.data as Uni_Price
+          const newPriceInvoke = await Uni_Query.tickToPrice(
+            {
+              baseToken: mapToken(baseToken),
+              quoteToken: mapToken(quoteToken),
+              tick: pool.tickCurrent + tickSpacing,
+            },
+            client
+          )
+          if (newPriceInvoke.error) throw newPriceInvoke.error
+          const newPrice = newPriceInvoke.data as Uni_Price
 
-        return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
-      }
-      return ''
-    },
-    [baseToken, quoteToken, tickUpper, feeAmount, pool, client],
-    ''
-  )
+          return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
+        }
+        return ''
+      }, [baseToken, quoteToken, tickUpper, feeAmount, pool, client])
+    ) ?? ''
 
   const getDecrementLower = useCallback(() => decrementLower, [decrementLower])
   const getIncrementLower = useCallback(() => incrementLower, [incrementLower])

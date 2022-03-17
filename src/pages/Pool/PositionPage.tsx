@@ -361,24 +361,25 @@ export function PositionPage({
   const [poolState, pool] = usePool(token0 ?? undefined, token1 ?? undefined, feeAmount)
 
   const position = useAsync<Position | undefined>(
-    async () => {
-      if (pool && liquidity && typeof tickLower === 'number' && typeof tickUpper === 'number') {
-        const invoke = await Uni_Query.createPosition(
-          {
-            pool,
-            liquidity: liquidity.toString(),
-            tickLower,
-            tickUpper,
-          },
-          client
-        )
-        if (invoke.error) throw invoke.error
-        return invoke.data
-      }
-      return undefined
-    },
-    [liquidity, pool, tickLower, tickUpper, client],
-    undefined
+    useMemo(
+      () => async () => {
+        if (pool && liquidity && typeof tickLower === 'number' && typeof tickUpper === 'number') {
+          const invoke = await Uni_Query.createPosition(
+            {
+              pool,
+              liquidity: liquidity.toString(),
+              tickLower,
+              tickUpper,
+            },
+            client
+          )
+          if (invoke.error) throw invoke.error
+          return invoke.data
+        }
+        return undefined
+      },
+      [liquidity, pool, tickLower, tickUpper, client]
+    )
   )
 
   const pricesFromPosition = getPriceOrderingFromPositionForUI(position)

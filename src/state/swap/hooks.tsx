@@ -177,7 +177,7 @@ export function useDerivedSwapInfo(): {
   const allowedSlippage = useSwapSlippageTolerance(trade.trade, trade.trade?.gasUseEstimateUSD ?? undefined)
 
   const maximumAmountIn = useAsync(
-    async () => {
+    useCallback(async () => {
       if (trade.trade) {
         const invoke = await Uni_Query.tradeMaximumAmountIn(
           {
@@ -191,9 +191,7 @@ export function useDerivedSwapInfo(): {
         return invoke.data
       }
       return undefined
-    },
-    [trade.trade, allowedSlippage, client],
-    undefined
+    }, [trade.trade, allowedSlippage, client])
   )
 
   // compare input balance to max input based on version

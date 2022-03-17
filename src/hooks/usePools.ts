@@ -39,73 +39,78 @@ export function usePools(
     })
   }, [chainId, poolKeys])
 
-  const poolAddresses: (string | undefined)[] = useAsync(
-    async () => {
-      const v3CoreFactoryAddress = chainId && V3_CORE_FACTORY_ADDRESSES[chainId]
+  const poolAddresses: (string | undefined)[] =
+    useAsync(
+      useMemo(
+        () => async () => {
+          const v3CoreFactoryAddress = chainId && V3_CORE_FACTORY_ADDRESSES[chainId]
 
-      const mapped = transformed.map(async (value) => {
-        if (!v3CoreFactoryAddress || !value) return undefined
-        const invoke = await Uni_Query.computePoolAddress(
-          {
-            factoryAddress: v3CoreFactoryAddress,
-            tokenA: mapToken(value[0]),
-            tokenB: mapToken(value[1]),
-            fee: value[2],
-          },
-          client
-        )
-        if (invoke.error) throw invoke.error
-        return invoke.data
-      })
-      return Promise.all(mapped)
-    },
-    [chainId, transformed, client],
-    []
-  )
+          const mapped = transformed.map(async (value) => {
+            if (!v3CoreFactoryAddress || !value) return undefined
+            const invoke = await Uni_Query.computePoolAddress(
+              {
+                factoryAddress: v3CoreFactoryAddress,
+                tokenA: mapToken(value[0]),
+                tokenB: mapToken(value[1]),
+                fee: value[2],
+              },
+              client
+            )
+            if (invoke.error) throw invoke.error
+            return invoke.data
+          })
+          return Promise.all(mapped)
+        },
+        [chainId, transformed, client]
+      )
+    ) ?? []
 
   const slot0s = useMultipleContractSingleData(poolAddresses, POOL_STATE_INTERFACE, 'slot0')
   const liquidities = useMultipleContractSingleData(poolAddresses, POOL_STATE_INTERFACE, 'liquidity')
 
-  return useAsync<[PoolState, Pool | null][]>(
-    async () => {
-      const mapped = poolKeys.map(async (_key, index): Promise<[PoolState, Pool | null]> => {
-        const [token0, token1, fee] = transformed[index] ?? []
-        if (!token0 || !token1 || fee === undefined) return [PoolState.INVALID, null]
+  return (
+    useAsync<[PoolState, Pool | null][]>(
+      useMemo(
+        () => async () => {
+          const mapped = poolKeys.map(async (_key, index): Promise<[PoolState, Pool | null]> => {
+            const [token0, token1, fee] = transformed[index] ?? []
+            if (!token0 || !token1 || fee === undefined) return [PoolState.INVALID, null]
 
-        const { result: slot0, loading: slot0Loading, valid: slot0Valid } = slot0s[index]
-        const { result: liquidity, loading: liquidityLoading, valid: liquidityValid } = liquidities[index]
+            const { result: slot0, loading: slot0Loading, valid: slot0Valid } = slot0s[index]
+            const { result: liquidity, loading: liquidityLoading, valid: liquidityValid } = liquidities[index]
 
-        if (!slot0Valid || !liquidityValid) return [PoolState.INVALID, null]
-        if (slot0Loading || liquidityLoading) return [PoolState.LOADING, null]
+            if (!slot0Valid || !liquidityValid) return [PoolState.INVALID, null]
+            if (slot0Loading || liquidityLoading) return [PoolState.LOADING, null]
 
-        if (!slot0 || !liquidity) return [PoolState.NOT_EXISTS, null]
+            if (!slot0 || !liquidity) return [PoolState.NOT_EXISTS, null]
 
-        if (!slot0.sqrtPriceX96 || slot0.sqrtPriceX96.eq(0)) return [PoolState.NOT_EXISTS, null]
+            if (!slot0.sqrtPriceX96 || slot0.sqrtPriceX96.eq(0)) return [PoolState.NOT_EXISTS, null]
 
-        try {
-          const invoke = await Uni_Query.createPool(
-            {
-              tokenA: mapToken(token0),
-              tokenB: mapToken(token1),
-              fee,
-              sqrtRatioX96: slot0.sqrtPriceX96,
-              liquidity: liquidity[0],
-              tickCurrent: slot0.tick,
-            },
-            client
-          )
-          if (invoke.error) throw invoke.error
-          const pool = invoke.data as Uni_Pool
-          return [PoolState.EXISTS, pool]
-        } catch (error) {
-          console.error('Error when constructing the pool', error)
-          return [PoolState.NOT_EXISTS, null]
-        }
-      })
-      return Promise.all(mapped)
-    },
-    [liquidities, poolKeys, slot0s, transformed, client],
-    [[PoolState.LOADING, null]]
+            try {
+              const invoke = await Uni_Query.createPool(
+                {
+                  tokenA: mapToken(token0),
+                  tokenB: mapToken(token1),
+                  fee,
+                  sqrtRatioX96: slot0.sqrtPriceX96,
+                  liquidity: liquidity[0],
+                  tickCurrent: slot0.tick,
+                },
+                client
+              )
+              if (invoke.error) throw invoke.error
+              const pool = invoke.data as Uni_Pool
+              return [PoolState.EXISTS, pool]
+            } catch (error) {
+              console.error('Error when constructing the pool', error)
+              return [PoolState.NOT_EXISTS, null]
+            }
+          })
+          return Promise.all(mapped)
+        },
+        [liquidities, poolKeys, slot0s, transformed, client]
+      )
+    ) ?? [[PoolState.LOADING, null]]
   )
 }
 

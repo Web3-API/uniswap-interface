@@ -43,7 +43,7 @@ export function useDerivedV3BurnInfo(
   const [, pool] = usePool(token0 ?? undefined, token1 ?? undefined, position?.fee)
 
   const positionSDK = useAsync(
-    async () => {
+    useCallback(async () => {
       if (
         pool &&
         position?.liquidity &&
@@ -63,9 +63,7 @@ export function useDerivedV3BurnInfo(
         return invoke.data
       }
       return undefined
-    },
-    [pool, position, client],
-    undefined
+    }, [pool, position, client])
   )
 
   const liquidityPercentage = new Percent(percent, 100)
