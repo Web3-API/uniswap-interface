@@ -53,7 +53,14 @@ import {
   Uni_Query,
   Uni_TokenAmount as TokenAmount,
 } from '../../polywrap'
-import { mapPrice, mapToken, reverseMapPrice, reverseMapTokenAmount, useAsync } from '../../polywrap-utils'
+import {
+  mapPrice,
+  mapToken,
+  poolDeps,
+  positionDeps,
+  reverseMapPrice,
+  reverseMapTokenAmount,
+} from '../../polywrap-utils'
 import { NEVER_RELOAD, useSingleCallResult } from '../../state/multicall/hooks'
 import { TransactionType } from '../../state/transactions/actions'
 import { useTokenBalance } from '../../state/wallet/hooks'
@@ -213,13 +220,15 @@ function V2PairMigration({
 
   const { onLeftRangeInput, onRightRangeInput } = useV3MintActionHandlers(noLiquidity)
 
-  const { sqrtPrice, position, posAmount0, posAmount1 } = useAsync<{
+  const [positionData, setPositionData] = useState<{
     sqrtPrice: string
     position?: Position
     posAmount0?: TokenAmount
     posAmount1?: TokenAmount
-  }>(
-    useCallback(async () => {
+  }>({ sqrtPrice: pool?.sqrtRatioX96 ?? '0' })
+
+  useEffect(() => {
+    const loadPositionData = async () => {
       // the v3 tick is either the pool's tickCurrent, or the tick closest to the v2 spot price
       let tick
       if (pool?.tickCurrent) {
@@ -271,37 +280,44 @@ function V2PairMigration({
       const posAmount1 = position && position.token1Amount
 
       return { sqrtPrice, position, posAmount0, posAmount1 }
-    }, [
-      pool,
-      v2SpotPrice,
-      tickLower,
-      tickUpper,
-      invalidRange,
-      token0,
-      token1,
-      feeAmount,
-      token0Value,
-      token1Value,
-      client,
-    ])
-  ) ?? { sqrtPrice: pool?.sqrtRatioX96 ?? '0' }
+    }
+    loadPositionData().then((res) => setPositionData(res))
+  }, [
+    ...poolDeps(pool ?? undefined),
+    v2SpotPrice,
+    tickLower,
+    tickUpper,
+    invalidRange,
+    token0,
+    token1,
+    feeAmount,
+    token0Value,
+    token1Value,
+    client,
+  ])
 
-  const { amount0: v3Amount0Min, amount1: v3Amount1Min } = useAsync(
-    useCallback(async () => {
-      if (position) {
-        const invoke = await Uni_Query.mintAmountsWithSlippage(
-          {
-            position,
-            slippageTolerance: allowedSlippage.toFixed(18),
-          },
-          client
-        )
-        if (invoke.error) throw invoke.error
-        return invoke.data as Uni_MintAmounts
-      }
-      return { amount0: undefined, amount1: undefined }
-    }, [position, allowedSlippage, client])
-  ) ?? { amount0: undefined, amount1: undefined }
+  const { sqrtPrice, position, posAmount0, posAmount1 } = positionData
+
+  const [mintAmounts, setMintAmounts] = useState<{ amount0?: string; amount1?: string }>({})
+
+  useEffect(() => {
+    if (!position) {
+      setMintAmounts({})
+    } else {
+      Uni_Query.mintAmountsWithSlippage(
+        {
+          position,
+          slippageTolerance: allowedSlippage.toFixed(18),
+        },
+        client
+      ).then((res) => {
+        if (res.error) throw res.error
+        setMintAmounts(res.data as Uni_MintAmounts)
+      })
+    }
+  }, [...positionDeps(position), allowedSlippage, client])
+
+  const { amount0: v3Amount0Min, amount1: v3Amount1Min } = mintAmounts
 
   const refund0 = useMemo(
     () =>

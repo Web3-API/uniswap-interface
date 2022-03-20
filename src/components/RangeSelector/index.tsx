@@ -22,10 +22,10 @@ export default function RangeSelector({
 }: {
   priceLower?: Price<Token, Token>
   priceUpper?: Price<Token, Token>
-  getDecrementLower: () => string
-  getIncrementLower: () => string
-  getDecrementUpper: () => string
-  getIncrementUpper: () => string
+  getDecrementLower: () => Promise<string>
+  getIncrementLower: () => Promise<string>
+  getDecrementUpper: () => Promise<string>
+  getIncrementUpper: () => Promise<string>
   onLeftRangeInput: (typedValue: string) => void
   onRightRangeInput: (typedValue: string) => void
   currencyA?: Currency | null

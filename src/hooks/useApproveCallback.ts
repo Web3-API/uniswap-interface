@@ -5,12 +5,12 @@ import { Currency, CurrencyAmount, Percent, TradeType } from '@uniswap/sdk-core'
 import { Trade as V2Trade } from '@uniswap/v2-sdk'
 import { Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getTxOptimizedSwapRouter, SwapRouterVersion } from 'utils/getTxOptimizedSwapRouter'
 
 import { SWAP_ROUTER_ADDRESSES, V2_ROUTER_ADDRESS, V3_ROUTER_ADDRESS } from '../constants/addresses'
-import { Uni_Query, Uni_Trade as PolyTrade } from '../polywrap'
-import { isTrade, reverseMapTokenAmount, useAsync } from '../polywrap-utils'
+import { Uni_Query, Uni_TokenAmount, Uni_Trade as PolyTrade } from '../polywrap'
+import { isEther, isTrade, reverseMapTokenAmount, tradeDeps } from '../polywrap-utils'
 import { TransactionType } from '../state/transactions/actions'
 import { useHasPendingApproval, useTransactionAdder } from '../state/transactions/hooks'
 import { calculateGasMargin } from '../utils/calculateGasMargin'
@@ -52,30 +52,25 @@ export function useAllApprovalStates(trade: PolyTrade | undefined, allowedSlippa
   const { chainId } = useActiveWeb3React()
   const client: Web3ApiClient = useWeb3ApiClient()
 
-  const amountToApprove = useAsync(
-    useMemo(
-      () => async () => {
-        if (!trade) return undefined
+  const [amountToApprove, setAmountToApprove] = useState<Uni_TokenAmount | undefined>(undefined)
 
-        const isEtherInvoke = await Uni_Query.isEther({ token: trade.inputAmount.token }, client)
-        if (isEtherInvoke.error) throw isEtherInvoke.error
-        const isEther = isEtherInvoke.data as boolean
-        if (!isEther) return undefined
-
-        const maxInInvoke = await Uni_Query.tradeMaximumAmountIn(
-          {
-            amountIn: trade.inputAmount,
-            tradeType: trade.tradeType,
-            slippageTolerance: allowedSlippage.toFixed(36),
-          },
-          client
-        )
-        if (maxInInvoke.error) throw maxInInvoke.error
-        return maxInInvoke.data
-      },
-      [trade, allowedSlippage, client]
-    )
-  )
+  useEffect(() => {
+    if (!trade || isEther(trade.inputAmount.token)) {
+      setAmountToApprove(undefined)
+    } else {
+      Uni_Query.tradeMaximumAmountIn(
+        {
+          amountIn: trade.inputAmount,
+          tradeType: trade.tradeType,
+          slippageTolerance: allowedSlippage.toFixed(36),
+        },
+        client
+      ).then((res) => {
+        if (res.error) throw res.error
+        setAmountToApprove(res.data)
+      })
+    }
+  }, [...tradeDeps(trade), allowedSlippage, client])
 
   const uniAmount = reverseMapTokenAmount(amountToApprove)
   const v2ApprovalState = useApprovalState(uniAmount, chainId ? V2_ROUTER_ADDRESS[chainId] : undefined)
@@ -163,32 +158,32 @@ export function useApproveCallbackFromTrade(
   const { chainId } = useActiveWeb3React()
   const client: Web3ApiClient = useWeb3ApiClient()
 
-  const amountToApprove = useAsync(
-    useMemo(
-      () => async () => {
-        if (!trade) return undefined
-        if (isTrade(trade)) {
-          const isEtherInvoke = await Uni_Query.isEther({ token: trade.inputAmount.token }, client)
-          if (isEtherInvoke.error) throw isEtherInvoke.error
-          const isEther = isEtherInvoke.data as boolean
-          if (!isEther) return undefined
+  const [amountToApprove, setAmountToApprove] = useState<CurrencyAmount<Currency> | undefined>(undefined)
 
-          const maxInInvoke = await Uni_Query.tradeMaximumAmountIn(
-            {
-              amountIn: trade.inputAmount,
-              tradeType: trade.tradeType,
-              slippageTolerance: allowedSlippage.toFixed(36),
-            },
-            client
-          )
-          if (maxInInvoke.error) throw maxInInvoke.error
-          return reverseMapTokenAmount(maxInInvoke.data)
-        }
-        return trade.inputAmount.currency.isToken ? trade.maximumAmountIn(allowedSlippage) : undefined
-      },
-      [trade, allowedSlippage, client]
-    )
-  )
+  const isPolyTrade = isTrade(trade)
+  const tradeDependencies = isPolyTrade ? tradeDeps(trade) : [trade]
+  useEffect(() => {
+    if (!trade) {
+      setAmountToApprove(undefined)
+    } else if (!isPolyTrade) {
+      setAmountToApprove(trade.inputAmount.currency.isToken ? trade.maximumAmountIn(allowedSlippage) : undefined)
+    } else if (isEther(trade.inputAmount.token)) {
+      setAmountToApprove(undefined)
+    } else {
+      Uni_Query.tradeMaximumAmountIn(
+        {
+          amountIn: trade.inputAmount,
+          tradeType: trade.tradeType,
+          slippageTolerance: allowedSlippage.toFixed(36),
+        },
+        client
+      ).then((res) => {
+        if (res.error) throw res.error
+        const currencyAmount = reverseMapTokenAmount(res.data)
+        setAmountToApprove(currencyAmount)
+      })
+    }
+  }, [...tradeDependencies, allowedSlippage, isPolyTrade, client])
 
   const approveCallback = useApproveCallback(
     amountToApprove,

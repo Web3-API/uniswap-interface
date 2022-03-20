@@ -5,12 +5,12 @@ import { Trade as V2Trade } from '@uniswap/v2-sdk'
 import { Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
 import JSBI from 'jsbi'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { SWAP_ROUTER_ADDRESSES, V3_ROUTER_ADDRESS } from '../constants/addresses'
 import { DAI, UNI, USDC } from '../constants/tokens'
 import { Uni_Query, Uni_TokenAmount, Uni_Trade as PolyTrade } from '../polywrap'
-import { isTrade, reverseMapTokenAmount, useAsync } from '../polywrap-utils'
+import { isTrade, reverseMapTokenAmount, tradeDeps } from '../polywrap-utils'
 import { useSingleCallResult } from '../state/multicall/hooks'
 import { useEIP2612Contract } from './useContract'
 import useIsArgentWallet from './useIsArgentWallet'
@@ -290,28 +290,30 @@ export function useERC20PermitFromTrade(
       : SWAP_ROUTER_ADDRESSES[chainId]
     : undefined
 
-  const amountToApprove = useAsync(
-    useMemo(
-      () => async () => {
-        if (!trade) return undefined
-        if (isTrade(trade)) {
-          const invoke = await Uni_Query.tradeMaximumAmountIn(
-            {
-              slippageTolerance: allowedSlippage.toFixed(36),
-              amountIn: trade.inputAmount,
-              tradeType: trade.tradeType,
-            },
-            client
-          )
-          if (invoke.error) throw invoke.error
-          const maxAmountIn = invoke.data as Uni_TokenAmount
-          return reverseMapTokenAmount(maxAmountIn)
-        }
-        return trade.maximumAmountIn(allowedSlippage)
-      },
-      [trade, allowedSlippage, client]
-    )
-  )
+  const [amountToApprove, setAmountToApprove] = useState<CurrencyAmount<Currency> | undefined>()
+
+  const isPolyTrade = isTrade(trade)
+  const tradeDependencies = isPolyTrade ? tradeDeps(trade) : [trade]
+  useEffect(() => {
+    if (!trade) {
+      setAmountToApprove(undefined)
+    } else if (!isPolyTrade) {
+      setAmountToApprove(trade.maximumAmountIn(allowedSlippage))
+    } else {
+      Uni_Query.tradeMaximumAmountIn(
+        {
+          slippageTolerance: allowedSlippage.toFixed(36),
+          amountIn: trade.inputAmount,
+          tradeType: trade.tradeType,
+        },
+        client
+      ).then((res) => {
+        if (res.error) throw res.error
+        const maxAmountIn = reverseMapTokenAmount(res.data as Uni_TokenAmount)
+        setAmountToApprove(maxAmountIn)
+      })
+    }
+  }, [...tradeDependencies, allowedSlippage, client])
 
   return useERC20Permit(amountToApprove, swapRouterAddress, null)
 }

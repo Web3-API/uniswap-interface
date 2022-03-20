@@ -100,11 +100,9 @@ export async function transformRoutesToTrade<TTradeType extends TradeType>(
     {
       tradeRoutes:
         route
-          ?.filter(
-            (r): r is typeof route[0] & { routev3: NonNullable<typeof route[0]['routev3']> } => r.routev3 !== null
-          )
+          ?.filter((r) => r.routev3 !== null)
           .map(({ routev3, inputAmount, outputAmount }) => ({
-            route: routev3,
+            route: routev3 as Uni_Route,
             amount: (mapTradeType(tradeType) === TradeTypeEnum.EXACT_INPUT
               ? mapTokenAmount(inputAmount)
               : mapTokenAmount(outputAmount)) as TokenAmount,

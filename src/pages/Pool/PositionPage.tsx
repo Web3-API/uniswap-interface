@@ -23,7 +23,7 @@ import useUSDCPrice from 'hooks/useUSDCPrice'
 import { useV3PositionFees } from 'hooks/useV3PositionFees'
 import { useV3PositionFromTokenId } from 'hooks/useV3Positions'
 import { useActiveWeb3React } from 'hooks/web3'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactGA from 'react-ga'
 import { Link, RouteComponentProps } from 'react-router-dom'
 import { Bound } from 'state/mint/v3/actions'
@@ -49,7 +49,7 @@ import {
   Uni_Query,
   Uni_TokenAmount as TokenAmount,
 } from '../../polywrap'
-import { mapTokenAmount, reverseMapPrice, reverseMapTokenAmount, toSignificant, useAsync } from '../../polywrap-utils'
+import { mapTokenAmount, poolDeps, reverseMapPrice, reverseMapTokenAmount, toSignificant } from '../../polywrap-utils'
 import { TransactionType } from '../../state/transactions/actions'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { ExplorerDataType, getExplorerLink } from '../../utils/getExplorerLink'
@@ -360,27 +360,26 @@ export function PositionPage({
   // construct Position from details returned
   const [poolState, pool] = usePool(token0 ?? undefined, token1 ?? undefined, feeAmount)
 
-  const position = useAsync<Position | undefined>(
-    useMemo(
-      () => async () => {
-        if (pool && liquidity && typeof tickLower === 'number' && typeof tickUpper === 'number') {
-          const invoke = await Uni_Query.createPosition(
-            {
-              pool,
-              liquidity: liquidity.toString(),
-              tickLower,
-              tickUpper,
-            },
-            client
-          )
-          if (invoke.error) throw invoke.error
-          return invoke.data
-        }
-        return undefined
-      },
-      [liquidity, pool, tickLower, tickUpper, client]
-    )
-  )
+  const [position, setPosition] = useState<Position | undefined>(undefined)
+
+  useEffect(() => {
+    if (pool && liquidity && typeof tickLower === 'number' && typeof tickUpper === 'number') {
+      Uni_Query.createPosition(
+        {
+          pool,
+          liquidity: liquidity.toString(),
+          tickLower,
+          tickUpper,
+        },
+        client
+      ).then((invoke) => {
+        if (invoke.error) throw invoke.error
+        setPosition(invoke.data)
+      })
+    } else {
+      setPosition(undefined)
+    }
+  }, [liquidity, ...poolDeps(pool ?? undefined), tickLower, tickUpper, client])
 
   const pricesFromPosition = getPriceOrderingFromPositionForUI(position)
   // const posAmount0 = reverseMapTokenAmount(position.token0Amount)

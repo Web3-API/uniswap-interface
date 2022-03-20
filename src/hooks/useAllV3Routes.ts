@@ -1,10 +1,10 @@
 import { Currency } from '@uniswap/sdk-core'
 import { Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 
 import { Uni_Pool as Pool, Uni_Query, Uni_Route as Route, Uni_Token as Token } from '../polywrap'
-import { mapToken, tokenEquals, useAsync } from '../polywrap-utils'
+import { mapToken, poolDeps, tokenEquals } from '../polywrap-utils'
 import { useV3SwapPools } from './useV3SwapPools'
 import { useActiveWeb3React } from './web3'
 
@@ -95,20 +95,19 @@ export function useAllV3Routes(currencyIn?: Currency, currencyOut?: Currency): {
   const { pools, loading: poolsLoading } = useV3SwapPools(currencyIn, currencyOut)
   const client: Web3ApiClient = useWeb3ApiClient()
 
-  return (
-    useAsync(
-      useMemo(
-        () => async (): Promise<{ loading: boolean; routes: Route[] }> => {
-          if (poolsLoading || !chainId || !pools || !currencyIn || !currencyOut) return { loading: true, routes: [] }
+  const [routes, setRoutes] = useState<{ loading: boolean; routes: Route[] }>({ loading: true, routes: [] })
 
-          const currIn: Token = mapToken(currencyIn)
-          const currOut: Token = mapToken(currencyOut)
+  useEffect(() => {
+    if (poolsLoading || !chainId || !pools || !currencyIn || !currencyOut) {
+      setRoutes({ loading: true, routes: [] })
+    } else {
+      const currIn: Token = mapToken(currencyIn)
+      const currOut: Token = mapToken(currencyOut)
+      computeAllRoutes(client, currIn, currOut, pools, chainId, [], [], currIn, 2).then((routes) => {
+        setRoutes({ loading: false, routes })
+      })
+    }
+  }, [chainId, currencyIn, currencyOut, ...pools.map(poolDeps).flat(), poolsLoading, client])
 
-          const routes = await computeAllRoutes(client, currIn, currOut, pools, chainId, [], [], currIn, 2)
-          return { loading: false, routes }
-        },
-        [chainId, currencyIn, currencyOut, pools, poolsLoading, client]
-      )
-    ) ?? { loading: true, routes: [] }
-  )
+  return routes
 }

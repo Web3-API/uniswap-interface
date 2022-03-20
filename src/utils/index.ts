@@ -3,8 +3,9 @@ import { AddressZero } from '@ethersproject/constants'
 import { Contract } from '@ethersproject/contracts'
 import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers'
 import { Token } from '@uniswap/sdk-core'
-import { FeeAmount } from '@uniswap/v3-sdk'
 
+import { Uni_FeeAmountEnum as FeeAmountEnum } from '../polywrap'
+import { reverseMapFeeAmount } from '../polywrap-utils'
 import { TokenAddressMap } from '../state/lists/hooks'
 
 // returns the checksummed address if the address is valid, otherwise returns false
@@ -52,6 +53,6 @@ export function isTokenOnList(tokenAddressMap: TokenAddressMap, token?: Token): 
   return Boolean(token?.isToken && tokenAddressMap[token.chainId]?.[token.address])
 }
 
-export function formattedFeeAmount(feeAmount: FeeAmount): number {
-  return feeAmount / 10000
+export function formattedFeeAmount(feeAmount: FeeAmountEnum): number {
+  return reverseMapFeeAmount(feeAmount) / 10000
 }

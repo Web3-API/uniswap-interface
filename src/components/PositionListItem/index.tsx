@@ -11,7 +11,7 @@ import { RowBetween } from 'components/Row'
 import { useToken } from 'hooks/Tokens'
 import useIsTickAtLimit from 'hooks/useIsTickAtLimit'
 import { usePool } from 'hooks/usePools'
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bound } from 'state/mint/v3/actions'
 import styled from 'styled-components/macro'
@@ -22,7 +22,7 @@ import { unwrappedToken } from 'utils/unwrappedToken'
 
 import { DAI, USDC, USDT, WBTC, WRAPPED_NATIVE_CURRENCY } from '../../constants/tokens'
 import { Uni_Position, Uni_Query } from '../../polywrap'
-import { reverseMapPrice, reverseMapToken, useAsync } from '../../polywrap-utils'
+import { poolDeps, reverseMapPrice, reverseMapToken } from '../../polywrap-utils'
 
 const LinkRow = styled(Link)`
   align-items: center;
@@ -210,50 +210,27 @@ export default function PositionListItem({ positionDetails }: PositionListItemPr
 
   const [, pool] = usePool(currency0 ?? undefined, currency1 ?? undefined, feeAmount)
 
-  // construct Position from details returned
-  // const position = useAsync(
-  //   async () => {
-  //     if (!pool) {
-  //       return undefined
-  //     }
-  //     const posInvoke = await Uni_Query.createPosition(
-  //       {
-  //         pool,
-  //         liquidity: liquidity.toString(),
-  //         tickLower,
-  //         tickUpper,
-  //       },
-  //       client
-  //     )
-  //     if (posInvoke.error) throw posInvoke.error
-  //     return posInvoke.data
-  //   },
-  //   [liquidity, pool, tickLower, tickUpper, client],
-  //   undefined
-  // )
+  const [position, setPosition] = useState<Uni_Position | undefined>(undefined)
 
   // construct Position from details returned
-  const position = useAsync(
-    useMemo(
-      () => async () => {
-        if (!pool) {
-          return undefined
-        }
-        const posInvoke = await Uni_Query.createPosition(
-          {
-            pool,
-            liquidity: liquidity.toString(),
-            tickLower,
-            tickUpper,
-          },
-          client
-        )
-        if (posInvoke.error) throw posInvoke.error
-        return posInvoke.data
-      },
-      [liquidity, pool, tickLower, tickUpper, client]
-    )
-  )
+  useEffect(() => {
+    if (!pool) {
+      setPosition(undefined)
+    } else {
+      Uni_Query.createPosition(
+        {
+          pool,
+          liquidity: liquidity.toString(),
+          tickLower,
+          tickUpper,
+        },
+        client
+      ).then((res) => {
+        if (res.error) throw res.error
+        setPosition(res.data)
+      })
+    }
+  }, [liquidity, ...poolDeps(pool ?? undefined), tickLower, tickUpper, client])
 
   const tickAtLimit = useIsTickAtLimit(feeAmount, tickLower, tickUpper)
 

@@ -70,8 +70,8 @@ const ButtonLabel = styled(ThemedText.White)<{ disabled: boolean }>`
 interface StepCounterProps {
   value: string
   onUserInput: (value: string) => void
-  decrement: () => string
-  increment: () => string
+  decrement: () => Promise<string>
+  increment: () => Promise<string>
   decrementDisabled?: boolean
   incrementDisabled?: boolean
   feeAmount?: FeeAmountEnum
@@ -118,14 +118,14 @@ const StepCounter = ({
   }, [localValue, onUserInput])
 
   // for button clicks
-  const handleDecrement = useCallback(() => {
+  const handleDecrement = useCallback(async () => {
     setUseLocalValue(false)
-    onUserInput(decrement())
+    onUserInput(await decrement())
   }, [decrement, onUserInput])
 
-  const handleIncrement = useCallback(() => {
+  const handleIncrement = useCallback(async () => {
     setUseLocalValue(false)
-    onUserInput(increment())
+    onUserInput(await increment())
   }, [increment, onUserInput])
 
   useEffect(() => {

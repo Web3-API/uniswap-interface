@@ -5,11 +5,11 @@ import { useWeb3ApiClient } from '@web3api/react'
 import Card from 'components/Card'
 import { LoadingRows } from 'components/Loader/styled'
 import { useActiveWeb3React } from 'hooks/web3'
-import { useContext, useMemo } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import styled, { ThemeContext } from 'styled-components/macro'
 
-import { Uni_Query, Uni_TokenAmount as TokenAmount, Uni_TradeTypeEnum as TradeTypeEnum } from '../../polywrap'
-import { toSignificant, useAsync } from '../../polywrap-utils'
+import { Uni_Query, Uni_TokenAmount, Uni_Trade, Uni_TradeTypeEnum as TradeTypeEnum } from '../../polywrap'
+import { toSignificant, tradeDeps } from '../../polywrap-utils'
 import { ExtendedTrade } from '../../polywrap-utils/interfaces'
 import { Separator, ThemedText } from '../../theme'
 import { computeRealizedLPFeePercent } from '../../utils/prices'
@@ -47,6 +47,37 @@ function TextWithLoadingPlaceholder({
   )
 }
 
+const asyncAmounts = async (
+  client: Web3ApiClient,
+  allowedSlippage: Percent,
+  trade: Uni_Trade
+): Promise<{ minAmountOut?: Uni_TokenAmount; maxAmountIn?: Uni_TokenAmount }> => {
+  return {
+    minAmountOut: await Uni_Query.tradeMinimumAmountOut(
+      {
+        slippageTolerance: allowedSlippage.toFixed(18),
+        amountOut: trade.outputAmount,
+        tradeType: trade.tradeType,
+      },
+      client
+    ).then((res) => {
+      if (res.error) throw res.error
+      return res.data
+    }),
+    maxAmountIn: await Uni_Query.tradeMaximumAmountIn(
+      {
+        slippageTolerance: allowedSlippage.toFixed(18),
+        amountIn: trade.inputAmount,
+        tradeType: trade.tradeType,
+      },
+      client
+    ).then((res) => {
+      if (res.error) throw res.error
+      return res.data
+    }),
+  }
+}
+
 export function AdvancedSwapDetails({ trade, allowedSlippage, syncing = false }: AdvancedSwapDetailsProps) {
   const theme = useContext(ThemeContext)
   const { chainId } = useActiveWeb3React()
@@ -62,71 +93,14 @@ export function AdvancedSwapDetails({ trade, allowedSlippage, syncing = false }:
   }, [trade])
 
   const client: Web3ApiClient = useWeb3ApiClient()
-  // const { minAmountOut, maxAmountIn } = useAsync<{ minAmountOut?: TokenAmount; maxAmountIn?: TokenAmount }>(
-  //   async () => {
-  //     if (trade) {
-  //       const minAmtInvoke = await Uni_Query.tradeMinimumAmountOut(
-  //         {
-  //           slippageTolerance: allowedSlippage.toFixed(18),
-  //           amountOut: trade.outputAmount,
-  //           tradeType: trade.tradeType,
-  //         },
-  //         client
-  //       )
-  //       if (minAmtInvoke.error) throw minAmtInvoke.error
-  //       const maxAmtInvoke = await Uni_Query.tradeMaximumAmountIn(
-  //         {
-  //           slippageTolerance: allowedSlippage.toFixed(18),
-  //           amountIn: trade.inputAmount,
-  //           tradeType: trade.tradeType,
-  //         },
-  //         client
-  //       )
-  //       if (maxAmtInvoke.error) throw maxAmtInvoke.error
-  //       return {
-  //         minAmountOut: minAmtInvoke.data,
-  //         maxAmountIn: maxAmtInvoke.data,
-  //       }
-  //     }
-  //     return {}
-  //   },
-  //   [trade, client],
-  //   {}
-  // )
 
-  const { minAmountOut, maxAmountIn } =
-    useAsync<{ minAmountOut?: TokenAmount; maxAmountIn?: TokenAmount }>(
-      useMemo(
-        () => async () => {
-          if (trade) {
-            const minAmtInvoke = await Uni_Query.tradeMinimumAmountOut(
-              {
-                slippageTolerance: allowedSlippage.toFixed(18),
-                amountOut: trade.outputAmount,
-                tradeType: trade.tradeType,
-              },
-              client
-            )
-            if (minAmtInvoke.error) throw minAmtInvoke.error
-            const maxAmtInvoke = await Uni_Query.tradeMaximumAmountIn(
-              {
-                slippageTolerance: allowedSlippage.toFixed(18),
-                amountIn: trade.inputAmount,
-                tradeType: trade.tradeType,
-              },
-              client
-            )
-            if (maxAmtInvoke.error) throw maxAmtInvoke.error
-            return {
-              minAmountOut: minAmtInvoke.data,
-              maxAmountIn: maxAmtInvoke.data,
-            }
-          }
-          return {}
-        },
-        [allowedSlippage, trade, client]
-      )
-    ) ?? {}
+  const [amounts, setAmounts] = useState<{ minAmountOut?: Uni_TokenAmount; maxAmountIn?: Uni_TokenAmount }>({})
+  useEffect(() => {
+    if (trade) {
+      void asyncAmounts(client, allowedSlippage, trade).then((res) => setAmounts(res))
+    }
+  }, [allowedSlippage, ...tradeDeps(trade), client])
+  const { minAmountOut, maxAmountIn } = amounts
 
   return !trade ? null : (
     <StyledCard>

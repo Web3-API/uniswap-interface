@@ -6,13 +6,13 @@ import { useToken } from 'hooks/Tokens'
 import { usePool } from 'hooks/usePools'
 import { useV3PositionFees } from 'hooks/useV3PositionFees'
 import { useActiveWeb3React } from 'hooks/web3'
-import { ReactNode, useCallback } from 'react'
+import { ReactNode, useCallback, useEffect, useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 import { PositionDetails } from 'types/position'
 import { unwrappedToken } from 'utils/unwrappedToken'
 
 import { Uni_Position as Position, Uni_Query } from '../../../polywrap'
-import { useAsync } from '../../../polywrap-utils'
+import { poolDeps } from '../../../polywrap-utils'
 import { AppState } from '../../index'
 import { selectPercent } from './actions'
 
@@ -42,29 +42,31 @@ export function useDerivedV3BurnInfo(
 
   const [, pool] = usePool(token0 ?? undefined, token1 ?? undefined, position?.fee)
 
-  const positionSDK = useAsync(
-    useCallback(async () => {
-      if (
-        pool &&
-        position?.liquidity &&
-        typeof position?.tickLower === 'number' &&
-        typeof position?.tickUpper === 'number'
-      ) {
-        const invoke = await Uni_Query.createPosition(
-          {
-            pool,
-            liquidity: position.liquidity.toString(),
-            tickLower: position.tickLower,
-            tickUpper: position.tickUpper,
-          },
-          client
-        )
-        if (invoke.error) throw invoke.error
-        return invoke.data
-      }
-      return undefined
-    }, [pool, position, client])
-  )
+  const [positionSDK, setPositionSDK] = useState<Position | undefined>(undefined)
+
+  useEffect(() => {
+    if (
+      pool &&
+      position?.liquidity &&
+      typeof position?.tickLower === 'number' &&
+      typeof position?.tickUpper === 'number'
+    ) {
+      Uni_Query.createPosition(
+        {
+          pool,
+          liquidity: position.liquidity.toString(),
+          tickLower: position.tickLower,
+          tickUpper: position.tickUpper,
+        },
+        client
+      ).then((res) => {
+        if (res.error) throw res.error
+        setPositionSDK(res.data)
+      })
+    } else {
+      setPositionSDK(undefined)
+    }
+  }, [...poolDeps(pool ?? undefined), position, client])
 
   const liquidityPercentage = new Percent(percent, 100)
 

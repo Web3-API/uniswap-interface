@@ -3,7 +3,16 @@ import { Fraction } from '@uniswap/sdk-core'
 import { Trade as V2Trade } from '@uniswap/v2-sdk'
 import JSBI from 'jsbi'
 
-import { Uni_Currency, Uni_Pool, Uni_Token, Uni_TokenAmount, Uni_Trade } from '../polywrap'
+import {
+  Uni_Currency,
+  Uni_FeeAmountEnum,
+  Uni_Pool,
+  Uni_Position,
+  Uni_Route,
+  Uni_Token,
+  Uni_TokenAmount,
+  Uni_Trade,
+} from '../polywrap'
 import { ETHER } from './constants'
 
 export function isEther(token: Uni_Token | undefined): boolean {
@@ -92,26 +101,87 @@ export function toFixed(tokenAmount: Uni_TokenAmount, digits = 6): string {
   return new Fraction(numerator, denominator).toFixed(digits)
 }
 
-// export function tokenDeps(token: Poly.Token | undefined) {
-//   if (!token) {
-//     return [undefined]
-//   } else {
-//     return [token.address, token.chainId]
-//   }
-// }
-//
-// export function tokenAmountDeps(amount: Poly.TokenAmount | undefined) {
-//   if (!amount) {
-//     return [undefined]
-//   } else {
-//     return [amount.amount, ...tokenDeps(amount.token)]
-//   }
-// }
+export function toHex(amount: JSBI): string {
+  const hex: string = amount.toString(16)
+  if (hex.length % 2 !== 0) {
+    return '0x0' + hex
+  }
+  return '0x' + hex
+}
 
-// export function pairDeps(pair: Poly.Pair | undefined) {
-//   if (!pair) {
-//     return [undefined]
-//   } else {
-//     return [...tokenAmountDeps(pair.tokenAmount0), ...tokenAmountDeps(pair.tokenAmount1)]
-//   }
-// }
+export function feeAmountToTickSpacing(feeAmount: Uni_FeeAmountEnum): number {
+  switch (feeAmount) {
+    case Uni_FeeAmountEnum.LOWEST:
+      return 1
+    case Uni_FeeAmountEnum.LOW:
+      return 10
+    case Uni_FeeAmountEnum.MEDIUM:
+      return 60
+    case Uni_FeeAmountEnum.HIGH:
+      return 200
+    default:
+      throw new Error('Unknown FeeAmount')
+  }
+}
+
+export function tokenDeps(token: Uni_Token | undefined) {
+  if (!token) {
+    return [undefined]
+  } else {
+    return [token.address, token.chainId]
+  }
+}
+
+export function tokenAmountDeps(amount: Uni_TokenAmount | undefined) {
+  if (!amount) {
+    return [undefined]
+  } else {
+    return [amount.amount, ...tokenDeps(amount.token)]
+  }
+}
+
+export function poolDeps(pool: Uni_Pool | undefined) {
+  if (!pool) {
+    return [undefined]
+  } else {
+    return [
+      ...tokenDeps(pool.token0),
+      tokenDeps(pool.token1),
+      pool.fee,
+      pool.tickCurrent,
+      pool.sqrtRatioX96,
+      pool.liquidity,
+    ]
+  }
+}
+
+export function routeDeps(route: Uni_Route | undefined) {
+  if (!route) {
+    return [undefined]
+  } else {
+    const res = route.path.map(tokenDeps).flat()
+    res.push(route.midPrice.price)
+    return res
+  }
+}
+
+export function tradeDeps(trade: Uni_Trade | undefined) {
+  if (!trade) {
+    return [undefined]
+  } else {
+    return [
+      trade.tradeType,
+      ...tokenAmountDeps(trade.inputAmount),
+      ...tokenAmountDeps(trade.outputAmount),
+      trade.priceImpact.quotient,
+    ]
+  }
+}
+
+export function positionDeps(position: Uni_Position | undefined) {
+  if (!position) {
+    return [undefined]
+  } else {
+    return [...poolDeps(position.pool), position.liquidity, position.tickLower, position.tickUpper]
+  }
+}

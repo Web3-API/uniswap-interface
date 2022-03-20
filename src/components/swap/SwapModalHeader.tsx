@@ -2,7 +2,7 @@ import { Trans } from '@lingui/macro'
 import { Percent } from '@uniswap/sdk-core'
 import { Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
-import { useContext, useMemo, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { AlertTriangle, ArrowDown } from 'react-feather'
 import { Text } from 'rebass'
 import styled, { ThemeContext } from 'styled-components/macro'
@@ -12,9 +12,10 @@ import {
   Uni_Query,
   Uni_TokenAmount as TokenAmount,
   Uni_Trade as Trade,
+  Uni_Trade,
   Uni_TradeTypeEnum as TradeTypeEnum,
 } from '../../polywrap'
-import { reverseMapPrice, reverseMapToken, reverseMapTokenAmount, toSignificant, useAsync } from '../../polywrap-utils'
+import { reverseMapPrice, reverseMapToken, reverseMapTokenAmount, toSignificant, tradeDeps } from '../../polywrap-utils'
 import { ThemedText } from '../../theme'
 import { isAddress, shortenAddress } from '../../utils'
 import { computeFiatValuePriceImpact } from '../../utils/computeFiatValuePriceImpact'
@@ -46,6 +47,31 @@ const ArrowWrapper = styled.div`
   z-index: 2;
 `
 
+const asyncAmount = async (client: Web3ApiClient, allowedSlippage: Percent, trade: Uni_Trade): Promise<TokenAmount> => {
+  let invoke
+  if (trade.tradeType === TradeTypeEnum.EXACT_INPUT) {
+    invoke = await Uni_Query.tradeMinimumAmountOut(
+      {
+        slippageTolerance: allowedSlippage.toFixed(18),
+        amountOut: trade.outputAmount,
+        tradeType: trade.tradeType,
+      },
+      client
+    )
+  } else {
+    invoke = await Uni_Query.tradeMaximumAmountIn(
+      {
+        slippageTolerance: allowedSlippage.toFixed(18),
+        amountIn: trade.inputAmount,
+        tradeType: trade.tradeType,
+      },
+      client
+    )
+  }
+  if (invoke.error) throw invoke.error
+  return invoke.data as TokenAmount
+}
+
 export default function SwapModalHeader({
   trade,
   allowedSlippage,
@@ -62,35 +88,14 @@ export default function SwapModalHeader({
   const theme = useContext(ThemeContext)
   const client: Web3ApiClient = useWeb3ApiClient()
 
-  const amount =
-    useAsync(
-      useMemo(
-        () => async () => {
-          const invoke =
-            trade.tradeType === TradeTypeEnum.EXACT_INPUT
-              ? await Uni_Query.tradeMinimumAmountOut(
-                  {
-                    slippageTolerance: allowedSlippage.toFixed(18),
-                    amountOut: trade.outputAmount,
-                    tradeType: trade.tradeType,
-                  },
-                  client
-                )
-              : await Uni_Query.tradeMaximumAmountIn(
-                  {
-                    slippageTolerance: allowedSlippage.toFixed(18),
-                    amountIn: trade.inputAmount,
-                    tradeType: trade.tradeType,
-                  },
-                  client
-                )
-          if (invoke.error) throw invoke.error
-          const amount: TokenAmount = invoke.data as TokenAmount
-          return toSignificant(amount, 6)
-        },
-        [trade, allowedSlippage, client]
-      )
-    ) ?? ''
+  const [amount, setAmount] = useState<string>('')
+
+  useEffect(() => {
+    void asyncAmount(client, allowedSlippage, trade).then((res) => {
+      const newAmount = toSignificant(res, 6)
+      setAmount(newAmount)
+    })
+  }, [...tradeDeps(trade), allowedSlippage, client])
 
   const [showInverted, setShowInverted] = useState<boolean>(false)
 

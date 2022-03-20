@@ -1,11 +1,11 @@
 import { Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
 import { usePool } from 'hooks/usePools'
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { PositionDetails } from 'types/position'
 
 import { Uni_Pool as Pool, Uni_Position as Position, Uni_Query } from '../polywrap'
-import { useAsync } from '../polywrap-utils'
+import { poolDeps } from '../polywrap-utils'
 import { useCurrency } from './Tokens'
 
 export function useDerivedPositionInfo(positionDetails: PositionDetails | undefined): {
@@ -20,34 +20,29 @@ export function useDerivedPositionInfo(positionDetails: PositionDetails | undefi
   // construct pool data
   const [, pool] = usePool(currency0 ?? undefined, currency1 ?? undefined, positionDetails?.fee)
 
-  return (
-    useAsync<{
-      position?: Position
-      pool?: Pool
-    }>(
-      useMemo(
-        () => async () => {
-          let position = undefined
-          if (pool && positionDetails) {
-            const invoke = await Uni_Query.createPosition(
-              {
-                pool,
-                liquidity: positionDetails.liquidity.toString(),
-                tickLower: positionDetails.tickLower,
-                tickUpper: positionDetails.tickUpper,
-              },
-              client
-            )
-            if (invoke.error) throw invoke.error
-            position = invoke.data
-          }
-          return {
-            position,
-            pool: pool ?? undefined,
-          }
+  const [position, setPosition] = useState<Position | undefined>(undefined)
+
+  useEffect(() => {
+    if (!pool || !positionDetails) {
+      setPosition(undefined)
+    } else {
+      Uni_Query.createPosition(
+        {
+          pool,
+          liquidity: positionDetails.liquidity.toString(),
+          tickLower: positionDetails.tickLower,
+          tickUpper: positionDetails.tickUpper,
         },
-        [positionDetails, pool, client]
-      )
-    ) ?? {}
-  )
+        client
+      ).then((res) => {
+        if (res.error) throw res.error
+        setPosition(res.data)
+      })
+    }
+  }, [positionDetails, ...poolDeps(pool ?? undefined), client])
+
+  return {
+    position,
+    pool: pool ?? undefined,
+  }
 }

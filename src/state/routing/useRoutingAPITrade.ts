@@ -1,15 +1,14 @@
 import { skipToken } from '@reduxjs/toolkit/query/react'
-import { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
+import { Currency, CurrencyAmount, Token, TradeType } from '@uniswap/sdk-core'
 import { Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
 import { useStablecoinAmountFromFiatValue } from 'hooks/useUSDCPrice'
 import ms from 'ms.macro'
-import { useCallback, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useBlockNumber } from 'state/application/hooks'
 import { useGetQuoteQuery } from 'state/routing/slice'
 import { useClientSideRouter } from 'state/user/hooks'
 
-import { useAsync } from '../../polywrap-utils'
 import { ExtendedTrade } from '../../polywrap-utils/interfaces'
 import { GetQuoteResult, TradeState } from './types'
 import { computeRoutes, transformRoutesToTrade } from './utils'
@@ -101,79 +100,89 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
 
   const client: Web3ApiClient = useWeb3ApiClient()
 
-  const route = useAsync(
-    useCallback(
-      async () => computeRoutes(client, currencyIn, currencyOut, tradeType, quoteResult),
-      [currencyIn, currencyOut, quoteResult, tradeType, client]
-    )
-  )
-
   // get USD gas cost of trade in active chains stablecoin amount
   const gasUseEstimateUSD = useStablecoinAmountFromFiatValue(quoteResult?.gasUseEstimateUSD) ?? null
 
-  return (
-    useAsync(
-      useCallback(async () => {
-        if (!currencyIn || !currencyOut) {
-          return {
-            state: TradeState.INVALID,
-            trade: undefined,
-          }
-        }
+  const [tradeResult, setTradeResult] = useState<{
+    state: TradeState
+    trade: ExtendedTrade | undefined
+  }>({
+    state: TradeState.LOADING,
+    trade: undefined,
+  })
 
-        if (isLoading && !quoteResult) {
-          // only on first hook render
-          return {
-            state: TradeState.LOADING,
-            trade: undefined,
-          }
-        }
+  useEffect(() => {
+    if (!currencyIn || !currencyOut) {
+      setTradeResult({
+        state: TradeState.INVALID,
+        trade: undefined,
+      })
+      return
+    }
 
-        const otherAmount =
-          tradeType === TradeType.EXACT_INPUT
-            ? currencyOut && quoteResult
-              ? CurrencyAmount.fromRawAmount(currencyOut, quoteResult.quote)
-              : undefined
-            : currencyIn && quoteResult
-            ? CurrencyAmount.fromRawAmount(currencyIn, quoteResult.quote)
-            : undefined
+    if (isLoading && !quoteResult) {
+      // only on first hook render
+      setTradeResult({
+        state: TradeState.LOADING,
+        trade: undefined,
+      })
+      return
+    }
 
-        if (isError || !otherAmount || !route || route.length === 0 || !queryArgs) {
-          return {
-            state: TradeState.NO_ROUTE_FOUND,
-            trade: undefined,
-          }
-        }
+    const otherAmount =
+      tradeType === TradeType.EXACT_INPUT
+        ? currencyOut && quoteResult
+          ? CurrencyAmount.fromRawAmount(currencyOut, quoteResult.quote)
+          : undefined
+        : currencyIn && quoteResult
+        ? CurrencyAmount.fromRawAmount(currencyIn, quoteResult.quote)
+        : undefined
 
-        try {
-          const trade = await transformRoutesToTrade<TTradeType>(client, route, tradeType, gasUseEstimateUSD)
-          return {
-            // always return VALID regardless of isFetching status
-            state: TradeState.VALID,
-            trade: {
-              gasEstimateUSD: gasUseEstimateUSD,
-              ...trade.polyTrade,
-            },
-          }
-        } catch (e) {
-          console.debug('transformRoutesToTrade failed: ', e)
-          return { state: TradeState.INVALID, trade: undefined, gasUseEstimateUSD }
-        }
-      }, [
-        currencyIn,
-        currencyOut,
-        isLoading,
-        quoteResult,
-        tradeType,
-        isError,
-        route,
-        queryArgs,
-        gasUseEstimateUSD,
-        client,
-      ])
-    ) ?? {
-      state: TradeState.LOADING,
+    if (isError || !otherAmount || !queryArgs) {
+      setTradeResult({
+        state: TradeState.NO_ROUTE_FOUND,
+        trade: undefined,
+      })
+      return
+    }
+
+    void loadTrade(client, currencyIn, currencyOut, tradeType, quoteResult, gasUseEstimateUSD).then((res) =>
+      setTradeResult(res)
+    )
+  }, [currencyIn, currencyOut, isLoading, quoteResult, tradeType, isError, queryArgs, gasUseEstimateUSD, client])
+
+  return tradeResult
+}
+
+const loadTrade = async (
+  client: Web3ApiClient,
+  currencyIn: Currency,
+  currencyOut: Currency,
+  tradeType: TradeType,
+  quoteResult: GetQuoteResult | undefined,
+  gasUseEstimateUSD: CurrencyAmount<Token> | null
+) => {
+  const route = await computeRoutes(client, currencyIn, currencyOut, tradeType, quoteResult)
+
+  if (!route || route.length === 0) {
+    return {
+      state: TradeState.NO_ROUTE_FOUND,
       trade: undefined,
     }
-  )
+  }
+
+  try {
+    const trade = await transformRoutesToTrade(client, route, tradeType, gasUseEstimateUSD)
+    return {
+      // always return VALID regardless of isFetching status
+      state: TradeState.VALID,
+      trade: {
+        gasEstimateUSD: gasUseEstimateUSD,
+        ...trade.polyTrade,
+      },
+    }
+  } catch (e) {
+    console.debug('transformRoutesToTrade failed: ', e)
+    return { state: TradeState.INVALID, trade: undefined, gasUseEstimateUSD }
+  }
 }

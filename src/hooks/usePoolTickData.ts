@@ -1,16 +1,23 @@
 import { skipToken } from '@reduxjs/toolkit/query/react'
 import { Currency, Price } from '@uniswap/sdk-core'
 import { Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
+import { useWeb3ApiClient, useWeb3ApiInvoke } from '@web3api/react'
 import JSBI from 'jsbi'
 import ms from 'ms.macro'
-import { useCallback, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useAllV3TicksQuery } from 'state/data/enhanced'
 import { AllV3TicksQuery } from 'state/data/generated'
 import computeSurroundingTicks from 'utils/computeSurroundingTicks'
 
-import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Price, Uni_Query } from '../polywrap'
-import { mapToken, reverseMapToken, useAsync } from '../polywrap-utils'
+import {
+  Uni_ChainIdEnum,
+  Uni_FeeAmountEnum as FeeAmountEnum,
+  Uni_Pool,
+  Uni_Price,
+  Uni_Query,
+  Uni_Token,
+} from '../polywrap'
+import { ensUri, feeAmountToTickSpacing, mapToken, poolDeps, reverseMapToken } from '../polywrap-utils'
 import { PoolState, usePool } from './usePools'
 
 const PRICE_FIXED_DIGITS = 8
@@ -23,15 +30,9 @@ export interface TickProcessed {
   price0: string
 }
 
-const getActiveTick = async (
-  client: Web3ApiClient,
-  tickCurrent: number | undefined,
-  feeAmount: FeeAmountEnum | undefined
-) => {
+const getActiveTick = (tickCurrent: number | undefined, feeAmount: FeeAmountEnum | undefined) => {
   if (tickCurrent && feeAmount !== undefined) {
-    const invoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
-    if (invoke.error) throw invoke.error
-    const tickSpacing = invoke.data as number
+    const tickSpacing = feeAmountToTickSpacing(feeAmount)
     return Math.floor(tickCurrent / tickSpacing) * tickSpacing
   }
   return undefined
@@ -45,26 +46,23 @@ export function useAllV3Ticks(
 ) {
   const client: Web3ApiClient = useWeb3ApiClient()
 
-  const poolAddress = useAsync(
-    useMemo(
-      () => async () => {
-        if (currencyA && currencyB && feeAmount !== undefined) {
-          const invoke = await Uni_Query.getPoolAddress(
-            {
-              tokenA: mapToken(currencyA),
-              tokenB: mapToken(currencyB),
-              fee: feeAmount,
-            },
-            client
-          )
-          if (invoke.error) throw invoke.error
-          return invoke.data
-        }
-        return undefined
-      },
-      [currencyA, currencyB, feeAmount, client]
-    )
-  )
+  const nullToken: Uni_Token = { chainId: Uni_ChainIdEnum.MAINNET, address: '', currency: { decimals: 18 } }
+  const { data: poolAddress, execute: getPoolAddress } = useWeb3ApiInvoke<string | undefined>({
+    uri: ensUri,
+    module: 'query',
+    method: 'getPoolAddress',
+    input: {
+      tokenA: currencyA ? mapToken(currencyA) : nullToken,
+      tokenB: currencyB ? mapToken(currencyB) : nullToken,
+      fee: feeAmount,
+    },
+  })
+
+  useEffect(() => {
+    if (currencyA && currencyB && feeAmount !== undefined) {
+      void getPoolAddress()
+    }
+  }, [currencyA, currencyB, feeAmount, client])
 
   const { isLoading, isError, error, isUninitialized, data } = useAllV3TicksQuery(
     poolAddress ? { poolAddress: poolAddress?.toLowerCase(), skip: 0 } : skipToken,
@@ -98,96 +96,109 @@ export function usePoolActiveLiquidity(
   const pool = usePool(currencyA, currencyB, feeAmount)
 
   // Find nearest valid tick for pool in case tick is not initialized.
-  const activeTick = useAsync(
-    useMemo(() => async () => getActiveTick(client, pool[1]?.tickCurrent, feeAmount), [pool, feeAmount, client])
-  )
-
+  const activeTick = getActiveTick(pool[1]?.tickCurrent, feeAmount)
   const { isLoading, isUninitialized, isError, error, ticks } = useAllV3Ticks(currencyA, currencyB, feeAmount)
 
-  return (
-    useAsync(
-      useCallback(async () => {
-        if (
-          !currencyA ||
-          !currencyB ||
-          activeTick === undefined ||
-          pool[0] !== PoolState.EXISTS ||
-          !ticks ||
-          ticks.length === 0 ||
-          isLoading ||
-          isUninitialized
-        ) {
-          return {
-            isLoading: isLoading || pool[0] === PoolState.LOADING,
-            isUninitialized,
-            isError,
-            error,
-            activeTick,
-            data: undefined,
-          }
-        }
+  const poolState = pool[0]
+  const polyPool = pool[1]
 
-        const token0 = currencyA?.wrapped
-        const token1 = currencyB?.wrapped
+  const [result, setResult] = useState<{
+    isLoading: boolean
+    isUninitialized: boolean
+    isError: boolean
+    error: any
+    activeTick: number | undefined
+    data: TickProcessed[] | undefined
+  }>({
+    isLoading,
+    isUninitialized,
+    isError,
+    error,
+    activeTick,
+    data: undefined,
+  })
 
-        // find where the active tick would be to partition the array
-        // if the active tick is initialized, the pivot will be an element
-        // if not, take the previous tick as pivot
-        const pivot = ticks.findIndex(({ tickIdx }) => tickIdx > activeTick) - 1
+  useEffect(() => {
+    void loadPoolLiquidity(
+      client,
+      currencyA,
+      currencyB,
+      activeTick,
+      pool,
+      ticks,
+      isLoading,
+      isUninitialized,
+      isError,
+      error
+    ).then((res) => setResult(res))
+  }, [
+    currencyA,
+    currencyB,
+    activeTick,
+    poolState,
+    ...poolDeps(polyPool ?? undefined),
+    ticks,
+    isLoading,
+    isUninitialized,
+    isError,
+    error,
+    client,
+  ])
 
-        if (pivot < 0) {
-          // consider setting a local error
-          console.error('TickData pivot not found')
-          return {
-            isLoading,
-            isUninitialized,
-            isError,
-            error,
-            activeTick,
-            data: undefined,
-          }
-        }
+  return result
+}
 
-        const priceInvoke = await Uni_Query.tickToPrice(
-          {
-            baseToken: mapToken(token0),
-            quoteToken: mapToken(token1),
-            tick: activeTick,
-          },
-          client
-        )
-        if (priceInvoke.error) throw priceInvoke.error
-        const { baseToken, quoteToken, numerator, denominator } = priceInvoke.data as Uni_Price
+async function loadPoolLiquidity(
+  client: Web3ApiClient,
+  currencyA: Currency | undefined,
+  currencyB: Currency | undefined,
+  activeTick: number | undefined,
+  pool: [PoolState, Uni_Pool | null],
+  ticks: any[],
+  isLoading: boolean,
+  isUninitialized: any,
+  isError: boolean,
+  error: any
+): Promise<{
+  isLoading: boolean
+  isUninitialized: boolean
+  isError: boolean
+  error: any
+  activeTick: number | undefined
+  data: TickProcessed[] | undefined
+}> {
+  if (
+    !currencyA ||
+    !currencyB ||
+    activeTick === undefined ||
+    pool[0] !== PoolState.EXISTS ||
+    !ticks ||
+    ticks.length === 0 ||
+    isLoading ||
+    isUninitialized
+  ) {
+    return {
+      isLoading: isLoading || pool[0] === PoolState.LOADING,
+      isUninitialized,
+      isError,
+      error,
+      activeTick,
+      data: undefined,
+    }
+  }
 
-        const activeTickProcessed: TickProcessed = {
-          liquidityActive: JSBI.BigInt(pool[1]?.liquidity ?? 0),
-          tickIdx: activeTick,
-          liquidityNet:
-            Number(ticks[pivot].tickIdx) === activeTick ? JSBI.BigInt(ticks[pivot].liquidityNet) : JSBI.BigInt(0),
-          price0: new Price(
-            reverseMapToken(baseToken) as Currency,
-            reverseMapToken(quoteToken) as Currency,
-            denominator,
-            numerator
-          ).toFixed(PRICE_FIXED_DIGITS),
-        }
+  const token0 = currencyA?.wrapped
+  const token1 = currencyB?.wrapped
 
-        const subsequentTicks = computeSurroundingTicks(token0, token1, activeTickProcessed, ticks, pivot, true)
+  // find where the active tick would be to partition the array
+  // if the active tick is initialized, the pivot will be an element
+  // if not, take the previous tick as pivot
+  const pivot = ticks.findIndex(({ tickIdx }) => tickIdx > activeTick) - 1
 
-        const previousTicks = computeSurroundingTicks(token0, token1, activeTickProcessed, ticks, pivot, false)
-
-        const ticksProcessed = previousTicks.concat(activeTickProcessed).concat(subsequentTicks)
-
-        return {
-          isLoading,
-          isUninitialized,
-          isError,
-          error,
-          activeTick,
-          data: ticksProcessed,
-        }
-      }, [currencyA, currencyB, activeTick, pool, ticks, isLoading, isUninitialized, isError, error, client])
-    ) ?? {
+  if (pivot < 0) {
+    // consider setting a local error
+    console.error('TickData pivot not found')
+    return {
       isLoading,
       isUninitialized,
       isError,
@@ -195,5 +206,43 @@ export function usePoolActiveLiquidity(
       activeTick,
       data: undefined,
     }
+  }
+
+  const priceInvoke = await Uni_Query.tickToPrice(
+    {
+      baseToken: mapToken(token0),
+      quoteToken: mapToken(token1),
+      tick: activeTick,
+    },
+    client
   )
+  if (priceInvoke.error) throw priceInvoke.error
+  const { baseToken, quoteToken, numerator, denominator } = priceInvoke.data as Uni_Price
+
+  const activeTickProcessed: TickProcessed = {
+    liquidityActive: JSBI.BigInt(pool[1]?.liquidity ?? 0),
+    tickIdx: activeTick,
+    liquidityNet: Number(ticks[pivot].tickIdx) === activeTick ? JSBI.BigInt(ticks[pivot].liquidityNet) : JSBI.BigInt(0),
+    price0: new Price(
+      reverseMapToken(baseToken) as Currency,
+      reverseMapToken(quoteToken) as Currency,
+      denominator,
+      numerator
+    ).toFixed(PRICE_FIXED_DIGITS),
+  }
+
+  const subsequentTicks = await computeSurroundingTicks(client, token0, token1, activeTickProcessed, ticks, pivot, true)
+
+  const previousTicks = await computeSurroundingTicks(client, token0, token1, activeTickProcessed, ticks, pivot, false)
+
+  const ticksProcessed = previousTicks.concat(activeTickProcessed).concat(subsequentTicks)
+
+  return {
+    isLoading,
+    isUninitialized,
+    isError,
+    error,
+    activeTick,
+    data: ticksProcessed,
+  }
 }

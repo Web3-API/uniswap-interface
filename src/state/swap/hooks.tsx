@@ -15,8 +15,8 @@ import useENS from '../../hooks/useENS'
 import useParsedQueryString from '../../hooks/useParsedQueryString'
 import useSwapSlippageTolerance from '../../hooks/useSwapSlippageTolerance'
 import { useActiveWeb3React } from '../../hooks/web3'
-import { Uni_Query } from '../../polywrap'
-import { reverseMapTokenAmount, useAsync } from '../../polywrap-utils'
+import { Uni_Query, Uni_TokenAmount } from '../../polywrap'
+import { reverseMapTokenAmount, tradeDeps } from '../../polywrap-utils'
 import { ExtendedTrade } from '../../polywrap-utils/interfaces'
 import { isAddress } from '../../utils'
 import { AppState } from '../index'
@@ -176,23 +176,25 @@ export function useDerivedSwapInfo(): {
 
   const allowedSlippage = useSwapSlippageTolerance(trade.trade, trade.trade?.gasUseEstimateUSD ?? undefined)
 
-  const maximumAmountIn = useAsync(
-    useCallback(async () => {
-      if (trade.trade) {
-        const invoke = await Uni_Query.tradeMaximumAmountIn(
-          {
-            amountIn: trade.trade.inputAmount,
-            tradeType: trade.trade.tradeType,
-            slippageTolerance: allowedSlippage.toFixed(18),
-          },
-          client
-        )
+  const [maximumAmountIn, setMaximumAmountIn] = useState<Uni_TokenAmount | undefined>(undefined)
+
+  useEffect(() => {
+    if (!trade.trade) {
+      setMaximumAmountIn(undefined)
+    } else {
+      Uni_Query.tradeMaximumAmountIn(
+        {
+          amountIn: trade.trade.inputAmount,
+          tradeType: trade.trade.tradeType,
+          slippageTolerance: allowedSlippage.toFixed(18),
+        },
+        client
+      ).then((invoke) => {
         if (invoke.error) throw invoke.error
-        return invoke.data
-      }
-      return undefined
-    }, [trade.trade, allowedSlippage, client])
-  )
+        setMaximumAmountIn(invoke.data)
+      })
+    }
+  }, [...tradeDeps(trade.trade), allowedSlippage, client])
 
   // compare input balance to max input based on version
   const [balanceIn, amountIn] = [currencyBalances[Field.INPUT], reverseMapTokenAmount(maximumAmountIn)]
