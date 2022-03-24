@@ -3,10 +3,10 @@ import { SupportedChainId } from 'constants/chains'
 import { useMemo } from 'react'
 
 import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Pool as Pool } from '../polywrap'
+import { poolDeps } from '../polywrap-utils'
 import { useAllCurrencyCombinations } from './useAllCurrencyCombinations'
 import { PoolState, usePools } from './usePools'
 import { useActiveWeb3React } from './web3'
-import { poolDeps } from '../polywrap-utils'
 
 /**
  * Returns all the existing pools that should be considered for swapping between an input currency and an output currency
