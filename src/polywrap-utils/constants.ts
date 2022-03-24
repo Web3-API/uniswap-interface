@@ -6,7 +6,9 @@ export const ETHER: Uni_Currency = {
   symbol: 'ETH',
 }
 
-export const ensUri = 'ipfs://QmQW7vRg8aBdw6jGW3sPd2xYiQM5wEGc4Cd26T54QJxF9P'
+export const ensUri = 'ens/rinkeby/univ3.eth'
+export const ipfsCid = 'ipfs/QmYnjDEVUu2mdyzuPPA3TBXu4sDFPEcbgaLquJrAdFxx4K'
+export const wrapperUri = ipfsCid
 export const ethereumPluginUri = 'ens/ethereum.web3api.eth'
 
 export const networks: any = {

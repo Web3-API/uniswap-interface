@@ -1,6 +1,7 @@
 // @ts-noCheck
 import { Client, InvokeApiResult } from '@web3api/core-js'
 
+import { wrapperUri } from '../polywrap-utils'
 import * as Types from './'
 
 export type UInt = number
@@ -991,7 +992,7 @@ export const Uni_Query = {
   currencyEquals: async (
     input: Uni_Query_Input_currencyEquals,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<boolean>> => {
     return client.invoke<boolean>({
       uri,
@@ -1004,7 +1005,7 @@ export const Uni_Query = {
   tokenEquals: async (
     input: Uni_Query_Input_tokenEquals,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<boolean>> => {
     return client.invoke<boolean>({
       uri,
@@ -1017,7 +1018,7 @@ export const Uni_Query = {
   tokenAmountEquals: async (
     input: Uni_Query_Input_tokenAmountEquals,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<boolean>> => {
     return client.invoke<boolean>({
       uri,
@@ -1030,7 +1031,7 @@ export const Uni_Query = {
   tokenSortsBefore: async (
     input: Uni_Query_Input_tokenSortsBefore,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<boolean>> => {
     return client.invoke<boolean>({
       uri,
@@ -1043,7 +1044,7 @@ export const Uni_Query = {
   getEther: async (
     input: Uni_Query_Input_getEther,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Token>> => {
     return client.invoke<Types.Uni_Token>({
       uri,
@@ -1056,7 +1057,7 @@ export const Uni_Query = {
   getWETH: async (
     input: Uni_Query_Input_getWETH,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Token>> => {
     return client.invoke<Types.Uni_Token>({
       uri,
@@ -1069,7 +1070,7 @@ export const Uni_Query = {
   isEther: async (
     input: Uni_Query_Input_isEther,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<boolean>> => {
     return client.invoke<boolean>({
       uri,
@@ -1082,7 +1083,7 @@ export const Uni_Query = {
   wrapToken: async (
     input: Uni_Query_Input_wrapToken,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Token>> => {
     return client.invoke<Types.Uni_Token>({
       uri,
@@ -1095,7 +1096,7 @@ export const Uni_Query = {
   wrapAmount: async (
     input: Uni_Query_Input_wrapAmount,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_TokenAmount>> => {
     return client.invoke<Types.Uni_TokenAmount>({
       uri,
@@ -1108,7 +1109,7 @@ export const Uni_Query = {
   validateTickList: async (
     input: Uni_Query_Input_validateTickList,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<boolean>> => {
     return client.invoke<boolean>({
       uri,
@@ -1121,7 +1122,7 @@ export const Uni_Query = {
   getTick: async (
     input: Uni_Query_Input_getTick,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Tick>> => {
     return client.invoke<Types.Uni_Tick>({
       uri,
@@ -1134,7 +1135,7 @@ export const Uni_Query = {
   nextInitializedTickWithinOneWord: async (
     input: Uni_Query_Input_nextInitializedTickWithinOneWord,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_NextTickResult>> => {
     return client.invoke<Types.Uni_NextTickResult>({
       uri,
@@ -1147,7 +1148,7 @@ export const Uni_Query = {
   createPool: async (
     input: Uni_Query_Input_createPool,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Pool>> => {
     return client.invoke<Types.Uni_Pool>({
       uri,
@@ -1160,7 +1161,7 @@ export const Uni_Query = {
   getPoolAddress: async (
     input: Uni_Query_Input_getPoolAddress,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<string>> => {
     return client.invoke<string>({
       uri,
@@ -1173,7 +1174,7 @@ export const Uni_Query = {
   poolInvolvesToken: async (
     input: Uni_Query_Input_poolInvolvesToken,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<boolean>> => {
     return client.invoke<boolean>({
       uri,
@@ -1186,7 +1187,7 @@ export const Uni_Query = {
   poolToken0Price: async (
     input: Uni_Query_Input_poolToken0Price,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Price>> => {
     return client.invoke<Types.Uni_Price>({
       uri,
@@ -1199,7 +1200,7 @@ export const Uni_Query = {
   poolToken1Price: async (
     input: Uni_Query_Input_poolToken1Price,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Price>> => {
     return client.invoke<Types.Uni_Price>({
       uri,
@@ -1212,7 +1213,7 @@ export const Uni_Query = {
   poolPriceOf: async (
     input: Uni_Query_Input_poolPriceOf,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Price>> => {
     return client.invoke<Types.Uni_Price>({
       uri,
@@ -1225,7 +1226,7 @@ export const Uni_Query = {
   poolChainId: async (
     input: Uni_Query_Input_poolChainId,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_ChainId>> => {
     return client.invoke<Types.Uni_ChainId>({
       uri,
@@ -1238,7 +1239,7 @@ export const Uni_Query = {
   getPoolOutputAmount: async (
     input: Uni_Query_Input_getPoolOutputAmount,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_PoolChangeResult>> => {
     return client.invoke<Types.Uni_PoolChangeResult>({
       uri,
@@ -1251,7 +1252,7 @@ export const Uni_Query = {
   getPoolInputAmount: async (
     input: Uni_Query_Input_getPoolInputAmount,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_PoolChangeResult>> => {
     return client.invoke<Types.Uni_PoolChangeResult>({
       uri,
@@ -1264,7 +1265,7 @@ export const Uni_Query = {
   getPoolTickSpacing: async (
     input: Uni_Query_Input_getPoolTickSpacing,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Int32>> => {
     return client.invoke<Int32>({
       uri,
@@ -1277,7 +1278,7 @@ export const Uni_Query = {
   createRoute: async (
     input: Uni_Query_Input_createRoute,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Route>> => {
     return client.invoke<Types.Uni_Route>({
       uri,
@@ -1290,7 +1291,7 @@ export const Uni_Query = {
   routeChainId: async (
     input: Uni_Query_Input_routeChainId,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_ChainId>> => {
     return client.invoke<Types.Uni_ChainId>({
       uri,
@@ -1303,7 +1304,7 @@ export const Uni_Query = {
   routeMidPrice: async (
     input: Uni_Query_Input_routeMidPrice,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Price>> => {
     return client.invoke<Types.Uni_Price>({
       uri,
@@ -1316,7 +1317,7 @@ export const Uni_Query = {
   createTradeExactIn: async (
     input: Uni_Query_Input_createTradeExactIn,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Trade>> => {
     return client.invoke<Types.Uni_Trade>({
       uri,
@@ -1329,7 +1330,7 @@ export const Uni_Query = {
   createTradeExactOut: async (
     input: Uni_Query_Input_createTradeExactOut,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Trade>> => {
     return client.invoke<Types.Uni_Trade>({
       uri,
@@ -1342,7 +1343,7 @@ export const Uni_Query = {
   createTradeFromRoute: async (
     input: Uni_Query_Input_createTradeFromRoute,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Trade>> => {
     return client.invoke<Types.Uni_Trade>({
       uri,
@@ -1355,7 +1356,7 @@ export const Uni_Query = {
   createTradeFromRoutes: async (
     input: Uni_Query_Input_createTradeFromRoutes,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Trade>> => {
     return client.invoke<Types.Uni_Trade>({
       uri,
@@ -1368,7 +1369,7 @@ export const Uni_Query = {
   createUncheckedTrade: async (
     input: Uni_Query_Input_createUncheckedTrade,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Trade>> => {
     return client.invoke<Types.Uni_Trade>({
       uri,
@@ -1381,7 +1382,7 @@ export const Uni_Query = {
   createUncheckedTradeWithMultipleRoutes: async (
     input: Uni_Query_Input_createUncheckedTradeWithMultipleRoutes,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Trade>> => {
     return client.invoke<Types.Uni_Trade>({
       uri,
@@ -1394,7 +1395,7 @@ export const Uni_Query = {
   tradeInputAmount: async (
     input: Uni_Query_Input_tradeInputAmount,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_TokenAmount>> => {
     return client.invoke<Types.Uni_TokenAmount>({
       uri,
@@ -1407,7 +1408,7 @@ export const Uni_Query = {
   tradeOutputAmount: async (
     input: Uni_Query_Input_tradeOutputAmount,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_TokenAmount>> => {
     return client.invoke<Types.Uni_TokenAmount>({
       uri,
@@ -1420,7 +1421,7 @@ export const Uni_Query = {
   tradeExecutionPrice: async (
     input: Uni_Query_Input_tradeExecutionPrice,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Price>> => {
     return client.invoke<Types.Uni_Price>({
       uri,
@@ -1433,7 +1434,7 @@ export const Uni_Query = {
   tradePriceImpact: async (
     input: Uni_Query_Input_tradePriceImpact,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Fraction>> => {
     return client.invoke<Types.Uni_Fraction>({
       uri,
@@ -1446,7 +1447,7 @@ export const Uni_Query = {
   tradeMinimumAmountOut: async (
     input: Uni_Query_Input_tradeMinimumAmountOut,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_TokenAmount>> => {
     return client.invoke<Types.Uni_TokenAmount>({
       uri,
@@ -1459,7 +1460,7 @@ export const Uni_Query = {
   tradeMaximumAmountIn: async (
     input: Uni_Query_Input_tradeMaximumAmountIn,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_TokenAmount>> => {
     return client.invoke<Types.Uni_TokenAmount>({
       uri,
@@ -1472,7 +1473,7 @@ export const Uni_Query = {
   tradeWorstExecutionPrice: async (
     input: Uni_Query_Input_tradeWorstExecutionPrice,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Price>> => {
     return client.invoke<Types.Uni_Price>({
       uri,
@@ -1485,7 +1486,7 @@ export const Uni_Query = {
   bestTradeExactIn: async (
     input: Uni_Query_Input_bestTradeExactIn,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Array<Types.Uni_Trade>>> => {
     return client.invoke<Array<Types.Uni_Trade>>({
       uri,
@@ -1498,7 +1499,7 @@ export const Uni_Query = {
   bestTradeExactOut: async (
     input: Uni_Query_Input_bestTradeExactOut,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Array<Types.Uni_Trade>>> => {
     return client.invoke<Array<Types.Uni_Trade>>({
       uri,
@@ -1511,7 +1512,7 @@ export const Uni_Query = {
   createPosition: async (
     input: Uni_Query_Input_createPosition,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Position>> => {
     return client.invoke<Types.Uni_Position>({
       uri,
@@ -1524,7 +1525,7 @@ export const Uni_Query = {
   createPositionFromAmounts: async (
     input: Uni_Query_Input_createPositionFromAmounts,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Position>> => {
     return client.invoke<Types.Uni_Position>({
       uri,
@@ -1537,7 +1538,7 @@ export const Uni_Query = {
   createPositionFromAmount0: async (
     input: Uni_Query_Input_createPositionFromAmount0,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Position>> => {
     return client.invoke<Types.Uni_Position>({
       uri,
@@ -1550,7 +1551,7 @@ export const Uni_Query = {
   createPositionFromAmount1: async (
     input: Uni_Query_Input_createPositionFromAmount1,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Position>> => {
     return client.invoke<Types.Uni_Position>({
       uri,
@@ -1563,7 +1564,7 @@ export const Uni_Query = {
   positionToken0PriceLower: async (
     input: Uni_Query_Input_positionToken0PriceLower,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Price>> => {
     return client.invoke<Types.Uni_Price>({
       uri,
@@ -1576,7 +1577,7 @@ export const Uni_Query = {
   positionToken0PriceUpper: async (
     input: Uni_Query_Input_positionToken0PriceUpper,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Price>> => {
     return client.invoke<Types.Uni_Price>({
       uri,
@@ -1589,7 +1590,7 @@ export const Uni_Query = {
   positionAmount0: async (
     input: Uni_Query_Input_positionAmount0,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_TokenAmount>> => {
     return client.invoke<Types.Uni_TokenAmount>({
       uri,
@@ -1602,7 +1603,7 @@ export const Uni_Query = {
   positionAmount1: async (
     input: Uni_Query_Input_positionAmount1,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_TokenAmount>> => {
     return client.invoke<Types.Uni_TokenAmount>({
       uri,
@@ -1615,7 +1616,7 @@ export const Uni_Query = {
   mintAmounts: async (
     input: Uni_Query_Input_mintAmounts,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_MintAmounts>> => {
     return client.invoke<Types.Uni_MintAmounts>({
       uri,
@@ -1628,7 +1629,7 @@ export const Uni_Query = {
   mintAmountsWithSlippage: async (
     input: Uni_Query_Input_mintAmountsWithSlippage,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_MintAmounts>> => {
     return client.invoke<Types.Uni_MintAmounts>({
       uri,
@@ -1641,7 +1642,7 @@ export const Uni_Query = {
   burnAmountsWithSlippage: async (
     input: Uni_Query_Input_burnAmountsWithSlippage,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_MintAmounts>> => {
     return client.invoke<Types.Uni_MintAmounts>({
       uri,
@@ -1654,7 +1655,7 @@ export const Uni_Query = {
   swapCallParameters: async (
     input: Uni_Query_Input_swapCallParameters,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_MethodParameters>> => {
     return client.invoke<Types.Uni_MethodParameters>({
       uri,
@@ -1667,7 +1668,7 @@ export const Uni_Query = {
   encodeRouteToPath: async (
     input: Uni_Query_Input_encodeRouteToPath,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<string>> => {
     return client.invoke<string>({
       uri,
@@ -1680,7 +1681,7 @@ export const Uni_Query = {
   encodePermit: async (
     input: Uni_Query_Input_encodePermit,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<string>> => {
     return client.invoke<string>({
       uri,
@@ -1693,7 +1694,7 @@ export const Uni_Query = {
   encodeUnwrapWETH9: async (
     input: Uni_Query_Input_encodeUnwrapWETH9,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<string>> => {
     return client.invoke<string>({
       uri,
@@ -1706,7 +1707,7 @@ export const Uni_Query = {
   encodeSweepToken: async (
     input: Uni_Query_Input_encodeSweepToken,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<string>> => {
     return client.invoke<string>({
       uri,
@@ -1719,7 +1720,7 @@ export const Uni_Query = {
   encodeRefundETH: async (
     input: Uni_Query_Input_encodeRefundETH,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<string>> => {
     return client.invoke<string>({
       uri,
@@ -1732,7 +1733,7 @@ export const Uni_Query = {
   encodeMulticall: async (
     input: Uni_Query_Input_encodeMulticall,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<string>> => {
     return client.invoke<string>({
       uri,
@@ -1745,7 +1746,7 @@ export const Uni_Query = {
   collectRewards: async (
     input: Uni_Query_Input_collectRewards,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_MethodParameters>> => {
     return client.invoke<Types.Uni_MethodParameters>({
       uri,
@@ -1758,7 +1759,7 @@ export const Uni_Query = {
   withdrawToken: async (
     input: Uni_Query_Input_withdrawToken,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_MethodParameters>> => {
     return client.invoke<Types.Uni_MethodParameters>({
       uri,
@@ -1771,7 +1772,7 @@ export const Uni_Query = {
   encodeDeposit: async (
     input: Uni_Query_Input_encodeDeposit,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<string>> => {
     return client.invoke<string>({
       uri,
@@ -1784,7 +1785,7 @@ export const Uni_Query = {
   quoteCallParameters: async (
     input: Uni_Query_Input_quoteCallParameters,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_MethodParameters>> => {
     return client.invoke<Types.Uni_MethodParameters>({
       uri,
@@ -1797,7 +1798,7 @@ export const Uni_Query = {
   createCallParameters: async (
     input: Uni_Query_Input_createCallParameters,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_MethodParameters>> => {
     return client.invoke<Types.Uni_MethodParameters>({
       uri,
@@ -1810,7 +1811,7 @@ export const Uni_Query = {
   addCallParameters: async (
     input: Uni_Query_Input_addCallParameters,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_MethodParameters>> => {
     return client.invoke<Types.Uni_MethodParameters>({
       uri,
@@ -1823,7 +1824,7 @@ export const Uni_Query = {
   collectCallParameters: async (
     input: Uni_Query_Input_collectCallParameters,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_MethodParameters>> => {
     return client.invoke<Types.Uni_MethodParameters>({
       uri,
@@ -1836,7 +1837,7 @@ export const Uni_Query = {
   removeCallParameters: async (
     input: Uni_Query_Input_removeCallParameters,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_MethodParameters>> => {
     return client.invoke<Types.Uni_MethodParameters>({
       uri,
@@ -1849,7 +1850,7 @@ export const Uni_Query = {
   safeTransferFromParameters: async (
     input: Uni_Query_Input_safeTransferFromParameters,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_MethodParameters>> => {
     return client.invoke<Types.Uni_MethodParameters>({
       uri,
@@ -1859,11 +1860,7 @@ export const Uni_Query = {
     })
   },
 
-  toHex: async (
-    input: Uni_Query_Input_toHex,
-    client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
-  ): Promise<InvokeApiResult<string>> => {
+  toHex: async (input: Uni_Query_Input_toHex, client: Client, uri = wrapperUri): Promise<InvokeApiResult<string>> => {
     return client.invoke<string>({
       uri,
       module: 'query',
@@ -1875,7 +1872,7 @@ export const Uni_Query = {
   computePoolAddress: async (
     input: Uni_Query_Input_computePoolAddress,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<string>> => {
     return client.invoke<string>({
       uri,
@@ -1888,7 +1885,7 @@ export const Uni_Query = {
   encodeSqrtRatioX96: async (
     input: Uni_Query_Input_encodeSqrtRatioX96,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<BigInt>> => {
     return client.invoke<BigInt>({
       uri,
@@ -1901,7 +1898,7 @@ export const Uni_Query = {
   mulDivRoundingUp: async (
     input: Uni_Query_Input_mulDivRoundingUp,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<BigInt>> => {
     return client.invoke<BigInt>({
       uri,
@@ -1914,7 +1911,7 @@ export const Uni_Query = {
   addDelta: async (
     input: Uni_Query_Input_addDelta,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<BigInt>> => {
     return client.invoke<BigInt>({
       uri,
@@ -1927,7 +1924,7 @@ export const Uni_Query = {
   maxLiquidityForAmounts: async (
     input: Uni_Query_Input_maxLiquidityForAmounts,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<BigInt>> => {
     return client.invoke<BigInt>({
       uri,
@@ -1940,7 +1937,7 @@ export const Uni_Query = {
   mostSignificantBit: async (
     input: Uni_Query_Input_mostSignificantBit,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<UInt32>> => {
     return client.invoke<UInt32>({
       uri,
@@ -1953,7 +1950,7 @@ export const Uni_Query = {
   nearestUsableTick: async (
     input: Uni_Query_Input_nearestUsableTick,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Int32>> => {
     return client.invoke<Int32>({
       uri,
@@ -1966,7 +1963,7 @@ export const Uni_Query = {
   tickToPrice: async (
     input: Uni_Query_Input_tickToPrice,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Price>> => {
     return client.invoke<Types.Uni_Price>({
       uri,
@@ -1979,7 +1976,7 @@ export const Uni_Query = {
   priceToClosestTick: async (
     input: Uni_Query_Input_priceToClosestTick,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Int32>> => {
     return client.invoke<Int32>({
       uri,
@@ -1992,7 +1989,7 @@ export const Uni_Query = {
   getAmount0Delta: async (
     input: Uni_Query_Input_getAmount0Delta,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<BigInt>> => {
     return client.invoke<BigInt>({
       uri,
@@ -2005,7 +2002,7 @@ export const Uni_Query = {
   getAmount1Delta: async (
     input: Uni_Query_Input_getAmount1Delta,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<BigInt>> => {
     return client.invoke<BigInt>({
       uri,
@@ -2018,7 +2015,7 @@ export const Uni_Query = {
   getNextSqrtPriceFromInput: async (
     input: Uni_Query_Input_getNextSqrtPriceFromInput,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<BigInt>> => {
     return client.invoke<BigInt>({
       uri,
@@ -2031,7 +2028,7 @@ export const Uni_Query = {
   getNextSqrtPriceFromOutput: async (
     input: Uni_Query_Input_getNextSqrtPriceFromOutput,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<BigInt>> => {
     return client.invoke<BigInt>({
       uri,
@@ -2044,7 +2041,7 @@ export const Uni_Query = {
   tickIsBelowSmallest: async (
     input: Uni_Query_Input_tickIsBelowSmallest,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<boolean>> => {
     return client.invoke<boolean>({
       uri,
@@ -2057,7 +2054,7 @@ export const Uni_Query = {
   tickIsAtOrAboveLargest: async (
     input: Uni_Query_Input_tickIsAtOrAboveLargest,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<boolean>> => {
     return client.invoke<boolean>({
       uri,
@@ -2070,7 +2067,7 @@ export const Uni_Query = {
   nextInitializedTick: async (
     input: Uni_Query_Input_nextInitializedTick,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Tick>> => {
     return client.invoke<Types.Uni_Tick>({
       uri,
@@ -2083,7 +2080,7 @@ export const Uni_Query = {
   tickListIsSorted: async (
     input: Uni_Query_Input_tickListIsSorted,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<boolean>> => {
     return client.invoke<boolean>({
       uri,
@@ -2096,7 +2093,7 @@ export const Uni_Query = {
   getSqrtRatioAtTick: async (
     input: Uni_Query_Input_getSqrtRatioAtTick,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<BigInt>> => {
     return client.invoke<BigInt>({
       uri,
@@ -2109,7 +2106,7 @@ export const Uni_Query = {
   getTickAtSqrtRatio: async (
     input: Uni_Query_Input_getTickAtSqrtRatio,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Int32>> => {
     return client.invoke<Int32>({
       uri,
@@ -2122,7 +2119,7 @@ export const Uni_Query = {
   fetchToken: async (
     input: Uni_Query_Input_fetchToken,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Token>> => {
     return client.invoke<Types.Uni_Token>({
       uri,
@@ -2135,7 +2132,7 @@ export const Uni_Query = {
   fetchPoolFromTokens: async (
     input: Uni_Query_Input_fetchPoolFromTokens,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Pool>> => {
     return client.invoke<Types.Uni_Pool>({
       uri,
@@ -2148,7 +2145,7 @@ export const Uni_Query = {
   fetchPoolFromAddress: async (
     input: Uni_Query_Input_fetchPoolFromAddress,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Pool>> => {
     return client.invoke<Types.Uni_Pool>({
       uri,
@@ -2161,7 +2158,7 @@ export const Uni_Query = {
   fetchTickList: async (
     input: Uni_Query_Input_fetchTickList,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Array<Types.Uni_Tick>>> => {
     return client.invoke<Array<Types.Uni_Tick>>({
       uri,
@@ -2174,7 +2171,7 @@ export const Uni_Query = {
   feeAmountToTickSpacing: async (
     input: Uni_Query_Input_feeAmountToTickSpacing,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Int32>> => {
     return client.invoke<Int32>({
       uri,
@@ -2187,7 +2184,7 @@ export const Uni_Query = {
   getFeeAmount: async (
     input: Uni_Query_Input_getFeeAmount,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<UInt32>> => {
     return client.invoke<UInt32>({
       uri,
@@ -2200,7 +2197,7 @@ export const Uni_Query = {
   getPermitV: async (
     input: Uni_Query_Input_getPermitV,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Int32>> => {
     return client.invoke<Int32>({
       uri,
@@ -2213,7 +2210,7 @@ export const Uni_Query = {
   FACTORY_ADDRESS: async (
     input: Uni_Query_Input_FACTORY_ADDRESS,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<string>> => {
     return client.invoke<string>({
       uri,
@@ -2226,7 +2223,7 @@ export const Uni_Query = {
   POOL_INIT_CODE_HASH: async (
     input: Uni_Query_Input_POOL_INIT_CODE_HASH,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<string>> => {
     return client.invoke<string>({
       uri,
@@ -2239,7 +2236,7 @@ export const Uni_Query = {
   POOL_INIT_CODE_HASH_OPTIMISM: async (
     input: Uni_Query_Input_POOL_INIT_CODE_HASH_OPTIMISM,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<string>> => {
     return client.invoke<string>({
       uri,
@@ -2252,7 +2249,7 @@ export const Uni_Query = {
   POOL_INIT_CODE_HASH_OPTIMISM_KOVAN: async (
     input: Uni_Query_Input_POOL_INIT_CODE_HASH_OPTIMISM_KOVAN,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<string>> => {
     return client.invoke<string>({
       uri,
@@ -2265,7 +2262,7 @@ export const Uni_Query = {
   MIN_TICK: async (
     input: Uni_Query_Input_MIN_TICK,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Int32>> => {
     return client.invoke<Int32>({
       uri,
@@ -2278,7 +2275,7 @@ export const Uni_Query = {
   MAX_TICK: async (
     input: Uni_Query_Input_MAX_TICK,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Int32>> => {
     return client.invoke<Int32>({
       uri,
@@ -2291,7 +2288,7 @@ export const Uni_Query = {
   MIN_SQRT_RATIO: async (
     input: Uni_Query_Input_MIN_SQRT_RATIO,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<BigInt>> => {
     return client.invoke<BigInt>({
       uri,
@@ -2304,7 +2301,7 @@ export const Uni_Query = {
   MAX_SQRT_RATIO: async (
     input: Uni_Query_Input_MAX_SQRT_RATIO,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<BigInt>> => {
     return client.invoke<BigInt>({
       uri,
@@ -2376,7 +2373,7 @@ export const Uni_Mutation = {
   approve: async (
     input: Uni_Mutation_Input_approve,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Ethereum_TxResponse>> => {
     return client.invoke<Types.Uni_Ethereum_TxResponse>({
       uri,
@@ -2389,7 +2386,7 @@ export const Uni_Mutation = {
   execCall: async (
     input: Uni_Mutation_Input_execCall,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Ethereum_TxResponse>> => {
     return client.invoke<Types.Uni_Ethereum_TxResponse>({
       uri,
@@ -2402,7 +2399,7 @@ export const Uni_Mutation = {
   execSwap: async (
     input: Uni_Mutation_Input_execSwap,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Ethereum_TxResponse>> => {
     return client.invoke<Types.Uni_Ethereum_TxResponse>({
       uri,
@@ -2415,7 +2412,7 @@ export const Uni_Mutation = {
   swap: async (
     input: Uni_Mutation_Input_swap,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Ethereum_TxResponse>> => {
     return client.invoke<Types.Uni_Ethereum_TxResponse>({
       uri,
@@ -2428,7 +2425,7 @@ export const Uni_Mutation = {
   swapWithPool: async (
     input: Uni_Mutation_Input_swapWithPool,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Ethereum_TxResponse>> => {
     return client.invoke<Types.Uni_Ethereum_TxResponse>({
       uri,
@@ -2441,7 +2438,7 @@ export const Uni_Mutation = {
   deployPool: async (
     input: Uni_Mutation_Input_deployPool,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Ethereum_TxResponse>> => {
     return client.invoke<Types.Uni_Ethereum_TxResponse>({
       uri,
@@ -2454,7 +2451,7 @@ export const Uni_Mutation = {
   deployPoolFromTokens: async (
     input: Uni_Mutation_Input_deployPoolFromTokens,
     client: Client,
-    uri = 'w3://fs/./../../integrations/uniswapv3/wrapper/build'
+    uri = wrapperUri
   ): Promise<InvokeApiResult<Types.Uni_Ethereum_TxResponse>> => {
     return client.invoke<Types.Uni_Ethereum_TxResponse>({
       uri,

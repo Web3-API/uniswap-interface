@@ -86,9 +86,9 @@ export function usePools(
             tokenA: mapToken(token0),
             tokenB: mapToken(token1),
             fee,
-            sqrtRatioX96: slot0.sqrtPriceX96,
-            liquidity: liquidity[0],
-            tickCurrent: slot0.tick,
+            sqrtRatioX96: slot0.sqrtPriceX96.toString(),
+            liquidity: liquidity[0].toString(),
+            tickCurrent: parseInt(slot0.tick),
           },
           client
         )

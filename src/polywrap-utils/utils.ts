@@ -146,7 +146,7 @@ export function poolDeps(pool: Uni_Pool | undefined) {
   } else {
     return [
       ...tokenDeps(pool.token0),
-      tokenDeps(pool.token1),
+      ...tokenDeps(pool.token1),
       pool.fee,
       pool.tickCurrent,
       pool.sqrtRatioX96,
@@ -159,9 +159,7 @@ export function routeDeps(route: Uni_Route | undefined) {
   if (!route) {
     return [undefined]
   } else {
-    const res = route.path.map(tokenDeps).flat()
-    res.push(route.midPrice.price)
-    return res
+    return [route.midPrice.price, ...tokenDeps(route.input), ...tokenDeps(route.output), route.pools.length]
   }
 }
 
