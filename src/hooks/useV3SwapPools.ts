@@ -6,6 +6,7 @@ import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Pool as Pool } from '../polywra
 import { useAllCurrencyCombinations } from './useAllCurrencyCombinations'
 import { PoolState, usePools } from './usePools'
 import { useActiveWeb3React } from './web3'
+import { poolDeps } from '../polywrap-utils'
 
 /**
  * Returns all the existing pools that should be considered for swapping between an input currency and an output currency
@@ -42,9 +43,7 @@ export function useV3SwapPools(
     [allCurrencyCombinations, chainId]
   )
 
-  const pools = usePools(
-    allCurrencyCombinationsWithAllFees.map(([token0, token1, feeAmountEnum]) => [token0, token1, feeAmountEnum])
-  )
+  const pools = usePools(allCurrencyCombinationsWithAllFees)
 
   return useMemo(() => {
     return {
@@ -55,5 +54,5 @@ export function useV3SwapPools(
         .map(([, pool]) => pool),
       loading: pools.some(([state]) => state === PoolState.LOADING),
     }
-  }, [pools])
+  }, [...pools.map((val) => [val[0], ...poolDeps(val[1] ?? undefined)]).flat()])
 }
