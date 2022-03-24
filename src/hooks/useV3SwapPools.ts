@@ -3,7 +3,6 @@ import { SupportedChainId } from 'constants/chains'
 import { useMemo } from 'react'
 
 import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Pool as Pool } from '../polywrap'
-import { poolDeps } from '../polywrap-utils'
 import { useAllCurrencyCombinations } from './useAllCurrencyCombinations'
 import { PoolState, usePools } from './usePools'
 import { useActiveWeb3React } from './web3'
@@ -54,5 +53,5 @@ export function useV3SwapPools(
         .map(([, pool]) => pool),
       loading: pools.some(([state]) => state === PoolState.LOADING),
     }
-  }, [...pools.map((val) => [val[0], ...poolDeps(val[1] ?? undefined)]).flat()])
+  }, [pools])
 }
