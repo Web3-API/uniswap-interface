@@ -20,15 +20,7 @@ import {
   Uni_Price,
   Uni_Query,
 } from '../../../polywrap'
-import {
-  mapPrice,
-  mapToken,
-  poolDeps,
-  positionDeps,
-  reverseMapPrice,
-  reverseMapToken,
-  tokenEquals,
-} from '../../../polywrap-utils'
+import { mapPrice, mapToken, reverseMapPrice, reverseMapToken, tokenEquals } from '../../../polywrap-utils'
 import { AppState } from '../../index'
 import { tryParseAmount } from '../../swap/hooks'
 import { useCurrencyBalances } from '../../wallet/hooks'
@@ -376,7 +368,7 @@ export function useV3DerivedMintInfo(
       client
     ).then((res) => setTicks(res))
   }, [
-    ...positionDeps(existingPosition),
+    existingPosition,
     feeAmount,
     invertPrice,
     leftRangeTypedValue,
@@ -386,7 +378,7 @@ export function useV3DerivedMintInfo(
     tickSpaceLimits,
     client,
   ])
-
+  // todo: replace deps fun?
   const { [Bound.LOWER]: tickLower, [Bound.UPPER]: tickUpper } = ticks || {}
 
   // specifies whether the lower and upper ticks is at the exteme bounds
@@ -404,6 +396,7 @@ export function useV3DerivedMintInfo(
   // always returns the price with 0 as base token
   const [pricesAtTicks, setPricesAtTicks] = useState<{ LOWER?: Price<Token, Token>; UPPER?: Price<Token, Token> }>({})
   useEffect(() => {
+    console.log('useV3DerivedMintInfo src/state/mint/v3/hooks')
     Promise.all([
       getTickToPrice(client, token0, token1, ticks[Bound.LOWER]),
       getTickToPrice(client, token0, token1, ticks[Bound.UPPER]),
@@ -485,11 +478,11 @@ export function useV3DerivedMintInfo(
     currencyA,
     tickLower,
     tickUpper,
-    ...poolDeps(poolForPosition),
+    poolForPosition,
     invalidRange,
     client,
   ])
-
+  // todo: replace deps fun?
   const parsedAmounts: { [field in Field]: CurrencyAmount<Currency> | undefined } = useMemo(() => {
     return {
       [Field.CURRENCY_A]: independentField === Field.CURRENCY_A ? independentAmount : dependentAmount,
@@ -568,7 +561,7 @@ export function useV3DerivedMintInfo(
     })
   }, [
     parsedAmounts,
-    ...poolDeps(poolForPosition),
+    poolForPosition,
     tokenA,
     tokenB,
     deposit0Disabled,
@@ -578,7 +571,7 @@ export function useV3DerivedMintInfo(
     tickUpper,
     client,
   ])
-
+  // todo: replace deps fun?
   let errorMessage: ReactNode | undefined
   if (!account) {
     errorMessage = <Trans>Connect Wallet</Trans>
@@ -687,8 +680,8 @@ export function useRangeHopCallbacks(
       return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
     }
     return ''
-  }, [baseToken, quoteToken, tickLower, feeAmount, ...poolDeps(pool ?? undefined), client])
-
+  }, [baseToken, quoteToken, tickLower, feeAmount, pool, client])
+  // todo: replace deps fun?
   const getIncrementLower = useCallback(async () => {
     if (baseToken && quoteToken && typeof tickLower === 'number' && feeAmount !== undefined) {
       const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
@@ -728,8 +721,8 @@ export function useRangeHopCallbacks(
       return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
     }
     return ''
-  }, [baseToken, quoteToken, tickLower, feeAmount, ...poolDeps(pool ?? undefined), client])
-
+  }, [baseToken, quoteToken, tickLower, feeAmount, pool, client])
+  // todo: replace deps fun?
   const getDecrementUpper = useCallback(async () => {
     if (baseToken && quoteToken && typeof tickUpper === 'number' && feeAmount !== undefined) {
       const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
@@ -769,8 +762,8 @@ export function useRangeHopCallbacks(
       return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
     }
     return ''
-  }, [baseToken, quoteToken, tickUpper, feeAmount, ...poolDeps(pool ?? undefined), client])
-
+  }, [baseToken, quoteToken, tickUpper, feeAmount, pool, client])
+  // todo: replace deps fun?
   const getIncrementUpper = useCallback(async () => {
     if (baseToken && quoteToken && typeof tickUpper === 'number' && feeAmount !== undefined) {
       const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
@@ -810,8 +803,8 @@ export function useRangeHopCallbacks(
       return reverseMapPrice(newPrice).toSignificant(5, undefined, Rounding.ROUND_UP)
     }
     return ''
-  }, [baseToken, quoteToken, tickUpper, feeAmount, ...poolDeps(pool ?? undefined), client])
-
+  }, [baseToken, quoteToken, tickUpper, feeAmount, pool, client])
+  // todo: replace deps fun?
   const getSetFullRange = useCallback(() => {
     dispatch(setFullRange())
   }, [dispatch])

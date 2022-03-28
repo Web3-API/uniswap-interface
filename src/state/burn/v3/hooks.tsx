@@ -12,7 +12,6 @@ import { PositionDetails } from 'types/position'
 import { unwrappedToken } from 'utils/unwrappedToken'
 
 import { Uni_Position as Position, Uni_Query } from '../../../polywrap'
-import { poolDeps } from '../../../polywrap-utils'
 import { AppState } from '../../index'
 import { selectPercent } from './actions'
 
@@ -66,8 +65,8 @@ export function useDerivedV3BurnInfo(
     } else {
       setPositionSDK(undefined)
     }
-  }, [...poolDeps(pool ?? undefined), position, client])
-
+  }, [pool, position, client])
+  // todo: replace deps fun?
   const liquidityPercentage = new Percent(percent, 100)
 
   const discountedAmount0 = positionSDK

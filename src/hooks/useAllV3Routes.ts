@@ -3,8 +3,8 @@ import { Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
 import { useEffect, useState } from 'react'
 
-import { Uni_Pool as Pool, Uni_Query, Uni_Route as Route, Uni_Token as Token } from '../polywrap'
-import { mapToken, poolDeps, tokenEquals } from '../polywrap-utils'
+import { Uni_Pool, Uni_Query, Uni_Route, Uni_Token } from '../polywrap'
+import { mapToken, tokenEquals } from '../polywrap-utils'
 import { useV3SwapPools } from './useV3SwapPools'
 import { useActiveWeb3React } from './web3'
 
@@ -13,7 +13,7 @@ import { useActiveWeb3React } from './web3'
  * @param poolA one of the two pools
  * @param poolB the other pool
  */
-function poolEquals(poolA: Pool, poolB: Pool): boolean {
+function poolEquals(poolA: Uni_Pool, poolB: Uni_Pool): boolean {
   return (
     poolA === poolB ||
     (tokenEquals(poolA.token0, poolB.token0) && tokenEquals(poolA.token1, poolB.token1) && poolA.fee === poolB.fee)
@@ -22,22 +22,22 @@ function poolEquals(poolA: Pool, poolB: Pool): boolean {
 
 async function computeAllRoutes(
   client: Web3ApiClient,
-  currencyIn: Token,
-  currencyOut: Token,
-  pools: Pool[],
+  currencyIn: Uni_Token,
+  currencyOut: Uni_Token,
+  pools: Uni_Pool[],
   chainId: number,
-  currentPath: Pool[] = [],
-  allPaths: Route[] = [],
-  startCurrencyIn: Token = currencyIn,
+  currentPath: Uni_Pool[] = [],
+  allPaths: Uni_Route[] = [],
+  startCurrencyIn: Uni_Token = currencyIn,
   maxHops = 2
-): Promise<Route[]> {
+): Promise<Uni_Route[]> {
   const tokenInInvoke = await Uni_Query.wrapToken({ token: currencyIn }, client)
   if (tokenInInvoke.error) throw tokenInInvoke.error
-  const tokenIn = tokenInInvoke.data as Token
+  const tokenIn = tokenInInvoke.data as Uni_Token
 
   const tokenOutInvoke = await Uni_Query.wrapToken({ token: currencyOut }, client)
   if (tokenOutInvoke.error) throw tokenOutInvoke.error
-  const tokenOut = tokenOutInvoke.data as Token
+  const tokenOut = tokenOutInvoke.data as Uni_Token
 
   if (!tokenIn || !tokenOut) throw new Error('Missing tokenIn/tokenOut')
 
@@ -66,7 +66,7 @@ async function computeAllRoutes(
         client
       )
       if (routeInvoke.error) throw routeInvoke.error
-      allPaths.push(routeInvoke.data as Route)
+      allPaths.push(routeInvoke.data as Uni_Route)
     } else if (maxHops > 1) {
       computeAllRoutes(
         client,
@@ -90,24 +90,28 @@ async function computeAllRoutes(
  * @param currencyIn the input currency
  * @param currencyOut the output currency
  */
-export function useAllV3Routes(currencyIn?: Currency, currencyOut?: Currency): { loading: boolean; routes: Route[] } {
+export function useAllV3Routes(
+  currencyIn?: Currency,
+  currencyOut?: Currency
+): { loading: boolean; routes: Uni_Route[] } {
   const { chainId } = useActiveWeb3React()
   const { pools, loading: poolsLoading } = useV3SwapPools(currencyIn, currencyOut)
   const client: Web3ApiClient = useWeb3ApiClient()
 
-  const [routes, setRoutes] = useState<{ loading: boolean; routes: Route[] }>({ loading: true, routes: [] })
+  const [routes, setRoutes] = useState<{ loading: boolean; routes: Uni_Route[] }>({ loading: true, routes: [] })
 
   useEffect(() => {
+    console.log('useAllV3Routes - src/hooks/useAllV3Routes')
     if (poolsLoading || !chainId || !pools || !currencyIn || !currencyOut) {
       setRoutes({ loading: true, routes: [] })
     } else {
-      const currIn: Token = mapToken(currencyIn)
-      const currOut: Token = mapToken(currencyOut)
+      const currIn: Uni_Token = mapToken(currencyIn)
+      const currOut: Uni_Token = mapToken(currencyOut)
       computeAllRoutes(client, currIn, currOut, pools, chainId, [], [], currIn, 2).then((routes) => {
         setRoutes({ loading: false, routes })
       })
     }
-  }, [chainId, currencyIn, currencyOut, ...pools.map(poolDeps).flat(), poolsLoading, client])
-
+  }, [chainId, currencyIn, currencyOut, pools, poolsLoading, client])
+  // todo: replace deps fun?
   return routes
 }

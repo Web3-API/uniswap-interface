@@ -218,17 +218,6 @@ export default function AddLiquidity({
       return
     }
 
-    // {
-    //   recipient?: string | null
-    //   createPool?: boolean | null
-    //   tokenId?: BigInt | null
-    //   slippageTolerance: string
-    //   deadline: BigInt
-    //   useNative?: Token | null
-    //   token0Permit?: PermitOptions | null
-    //   token1Permit?: PermitOptions | null
-    // }
-
     if (position && account && deadline) {
       const useNative = baseCurrency.isNative ? baseCurrency : quoteCurrency.isNative ? quoteCurrency : undefined
       const invoke =

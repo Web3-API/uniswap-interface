@@ -4,7 +4,6 @@ import {
   Ether,
   Price as UniPrice,
   Token as UniToken,
-  TradeType as UniTradeType,
 } from '@uniswap/sdk-core'
 
 import {
@@ -15,8 +14,6 @@ import {
   Uni_Price as Price,
   Uni_Token as Token,
   Uni_TokenAmount as TokenAmount,
-  Uni_TradeType as TradeType,
-  Uni_TradeTypeEnum as TradeTypeEnum,
 } from '../polywrap'
 import { isEther } from './utils'
 
@@ -80,51 +77,11 @@ export function reverseMapFeeAmount(input: FeeAmount): number {
   }
 }
 
-// export function reverseMapPool(input: Pool): UniPool {
-//   return new UniPool(
-//     reverseMapToken(input.token0) as UniToken,
-//     reverseMapToken(input.token1) as UniToken,
-//     reverseMapFeeAmount(input.fee),
-//     input.sqrtRatioX96,
-//     input.liquidity,
-//     input.tickCurrent,
-//     input.tickDataProvider
-//   )
-// }
-//
-// export function reverseMapPools(input: Pool[]): UniPool[] {
-//   return input.map(reverseMapPool)
-// }
-//
-// export async function reverseMapPosition(input: Position): Promise<UniPosition> {
-//   return new UniPosition({
-//     pool: reverseMapPool(input.pool),
-//     tickLower: input.tickLower,
-//     tickUpper: input.tickUpper,
-//     liquidity: input.liquidity,
-//   })
-// }
-//
-// export function reverseMapRoute(input: Route): UniRoute<UniCurrency, UniCurrency> {
-//   return new UniRoute(reverseMapPools(input.pools), reverseMapToken(input.input)!, reverseMapToken(input.output)!)
-// }
-
-export function reverseMapTradeType(input: TradeType): UniTradeType {
-  if (input === TradeTypeEnum.EXACT_OUTPUT || 'EXACT_OUTPUT') {
-    return UniTradeType.EXACT_OUTPUT
-  }
-  return UniTradeType.EXACT_INPUT
-}
-
-// export function reverseMapTrade<TType extends UniTradeType>(input: Trade): UniTrade<UniCurrency, UniCurrency, TType> {
-//   return UniTrade.createUncheckedTradeWithMultipleRoutes({
-//     routes: input.swaps.map((swap) => ({
-//       route: reverseMapRoute(swap.route),
-//       inputAmount: reverseMapTokenAmount(swap.inputAmount)!,
-//       outputAmount: reverseMapTokenAmount(swap.outputAmount)!,
-//     })),
-//     tradeType: reverseMapTradeType(input.tradeType) as TType,
-//   })
+// export function reverseMapTradeType(input: TradeType): UniTradeType {
+//   if (input === TradeTypeEnum.EXACT_OUTPUT || 'EXACT_OUTPUT') {
+//     return UniTradeType.EXACT_OUTPUT
+//   }
+//   return UniTradeType.EXACT_INPUT
 // }
 
 export function reverseMapPrice<TBase extends UniCurrency = UniCurrency, TQuote extends UniCurrency = UniCurrency>(

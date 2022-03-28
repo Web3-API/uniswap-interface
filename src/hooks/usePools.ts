@@ -42,6 +42,7 @@ export function usePools(
   const [poolAddresses, setPoolAddresses] = useState<(string | undefined)[]>([])
 
   useEffect(() => {
+    console.log('usePools 1 - src/hooks/usePools')
     const v3CoreFactoryAddress = chainId && V3_CORE_FACTORY_ADDRESSES[chainId]
     const mapped = transformed.map(async (value) => {
       if (!v3CoreFactoryAddress || !value) return undefined
@@ -66,6 +67,7 @@ export function usePools(
   const [pools, setPools] = useState<[PoolState, Pool | null][]>([[PoolState.LOADING, null]])
 
   useEffect(() => {
+    console.log('usePools 2 - src/hooks/usePools')
     const mapped = poolKeys.map(async (_key, index): Promise<[PoolState, Pool | null]> => {
       const [token0, token1, fee] = transformed[index] ?? []
       if (!token0 || !token1 || fee === undefined) return [PoolState.INVALID, null]
@@ -101,7 +103,7 @@ export function usePools(
       }
     })
     Promise.all(mapped).then((res) => setPools(res))
-  }, [liquidities, poolKeys, slot0s, transformed, client])
+  }, [liquidities, poolKeys.length, slot0s, transformed, client])
 
   return pools
 }

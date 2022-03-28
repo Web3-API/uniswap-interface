@@ -112,6 +112,7 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
   })
 
   useEffect(() => {
+    console.log('useRoutingAPITrade - src/state/routing/useRoutingAPITrade')
     if (!currencyIn || !currencyOut) {
       setTradeResult({
         state: TradeState.INVALID,

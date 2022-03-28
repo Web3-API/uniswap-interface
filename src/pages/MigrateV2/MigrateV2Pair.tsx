@@ -53,14 +53,7 @@ import {
   Uni_Query,
   Uni_TokenAmount as TokenAmount,
 } from '../../polywrap'
-import {
-  mapPrice,
-  mapToken,
-  poolDeps,
-  positionDeps,
-  reverseMapPrice,
-  reverseMapTokenAmount,
-} from '../../polywrap-utils'
+import { mapPrice, mapToken, reverseMapPrice, reverseMapTokenAmount } from '../../polywrap-utils'
 import { NEVER_RELOAD, useSingleCallResult } from '../../state/multicall/hooks'
 import { TransactionType } from '../../state/transactions/actions'
 import { useTokenBalance } from '../../state/wallet/hooks'
@@ -228,6 +221,7 @@ function V2PairMigration({
   }>({ sqrtPrice: pool?.sqrtRatioX96 ?? '0' })
 
   useEffect(() => {
+    console.log('V2PairMigration 1 - src/pages/MigrateV2/MigrateV2Pair')
     const loadPositionData = async () => {
       // the v3 tick is either the pool's tickCurrent, or the tick closest to the v2 spot price
       let tick
@@ -283,7 +277,7 @@ function V2PairMigration({
     }
     loadPositionData().then((res) => setPositionData(res))
   }, [
-    ...poolDeps(pool ?? undefined),
+    pool,
     v2SpotPrice,
     tickLower,
     tickUpper,
@@ -295,12 +289,13 @@ function V2PairMigration({
     token1Value,
     client,
   ])
-
+  // todo: replace deps fun?
   const { sqrtPrice, position, posAmount0, posAmount1 } = positionData
 
   const [mintAmounts, setMintAmounts] = useState<{ amount0?: string; amount1?: string }>({})
 
   useEffect(() => {
+    console.log('V2PairMigration 2 - src/pages/MigrateV2/MigrateV2Pair')
     if (!position) {
       setMintAmounts({})
     } else {
@@ -315,7 +310,8 @@ function V2PairMigration({
         setMintAmounts(res.data as Uni_MintAmounts)
       })
     }
-  }, [...positionDeps(position), allowedSlippage, client])
+  }, [position, allowedSlippage, client])
+  // todo: replace deps fun?
 
   const { amount0: v3Amount0Min, amount1: v3Amount1Min } = mintAmounts
 

@@ -18,6 +18,7 @@ export default function useIsTickAtLimit(
   })
 
   useEffect(() => {
+    console.log('useIsTickAtLimit - src/hooks/useIsTickAtLimit')
     if (feeAmount === undefined) {
       setIsTickAtLimit({ [Bound.LOWER]: undefined, [Bound.UPPER]: undefined })
     } else {

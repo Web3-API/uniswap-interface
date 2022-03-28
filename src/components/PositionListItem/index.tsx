@@ -22,7 +22,7 @@ import { unwrappedToken } from 'utils/unwrappedToken'
 
 import { DAI, USDC, USDT, WBTC, WRAPPED_NATIVE_CURRENCY } from '../../constants/tokens'
 import { Uni_Position, Uni_Query } from '../../polywrap'
-import { poolDeps, reverseMapPrice, reverseMapToken } from '../../polywrap-utils'
+import { reverseMapPrice, reverseMapToken } from '../../polywrap-utils'
 
 const LinkRow = styled(Link)`
   align-items: center;
@@ -214,6 +214,7 @@ export default function PositionListItem({ positionDetails }: PositionListItemPr
 
   // construct Position from details returned
   useEffect(() => {
+    console.log('PositionListItem - src/components/PositionListItem')
     if (!pool) {
       setPosition(undefined)
     } else {
@@ -230,8 +231,8 @@ export default function PositionListItem({ positionDetails }: PositionListItemPr
         setPosition(res.data)
       })
     }
-  }, [liquidity, ...poolDeps(pool ?? undefined), tickLower, tickUpper, client])
-
+  }, [liquidity, pool, tickLower, tickUpper, client])
+  // todo: replace deps fun?
   const tickAtLimit = useIsTickAtLimit(feeAmount, tickLower, tickUpper)
 
   // prices

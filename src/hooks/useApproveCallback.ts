@@ -10,7 +10,7 @@ import { getTxOptimizedSwapRouter, SwapRouterVersion } from 'utils/getTxOptimize
 
 import { SWAP_ROUTER_ADDRESSES, V2_ROUTER_ADDRESS, V3_ROUTER_ADDRESS } from '../constants/addresses'
 import { Uni_Query, Uni_TokenAmount, Uni_Trade as PolyTrade } from '../polywrap'
-import { isEther, isTrade, reverseMapTokenAmount, tradeDeps } from '../polywrap-utils'
+import { isEther, isTrade, reverseMapTokenAmount } from '../polywrap-utils'
 import { TransactionType } from '../state/transactions/actions'
 import { useHasPendingApproval, useTransactionAdder } from '../state/transactions/hooks'
 import { calculateGasMargin } from '../utils/calculateGasMargin'
@@ -55,6 +55,7 @@ export function useAllApprovalStates(trade: PolyTrade | undefined, allowedSlippa
   const [amountToApprove, setAmountToApprove] = useState<Uni_TokenAmount | undefined>(undefined)
 
   useEffect(() => {
+    console.log('useApproveCallback - src/hooks/useApproveCallback')
     if (!trade || isEther(trade.inputAmount.token)) {
       setAmountToApprove(undefined)
     } else {
@@ -70,7 +71,7 @@ export function useAllApprovalStates(trade: PolyTrade | undefined, allowedSlippa
         setAmountToApprove(res.data)
       })
     }
-  }, [...tradeDeps(trade), allowedSlippage, client])
+  }, [trade, allowedSlippage, client])
 
   const uniAmount = reverseMapTokenAmount(amountToApprove)
   const v2ApprovalState = useApprovalState(uniAmount, chainId ? V2_ROUTER_ADDRESS[chainId] : undefined)
@@ -160,12 +161,11 @@ export function useApproveCallbackFromTrade(
 
   const [amountToApprove, setAmountToApprove] = useState<CurrencyAmount<Currency> | undefined>(undefined)
 
-  const isPolyTrade = isTrade(trade)
-  const tradeDependencies = isPolyTrade ? tradeDeps(trade) : [trade]
   useEffect(() => {
+    console.log('useApproveCallbackFromTrade - src/hooks/useApproveCallback')
     if (!trade) {
       setAmountToApprove(undefined)
-    } else if (!isPolyTrade) {
+    } else if (!isTrade(trade)) {
       setAmountToApprove(trade.inputAmount.currency.isToken ? trade.maximumAmountIn(allowedSlippage) : undefined)
     } else if (isEther(trade.inputAmount.token)) {
       setAmountToApprove(undefined)
@@ -183,7 +183,7 @@ export function useApproveCallbackFromTrade(
         setAmountToApprove(currencyAmount)
       })
     }
-  }, [...tradeDependencies, allowedSlippage, isPolyTrade, client])
+  }, [trade, allowedSlippage, client])
 
   const approveCallback = useApproveCallback(
     amountToApprove,

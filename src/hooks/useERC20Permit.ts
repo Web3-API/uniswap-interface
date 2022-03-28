@@ -10,7 +10,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { SWAP_ROUTER_ADDRESSES, V3_ROUTER_ADDRESS } from '../constants/addresses'
 import { DAI, UNI, USDC } from '../constants/tokens'
 import { Uni_Query, Uni_TokenAmount, Uni_Trade as PolyTrade } from '../polywrap'
-import { isTrade, reverseMapTokenAmount, tradeDeps } from '../polywrap-utils'
+import { isTrade, reverseMapTokenAmount } from '../polywrap-utils'
 import { useSingleCallResult } from '../state/multicall/hooks'
 import { useEIP2612Contract } from './useContract'
 import useIsArgentWallet from './useIsArgentWallet'
@@ -292,12 +292,11 @@ export function useERC20PermitFromTrade(
 
   const [amountToApprove, setAmountToApprove] = useState<CurrencyAmount<Currency> | undefined>()
 
-  const isPolyTrade = isTrade(trade)
-  const tradeDependencies = isPolyTrade ? tradeDeps(trade) : [trade]
   useEffect(() => {
+    console.log('useERC20Permit - src/hooks/useERC20Permit')
     if (!trade) {
       setAmountToApprove(undefined)
-    } else if (!isPolyTrade) {
+    } else if (!isTrade(trade)) {
       setAmountToApprove(trade.maximumAmountIn(allowedSlippage))
     } else {
       Uni_Query.tradeMaximumAmountIn(
@@ -313,7 +312,7 @@ export function useERC20PermitFromTrade(
         setAmountToApprove(maxAmountIn)
       })
     }
-  }, [...tradeDependencies, allowedSlippage, client])
+  }, [trade, allowedSlippage, client])
 
   return useERC20Permit(amountToApprove, swapRouterAddress, null)
 }

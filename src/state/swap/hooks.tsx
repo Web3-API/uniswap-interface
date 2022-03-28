@@ -16,7 +16,7 @@ import useParsedQueryString from '../../hooks/useParsedQueryString'
 import useSwapSlippageTolerance from '../../hooks/useSwapSlippageTolerance'
 import { useActiveWeb3React } from '../../hooks/web3'
 import { Uni_Query, Uni_TokenAmount } from '../../polywrap'
-import { reverseMapTokenAmount, tradeDeps } from '../../polywrap-utils'
+import { reverseMapTokenAmount } from '../../polywrap-utils'
 import { ExtendedTrade } from '../../polywrap-utils/interfaces'
 import { isAddress } from '../../utils'
 import { AppState } from '../index'
@@ -179,6 +179,7 @@ export function useDerivedSwapInfo(): {
   const [maximumAmountIn, setMaximumAmountIn] = useState<Uni_TokenAmount | undefined>(undefined)
 
   useEffect(() => {
+    console.log('useDerivedSwapInfo - src/state/swap/hooks')
     if (!trade.trade) {
       setMaximumAmountIn(undefined)
     } else {
@@ -194,7 +195,7 @@ export function useDerivedSwapInfo(): {
         setMaximumAmountIn(invoke.data)
       })
     }
-  }, [...tradeDeps(trade.trade), allowedSlippage, client])
+  }, [trade.trade, allowedSlippage, client])
 
   // compare input balance to max input based on version
   const [balanceIn, amountIn] = [currencyBalances[Field.INPUT], reverseMapTokenAmount(maximumAmountIn)]

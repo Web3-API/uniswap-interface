@@ -6,6 +6,7 @@ import CurrencyLogo from 'components/CurrencyLogo'
 import DoubleCurrencyLogo from 'components/DoubleLogo'
 import Row, { AutoRow } from 'components/Row'
 import { useTokenInfoFromActiveList } from 'hooks/useTokenInfoFromActiveList'
+import { useMemo } from 'react'
 import { Box } from 'rebass'
 import styled from 'styled-components/macro'
 import { ThemedText, Z_INDEX } from 'theme'
@@ -143,7 +144,7 @@ function Pool({
 }) {
   const tokenInfo0 = useTokenInfoFromActiveList(currency0)
   const tokenInfo1 = useTokenInfoFromActiveList(currency1)
-  const fee = reverseMapFeeAmount(feeAmount)
+  const fee = useMemo(() => reverseMapFeeAmount(feeAmount), [feeAmount])
 
   // TODO - link pool icon to info.uniswap.org via query params
   return (

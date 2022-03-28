@@ -17,7 +17,7 @@ import {
   Uni_Query,
   Uni_Token,
 } from '../polywrap'
-import { ensUri, feeAmountToTickSpacing, mapToken, poolDeps, reverseMapToken } from '../polywrap-utils'
+import { ensUri, feeAmountToTickSpacing, mapToken, reverseMapToken } from '../polywrap-utils'
 import { PoolState, usePool } from './usePools'
 
 const PRICE_FIXED_DIGITS = 8
@@ -59,10 +59,11 @@ export function useAllV3Ticks(
   })
 
   useEffect(() => {
+    console.log('useAllV3Ticks - src/hooks/usePoolTickData')
     if (currencyA && currencyB && feeAmount !== undefined) {
       void getPoolAddress()
     }
-  }, [currencyA, currencyB, feeAmount, client])
+  }, [currencyA, currencyB, feeAmount, client, getPoolAddress])
 
   const { isLoading, isError, error, isUninitialized, data } = useAllV3TicksQuery(
     poolAddress ? { poolAddress: poolAddress?.toLowerCase(), skip: 0 } : skipToken,
@@ -99,9 +100,6 @@ export function usePoolActiveLiquidity(
   const activeTick = getActiveTick(pool[1]?.tickCurrent, feeAmount)
   const { isLoading, isUninitialized, isError, error, ticks } = useAllV3Ticks(currencyA, currencyB, feeAmount)
 
-  const poolState = pool[0]
-  const polyPool = pool[1]
-
   const [result, setResult] = useState<{
     isLoading: boolean
     isUninitialized: boolean
@@ -119,6 +117,7 @@ export function usePoolActiveLiquidity(
   })
 
   useEffect(() => {
+    console.log('usePoolActiveLiquidity - src/hooks/usePoolTickData')
     void loadPoolLiquidity(
       client,
       currencyA,
@@ -131,20 +130,8 @@ export function usePoolActiveLiquidity(
       isError,
       error
     ).then((res) => setResult(res))
-  }, [
-    currencyA,
-    currencyB,
-    activeTick,
-    poolState,
-    ...poolDeps(polyPool ?? undefined),
-    ticks,
-    isLoading,
-    isUninitialized,
-    isError,
-    error,
-    client,
-  ])
-
+  }, [currencyA, currencyB, activeTick, pool, ticks, isLoading, isUninitialized, isError, error, client])
+  // todo: replace deps fun?
   return result
 }
 

@@ -49,7 +49,7 @@ import {
   Uni_Query,
   Uni_TokenAmount as TokenAmount,
 } from '../../polywrap'
-import { mapTokenAmount, poolDeps, reverseMapPrice, reverseMapTokenAmount, toSignificant } from '../../polywrap-utils'
+import { mapTokenAmount, reverseMapPrice, reverseMapTokenAmount, toSignificant } from '../../polywrap-utils'
 import { TransactionType } from '../../state/transactions/actions'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { ExplorerDataType, getExplorerLink } from '../../utils/getExplorerLink'
@@ -363,6 +363,7 @@ export function PositionPage({
   const [position, setPosition] = useState<Position | undefined>(undefined)
 
   useEffect(() => {
+    console.log('PositionPage 1 - src/pages/Pool/PositionPage')
     if (pool && liquidity && typeof tickLower === 'number' && typeof tickUpper === 'number') {
       Uni_Query.createPosition(
         {
@@ -379,8 +380,8 @@ export function PositionPage({
     } else {
       setPosition(undefined)
     }
-  }, [liquidity, ...poolDeps(pool ?? undefined), tickLower, tickUpper, client])
-
+  }, [liquidity, pool, tickLower, tickUpper, client])
+  // todo: replace deps fun?
   const pricesFromPosition = getPriceOrderingFromPositionForUI(position)
   // const posAmount0 = reverseMapTokenAmount(position.token0Amount)
   //   const posAmount1 = reverseMapTokenAmount(position.token1Amount)

@@ -4,7 +4,7 @@ import { tryParseAmount } from 'state/swap/hooks'
 
 import { SupportedChainId } from '../constants/chains'
 import { DAI_OPTIMISM, USDC, USDC_ARBITRUM, USDC_POLYGON } from '../constants/tokens'
-import { useBestV2Trade } from './useBestV2Trade'
+import { currencyAmountDepsSDK, currencyDepsSDK } from '../polywrap-utils'
 import { useClientSideV3Trade } from './useClientSideV3Trade'
 import { useActiveWeb3React } from './web3'
 
@@ -27,10 +27,6 @@ export default function useUSDCPrice(currency?: Currency): Price<Currency, Token
   const amountOut = chainId ? STABLECOIN_AMOUNT_OUT[chainId] : undefined
   const stablecoin = amountOut?.currency
 
-  // TODO(#2808): remove dependency on useBestV2Trade
-  const v2USDCTrade = useBestV2Trade(TradeType.EXACT_OUTPUT, amountOut, currency, {
-    maxHops: 2,
-  })
   const v3USDCTrade = useClientSideV3Trade(TradeType.EXACT_OUTPUT, amountOut, currency)
 
   return useMemo(() => {
@@ -44,16 +40,13 @@ export default function useUSDCPrice(currency?: Currency): Price<Currency, Token
     }
 
     // use v2 price if available, v3 as fallback
-    if (v2USDCTrade) {
-      const { numerator, denominator } = v2USDCTrade.route.midPrice
-      return new Price(currency, stablecoin, denominator, numerator)
-    } else if (v3USDCTrade.trade) {
+    if (v3USDCTrade.trade) {
       const { numerator, denominator } = v3USDCTrade.trade.swaps[0].route.midPrice
       return new Price(currency, stablecoin, denominator, numerator)
     }
 
     return undefined
-  }, [currency, stablecoin, v2USDCTrade, v3USDCTrade.trade])
+  }, [...currencyDepsSDK(currency), stablecoin, v3USDCTrade.trade])
 }
 
 export function useUSDCValue(currencyAmount: CurrencyAmount<Currency> | undefined | null) {
@@ -66,7 +59,7 @@ export function useUSDCValue(currencyAmount: CurrencyAmount<Currency> | undefine
     } catch (error) {
       return null
     }
-  }, [currencyAmount, price])
+  }, [...currencyAmountDepsSDK(currencyAmount ?? undefined), price])
 }
 
 /**

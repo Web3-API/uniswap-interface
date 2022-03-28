@@ -15,7 +15,7 @@ import {
   Uni_Trade,
   Uni_TradeTypeEnum as TradeTypeEnum,
 } from '../../polywrap'
-import { reverseMapPrice, reverseMapToken, reverseMapTokenAmount, toSignificant, tradeDeps } from '../../polywrap-utils'
+import { reverseMapPrice, reverseMapToken, reverseMapTokenAmount, toSignificant } from '../../polywrap-utils'
 import { ThemedText } from '../../theme'
 import { isAddress, shortenAddress } from '../../utils'
 import { computeFiatValuePriceImpact } from '../../utils/computeFiatValuePriceImpact'
@@ -91,11 +91,12 @@ export default function SwapModalHeader({
   const [amount, setAmount] = useState<string>('')
 
   useEffect(() => {
+    console.log('SwapModalHeader - src/components/swap/SwapModalHeader')
     void asyncAmount(client, allowedSlippage, trade).then((res) => {
       const newAmount = toSignificant(res, 6)
       setAmount(newAmount)
     })
-  }, [...tradeDeps(trade), allowedSlippage, client])
+  }, [trade, allowedSlippage, client])
 
   const [showInverted, setShowInverted] = useState<boolean>(false)
 

@@ -1,5 +1,5 @@
 import { Trade as RouterTrade } from '@uniswap/router-sdk'
-import { Fraction } from '@uniswap/sdk-core'
+import { Currency, CurrencyAmount, Fraction } from '@uniswap/sdk-core'
 import { Trade as V2Trade } from '@uniswap/v2-sdk'
 import JSBI from 'jsbi'
 
@@ -126,23 +126,40 @@ export function feeAmountToTickSpacing(feeAmount: Uni_FeeAmountEnum): number {
 
 export function tokenDeps(token: Uni_Token | undefined) {
   if (!token) {
-    return [undefined]
+    return [undefined, undefined]
   } else {
     return [token.address, token.chainId]
   }
 }
 
+export function currencyDepsSDK(currency: Currency | undefined) {
+  if (!currency) {
+    return [undefined, undefined, undefined]
+  } else {
+    const address = currency?.isToken ? currency.address : undefined
+    return [currency?.chainId, address, currency?.symbol]
+  }
+}
+
 export function tokenAmountDeps(amount: Uni_TokenAmount | undefined) {
   if (!amount) {
-    return [undefined]
+    return [undefined, undefined, undefined]
   } else {
     return [amount.amount, ...tokenDeps(amount.token)]
   }
 }
 
+export function currencyAmountDepsSDK(amount: CurrencyAmount<any> | undefined) {
+  if (!amount) {
+    return [undefined, undefined, undefined, undefined, undefined]
+  } else {
+    return [...currencyDepsSDK(amount.currency), amount.numerator.toString(), amount.denominator.toString()]
+  }
+}
+
 export function poolDeps(pool: Uni_Pool | undefined) {
   if (!pool) {
-    return [undefined]
+    return [undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined]
   } else {
     return [
       ...tokenDeps(pool.token0),
@@ -151,13 +168,14 @@ export function poolDeps(pool: Uni_Pool | undefined) {
       pool.tickCurrent,
       pool.sqrtRatioX96,
       pool.liquidity,
+      pool.tickDataProvider.length,
     ]
   }
 }
 
 export function routeDeps(route: Uni_Route | undefined) {
   if (!route) {
-    return [undefined]
+    return [undefined, undefined, undefined, undefined, undefined, undefined]
   } else {
     return [route.midPrice.price, ...tokenDeps(route.input), ...tokenDeps(route.output), route.pools.length]
   }
@@ -165,7 +183,7 @@ export function routeDeps(route: Uni_Route | undefined) {
 
 export function tradeDeps(trade: Uni_Trade | undefined) {
   if (!trade) {
-    return [undefined]
+    return [undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined]
   } else {
     return [
       trade.tradeType,
@@ -178,8 +196,22 @@ export function tradeDeps(trade: Uni_Trade | undefined) {
 
 export function positionDeps(position: Uni_Position | undefined) {
   if (!position) {
-    return [undefined]
+    return [
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]
   } else {
     return [...poolDeps(position.pool), position.liquidity, position.tickLower, position.tickUpper]
   }
+  // todo: replace deps fun?
 }

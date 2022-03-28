@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react'
 import { PositionDetails } from 'types/position'
 
 import { Uni_Pool as Pool, Uni_Position as Position, Uni_Query } from '../polywrap'
-import { poolDeps } from '../polywrap-utils'
 import { useCurrency } from './Tokens'
 
 export function useDerivedPositionInfo(positionDetails: PositionDetails | undefined): {
@@ -23,6 +22,7 @@ export function useDerivedPositionInfo(positionDetails: PositionDetails | undefi
   const [position, setPosition] = useState<Position | undefined>(undefined)
 
   useEffect(() => {
+    console.log('useDerivedPositionInfo - src/hooks/useDerivedPositionInfo')
     if (!pool || !positionDetails) {
       setPosition(undefined)
     } else {
@@ -39,8 +39,8 @@ export function useDerivedPositionInfo(positionDetails: PositionDetails | undefi
         setPosition(res.data)
       })
     }
-  }, [positionDetails, ...poolDeps(pool ?? undefined), client])
-
+  }, [positionDetails, pool, client])
+  // todo: replace deps fun?
   return {
     position,
     pool: pool ?? undefined,

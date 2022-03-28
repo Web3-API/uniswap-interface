@@ -91,95 +91,12 @@ export function mapFeeAmount(input: string | number): FeeAmountEnum {
   }
 }
 
-// export async function mapTicks(provider: UniTickDataProvider, spacing: number): Promise<Tick[]> {
-//   const ticks: Tick[] = []
-//   for (
-//     let i = TickMath.MIN_TICK - 1;
-//     i < TickMath.MAX_TICK;
-//     i = (await provider.nextInitializedTickWithinOneWord(i, false, spacing))[0]
-//   ) {
-//     const uniTick: UniTick = (await provider.getTick(i)) as UniTick
-//     ticks.push({
-//       index: uniTick.index,
-//       liquidityGross: uniTick.liquidityGross.toString(),
-//       liquidityNet: uniTick.liquidityNet.toString(),
-//     })
-//   }
-//   return ticks
-// }
-
-// export async function mapPool(input: UniPool): Promise<Pool> {
-//   return {
-//     token0: mapToken(input.token0),
-//     token1: mapToken(input.token1),
-//     fee: mapFeeAmount(input.fee),
-//     sqrtRatioX96: input.sqrtRatioX96.toString(),
-//     liquidity: input.liquidity.toString(),
-//     tickCurrent: input.tickCurrent,
-//     tickDataProvider: await mapTicks(input.tickDataProvider, input.tickSpacing),
-//     token0Price: mapPrice(input.token0Price),
-//     token1Price: mapPrice(input.token1Price),
-//   }
-// }
-//
-// export async function mapPools(input: UniPool[]): Promise<Pool[]> {
-//   return Promise.all(input.map(mapPool))
-// }
-
-// export async function mapPosition(input: UniPosition): Promise<Position> {
-//   return {
-//     pool: await mapPool(input.pool),
-//     tickLower: input.tickLower,
-//     tickUpper: input.tickUpper,
-//     liquidity: input.liquidity.toString(),
-//     token0Amount: mapTokenAmount(input.amount0),
-//     token1Amount: mapTokenAmount(input.amount1),
-//
-//   }
-// }
-
-// export async function mapRoute<TIn extends UniCurrency, TOut extends UniCurrency>(
-//   input: UniRoute<TIn, TOut>
-// ): Promise<Route> {
-//   return {
-//     pools: await mapPools(input.pools),
-//     path: input.tokenPath.map(mapToken),
-//     input: mapToken(input.input),
-//     output: mapToken(input.output),
-//   }
-// }
-
 export function mapTradeType(input: UniTradeType): TradeTypeEnum {
   if (input === UniTradeType.EXACT_OUTPUT) {
     return TradeTypeEnum.EXACT_OUTPUT
   }
   return TradeTypeEnum.EXACT_INPUT
 }
-
-// export async function mapTrade<TIn extends UniCurrency, TOut extends UniCurrency, TType extends UniTradeType>(
-//   input: UniTrade<TIn, TOut, TType>
-// ): Promise<Trade> {
-//   const swapPromises = input.swaps.map(async (swap) => ({
-//     route: await mapRoute(swap.route),
-//     inputAmount: mapTokenAmount(swap.inputAmount)!,
-//     outputAmount: mapTokenAmount(swap.outputAmount)!,
-//   }))
-//   const executionPrice = {
-//     baseToken: mapToken(input.executionPrice.baseCurrency),
-//     quoteToken: mapToken(input.executionPrice.quoteCurrency),
-//     denominator: input.executionPrice.denominator.toString(),
-//     numerator: input.executionPrice.numerator.toString(),
-//     price: input.executionPrice.toFixed(19),
-//   }
-//   return {
-//     swaps: await Promise.all(swapPromises),
-//     tradeType: mapTradeType(input.tradeType),
-//     inputAmount: mapTokenAmount(input.inputAmount)!,
-//     outputAmount: mapTokenAmount(input.outputAmount)!,
-//     executionPrice,
-//     priceImpact: input.priceImpact.toFixed(19),
-//   }
-// }
 
 export function mapPrice<TBase extends UniCurrency, TQuote extends UniCurrency>(price: UniPrice<TBase, TQuote>): Price {
   return {

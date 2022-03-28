@@ -9,7 +9,7 @@ import { useContext, useEffect, useMemo, useState } from 'react'
 import styled, { ThemeContext } from 'styled-components/macro'
 
 import { Uni_Query, Uni_TokenAmount, Uni_Trade, Uni_TradeTypeEnum as TradeTypeEnum } from '../../polywrap'
-import { toSignificant, tradeDeps } from '../../polywrap-utils'
+import { toSignificant } from '../../polywrap-utils'
 import { ExtendedTrade } from '../../polywrap-utils/interfaces'
 import { Separator, ThemedText } from '../../theme'
 import { computeRealizedLPFeePercent } from '../../utils/prices'
@@ -96,10 +96,11 @@ export function AdvancedSwapDetails({ trade, allowedSlippage, syncing = false }:
 
   const [amounts, setAmounts] = useState<{ minAmountOut?: Uni_TokenAmount; maxAmountIn?: Uni_TokenAmount }>({})
   useEffect(() => {
+    console.log('AdvancedSwapDetails - src/components/swap/AdvancedSwapDetails')
     if (trade) {
       void asyncAmounts(client, allowedSlippage, trade).then((res) => setAmounts(res))
     }
-  }, [allowedSlippage, ...tradeDeps(trade), client])
+  }, [allowedSlippage, trade, client])
   const { minAmountOut, maxAmountIn } = amounts
 
   return !trade ? null : (

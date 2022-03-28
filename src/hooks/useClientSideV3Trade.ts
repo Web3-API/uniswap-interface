@@ -14,7 +14,7 @@ import {
   Uni_Trade as Trade,
   Uni_TradeTypeEnum as TradeTypeEnum,
 } from '../polywrap'
-import { mapTokenAmount, mapTradeType, routeDeps } from '../polywrap-utils'
+import { currencyDepsSDK, mapTokenAmount, mapTradeType } from '../polywrap-utils'
 import { useSingleContractWithCallData } from '../state/multicall/hooks'
 import { useAllV3Routes } from './useAllV3Routes'
 import { useV3Quoter } from './useContract'
@@ -45,7 +45,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       tradeType === TradeType.EXACT_INPUT
         ? [amountSpecified?.currency, otherCurrency]
         : [otherCurrency, amountSpecified?.currency],
-    [tradeType, amountSpecified, otherCurrency]
+    [tradeType, amountSpecified, ...currencyDepsSDK(otherCurrency)]
   )
   const { routes, loading: routesLoading } = useAllV3Routes(currencyIn, currencyOut)
 
@@ -55,6 +55,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
   const [callParams, setCallParams] = useState<string[]>([])
 
   useEffect(() => {
+    console.log('useClientSideV3Trade 1 - src/hooks/useClientSideV3Trade')
     if (!amountSpecified) {
       setCallParams([])
     }
@@ -72,7 +73,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       return params.calldata
     })
     Promise.all(calldatas).then((params) => setCallParams(params))
-  }, [amountSpecified, tradeType, ...routes.map(routeDeps).flat(), client])
+  }, [amountSpecified, tradeType, routes, client])
 
   const quotesResults = useSingleContractWithCallData(quoter, callParams, {
     gasRequired: chainId ? QUOTE_GAS_OVERRIDES[chainId] ?? DEFAULT_GAS_QUOTE : undefined,
@@ -84,6 +85,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
   })
 
   useEffect(() => {
+    console.log('useClientSideV3Trade 2 - src/hooks/useClientSideV3Trade')
     if (
       !amountSpecified ||
       !currencyIn ||
@@ -159,6 +161,14 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       return
     }
 
+    if (bestRoute.pools.some((pool) => pool.tickDataProvider.length === 0)) {
+      setResult({
+        state: TradeState.INVALID,
+        trade: undefined,
+      })
+      return
+    }
+
     Uni_Query.createTradeFromRoute(
       {
         tradeRoute: {
@@ -177,16 +187,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
         trade: invoke.data as Trade,
       })
     })
-  }, [
-    amountSpecified,
-    currencyIn,
-    currencyOut,
-    quotesResults,
-    ...routes.map(routeDeps).flat(),
-    routesLoading,
-    tradeType,
-    client,
-  ])
+  }, [amountSpecified, currencyIn, currencyOut, quotesResults.length, routes.length, tradeType, client])
 
   return result
 }
