@@ -112,31 +112,7 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
   })
 
   useEffect(() => {
-    console.log(
-      'useRoutingAPITrade - src/state/routing/useRoutingAPITrade' +
-        '\n' +
-        currencyIn?.symbol +
-        '\n' +
-        currencyOut?.symbol +
-        '\n' +
-        isLoading +
-        '\n' +
-        quoteResult?.quoteId +
-        '\n' +
-        TradeType[tradeType] +
-        '\n' +
-        isError +
-        '\n' +
-        queryArgs?.type +
-        '\n' +
-        queryArgs?.amount +
-        '\n' +
-        queryArgs?.tokenInSymbol +
-        '\n' +
-        queryArgs?.tokenOutSymbol +
-        '\n' +
-        gasUseEstimateUSD?.toFixed()
-    )
+    console.log('useRoutingAPITrade - src/state/routing/useRoutingAPITrade')
     if (!currencyIn || !currencyOut) {
       setTradeResult({
         state: TradeState.INVALID,
