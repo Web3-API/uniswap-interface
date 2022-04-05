@@ -12,7 +12,6 @@ import {
   Uni_Route as Route,
   Uni_TokenAmount as TokenAmount,
   Uni_Trade as Trade,
-  Uni_TradeTypeEnum as TradeTypeEnum,
 } from '../polywrap'
 import { currencyDepsSDK, mapTokenAmount, mapTradeType } from '../polywrap-utils'
 import { useSingleContractWithCallData } from '../state/multicall/hooks'
@@ -55,9 +54,10 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
   const [callParams, setCallParams] = useState<string[]>([])
 
   useEffect(() => {
-    console.log('useClientSideV3Trade 1 - src/hooks/useClientSideV3Trade')
+    //console.log('useClientSideV3Trade 1 - src/hooks/useClientSideV3Trade')
     if (!amountSpecified) {
       setCallParams([])
+      return
     }
     const calldatas = routes.map(async (route) => {
       const invoke = await Uni_Query.quoteCallParameters(
@@ -169,13 +169,12 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       return
     }
 
-    Uni_Query.createTradeFromRoute(
+    Uni_Query.createUncheckedTrade(
       {
-        tradeRoute: {
+        swap: {
           route: bestRoute,
-          amount: (mapTradeType(tradeType) === TradeTypeEnum.EXACT_INPUT
-            ? mapTokenAmount(amountIn)
-            : mapTokenAmount(amountOut)) as TokenAmount,
+          inputAmount: mapTokenAmount(amountIn) as TokenAmount,
+          outputAmount: mapTokenAmount(amountOut) as TokenAmount,
         },
         tradeType: mapTradeType(tradeType),
       },

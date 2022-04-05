@@ -196,13 +196,13 @@ export function useApproveCallbackFromTrade(
       : undefined
   )
 
-  // TODO: remove L162-168 after testing is done. This error will help detect mistakes in the logic.
-  if (
-    (trade instanceof V2Trade && approveCallback[0] !== ApprovalState.APPROVED) ||
-    (isTrade(trade) && approveCallback[0] !== ApprovalState.APPROVED)
-  ) {
-    throw new Error('Trying to approve legacy router')
-  }
+  // // TODO: remove L162-168 after testing is done. This error will help detect mistakes in the logic.
+  // if (
+  //   (trade instanceof V2Trade && approveCallback[0] !== ApprovalState.APPROVED) ||
+  //   (isTrade(trade) && approveCallback[0] !== ApprovalState.APPROVED)
+  // ) {
+  //   throw new Error('Trying to approve legacy router')
+  // }
 
   return approveCallback
 }

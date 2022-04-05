@@ -3,17 +3,10 @@ import { Pair, Route as V2Route } from '@uniswap/v2-sdk'
 import { Web3ApiClient } from '@web3api/client-js'
 
 import { nativeOnChain } from '../../constants/tokens'
-import {
-  Uni_Pool as Pool,
-  Uni_Query,
-  Uni_Route,
-  Uni_Token as Token,
-  Uni_TokenAmount as TokenAmount,
-  Uni_Trade,
-  Uni_TradeTypeEnum as TradeTypeEnum,
-} from '../../polywrap'
+import { Uni_Pool as Pool, Uni_Query, Uni_Route, Uni_Token as Token, Uni_TokenAmount, Uni_Trade } from '../../polywrap'
 import { mapChainId, mapFeeAmount, mapToken, mapTokenAmount, mapTradeType } from '../../polywrap-utils'
-import { GetQuoteResult, InterfaceTrade, V2PoolInRoute, V3PoolInRoute } from './types'
+import { ExtendedTrade } from '../../polywrap-utils/interfaces'
+import { GetQuoteResult, V2PoolInRoute, V3PoolInRoute } from './types'
 
 /**
  * Transforms a Routing API quote into an array of routes that can be used to create
@@ -68,7 +61,7 @@ export async function computeRoutes(
 
       return {
         routev3,
-        routev2: !isV3Route(route) ? new V2Route(route.map(parsePair), parsedCurrencyIn, parsedCurrencyOut) : null,
+        routev2: null,
         inputAmount: CurrencyAmount.fromRawAmount(parsedCurrencyIn, rawAmountIn),
         outputAmount: CurrencyAmount.fromRawAmount(parsedCurrencyOut, rawAmountOut),
       }
@@ -83,7 +76,7 @@ export async function computeRoutes(
   }
 }
 
-export async function transformRoutesToTrade<TTradeType extends TradeType>(
+export async function transformRoutesToTrade(
   client: Web3ApiClient,
   route:
     | {
@@ -93,37 +86,38 @@ export async function transformRoutesToTrade<TTradeType extends TradeType>(
         outputAmount: CurrencyAmount<NativeCurrency | UniToken>
       }[]
     | undefined,
-  tradeType: TTradeType,
+  tradeType: TradeType,
   gasUseEstimateUSD?: CurrencyAmount<UniToken> | null
-): Promise<InterfaceTrade<Currency, Currency, TTradeType>> {
-  const polyTradeInvoke = await Uni_Query.createTradeFromRoutes(
+): Promise<ExtendedTrade | undefined> {
+  const swaps =
+    route
+      ?.filter((r) => r.routev3 !== null)
+      .map(({ routev3, inputAmount, outputAmount }) => ({
+        route: routev3 as Uni_Route,
+        inputAmount: mapTokenAmount(inputAmount) as Uni_TokenAmount,
+        outputAmount: mapTokenAmount(outputAmount) as Uni_TokenAmount,
+      })) ?? []
+  if (swaps.length === 0) {
+    console.log('NO SWAPS')
+    return undefined
+  }
+  const polyTradeInvoke = await Uni_Query.createUncheckedTradeWithMultipleRoutes(
     {
-      tradeRoutes:
-        route
-          ?.filter((r) => r.routev3 !== null)
-          .map(({ routev3, inputAmount, outputAmount }) => ({
-            route: routev3 as Uni_Route,
-            amount: (mapTradeType(tradeType) === TradeTypeEnum.EXACT_INPUT
-              ? mapTokenAmount(inputAmount)
-              : mapTokenAmount(outputAmount)) as TokenAmount,
-          })) ?? [],
+      swaps,
       tradeType: mapTradeType(tradeType),
     },
     client
   )
-  if (polyTradeInvoke.error) throw polyTradeInvoke.error
+  if (polyTradeInvoke.error) {
+    console.log(polyTradeInvoke.error)
+    throw polyTradeInvoke.error
+  }
   const polyTrade = polyTradeInvoke.data as Uni_Trade
 
-  return new InterfaceTrade({
-    v2Routes:
-      route
-        ?.filter((r): r is typeof route[0] & { routev2: NonNullable<typeof route[0]['routev2']> } => r.routev2 !== null)
-        .map(({ routev2, inputAmount, outputAmount }) => ({ routev2, inputAmount, outputAmount })) ?? [],
-    v3Routes: [],
-    polyTrade,
-    tradeType,
+  return {
     gasUseEstimateUSD,
-  })
+    ...polyTrade,
+  }
 }
 
 const parseUniToken = ({ address, chainId, decimals, symbol }: GetQuoteResult['route'][0][0]['tokenIn']): UniToken => {

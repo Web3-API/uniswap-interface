@@ -112,6 +112,5 @@ export function useAllV3Routes(
       })
     }
   }, [chainId, currencyIn, currencyOut, pools, poolsLoading, client])
-  // todo: replace deps fun?
   return routes
 }
