@@ -70,7 +70,7 @@ export function usePools(
     console.log('usePools 2 - src/hooks/usePools')
     const mapped = poolKeys.map(async (_key, index): Promise<[PoolState, Pool | null]> => {
       const [token0, token1, fee] = transformed[index] ?? []
-      if (!token0 || !token1 || fee === undefined) return [PoolState.INVALID, null]
+      if (!token0 || !token1 || fee === undefined || !slot0s[index]) return [PoolState.INVALID, null]
 
       const { result: slot0, loading: slot0Loading, valid: slot0Valid } = slot0s[index]
       const { result: liquidity, loading: liquidityLoading, valid: liquidityValid } = liquidities[index]
@@ -103,7 +103,7 @@ export function usePools(
       }
     })
     Promise.all(mapped).then((res) => setPools(res))
-  }, [liquidities, poolKeys.length, slot0s, transformed, client])
+  }, [liquidities, poolKeys, slot0s, transformed, client])
 
   return pools
 }

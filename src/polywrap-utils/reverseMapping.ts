@@ -34,6 +34,18 @@ export function reverseMapChainId(input: ChainId | number): number {
     case 'KOVAN':
     case ChainIdEnum.KOVAN:
       return 42
+    case 'OPTIMISM':
+    case ChainIdEnum.OPTIMISM:
+      return 10
+    case 'OPTIMISM_KOVAN':
+    case ChainIdEnum.OPTIMISM_KOVAN:
+      return 69
+    case 'ARBITRUM_ONE':
+    case ChainIdEnum.ARBITRUM_ONE:
+      return 42161
+    case 'ARBITRUM_ONE_RINKEBY':
+    case ChainIdEnum.ARBITRUM_ONE_RINKEBY:
+      return 421611
     default:
       throw new Error('Unknown chain ID. This should never happen.')
   }
@@ -76,13 +88,6 @@ export function reverseMapFeeAmount(input: FeeAmount): number {
       throw Error('Unrecognized fee amount')
   }
 }
-
-// export function reverseMapTradeType(input: TradeType): UniTradeType {
-//   if (input === TradeTypeEnum.EXACT_OUTPUT || 'EXACT_OUTPUT') {
-//     return UniTradeType.EXACT_OUTPUT
-//   }
-//   return UniTradeType.EXACT_INPUT
-// }
 
 export function reverseMapPrice<TBase extends UniCurrency = UniCurrency, TQuote extends UniCurrency = UniCurrency>(
   input: Price

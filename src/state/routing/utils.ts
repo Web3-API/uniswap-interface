@@ -98,7 +98,7 @@ export async function transformRoutesToTrade(
         outputAmount: mapTokenAmount(outputAmount) as Uni_TokenAmount,
       })) ?? []
   if (swaps.length === 0) {
-    console.log('NO SWAPS')
+    console.log('transformRoutesToTrade: NO ROUTES')
     return undefined
   }
   const polyTradeInvoke = await Uni_Query.createUncheckedTradeWithMultipleRoutes(

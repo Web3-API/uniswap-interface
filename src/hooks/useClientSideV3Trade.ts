@@ -46,6 +46,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
         : [otherCurrency, amountSpecified?.currency],
     [tradeType, amountSpecified, ...currencyDepsSDK(otherCurrency)]
   )
+
   const { routes, loading: routesLoading } = useAllV3Routes(currencyIn, currencyOut)
 
   const quoter = useV3Quoter()
@@ -54,7 +55,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
   const [callParams, setCallParams] = useState<string[]>([])
 
   useEffect(() => {
-    //console.log('useClientSideV3Trade 1 - src/hooks/useClientSideV3Trade')
+    console.log('useClientSideV3Trade 1 - src/hooks/useClientSideV3Trade')
     if (!amountSpecified) {
       setCallParams([])
       return
@@ -161,14 +162,6 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       return
     }
 
-    if (bestRoute.pools.some((pool) => pool.tickDataProvider.length === 0)) {
-      setResult({
-        state: TradeState.INVALID,
-        trade: undefined,
-      })
-      return
-    }
-
     Uni_Query.createUncheckedTrade(
       {
         swap: {
@@ -186,7 +179,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
         trade: invoke.data as Trade,
       })
     })
-  }, [amountSpecified, currencyIn, currencyOut, quotesResults.length, routes.length, tradeType, client])
+  }, [amountSpecified, currencyIn, currencyOut, quotesResults, routes, routesLoading, tradeType, client])
 
   return result
 }

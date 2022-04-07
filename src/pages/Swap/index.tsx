@@ -107,8 +107,6 @@ export default function Swap({ history }: RouteComponentProps) {
     inputError: swapInputError,
   } = useDerivedSwapInfo()
 
-  console.log(TradeState[tradeState] + '\n' + trade?.executionPrice.price)
-
   const {
     wrapType,
     execute: onWrap,

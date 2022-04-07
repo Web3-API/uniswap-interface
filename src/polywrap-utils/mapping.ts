@@ -50,7 +50,7 @@ export function mapCurrency(input: UniCurrency): Currency {
 }
 
 export function mapToken(input: UniToken | UniCurrency): Token {
-  if (input instanceof UniToken) {
+  if ('address' in input) {
     return {
       chainId: mapChainId(input.chainId),
       address: input.address,

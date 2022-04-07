@@ -42,19 +42,13 @@ async function computeAllRoutes(
   if (!tokenIn || !tokenOut) throw new Error('Missing tokenIn/tokenOut')
 
   for (const pool of pools) {
-    const involvedInvoke = await Uni_Query.poolInvolvesToken({ pool, token: tokenIn }, client)
-    if (involvedInvoke.error) throw involvedInvoke.error
-    const involved = involvedInvoke.data as boolean
-    if (!involved || currentPath.find((pathPool) => poolEquals(pool, pathPool))) continue
-
-    const token0IsTokenInInvoke = await Uni_Query.tokenEquals({ tokenA: pool.token0, tokenB: tokenIn }, client)
-    if (token0IsTokenInInvoke.error) throw token0IsTokenInInvoke.error
-    const token0IsTokenIn = token0IsTokenInInvoke.data as boolean
+    const token0IsTokenIn = tokenEquals(tokenIn, pool.token0)
+    const involved = token0IsTokenIn || tokenEquals(tokenIn, pool.token1)
+    if (!involved || currentPath.find((pathPool) => poolEquals(pool, pathPool))) {
+      continue
+    }
     const outputToken = token0IsTokenIn ? pool.token1 : pool.token0
-
-    const outputTokenIsTokenOutInvoke = await Uni_Query.tokenEquals({ tokenA: outputToken, tokenB: tokenOut }, client)
-    if (outputTokenIsTokenOutInvoke.error) throw outputTokenIsTokenOutInvoke.error
-    const outputTokenIsTokenOut = outputTokenIsTokenOutInvoke.data as boolean
+    const outputTokenIsTokenOut = tokenEquals(outputToken, tokenOut)
 
     if (outputTokenIsTokenOut) {
       const routeInvoke = await Uni_Query.createRoute(
@@ -68,7 +62,7 @@ async function computeAllRoutes(
       if (routeInvoke.error) throw routeInvoke.error
       allPaths.push(routeInvoke.data as Uni_Route)
     } else if (maxHops > 1) {
-      computeAllRoutes(
+      await computeAllRoutes(
         client,
         outputToken,
         currencyOut,

@@ -184,13 +184,17 @@ const loadTrade = async (
 
   try {
     const trade = await transformRoutesToTrade(client, route, tradeType, gasUseEstimateUSD)
+    if (!trade) {
+      console.debug('transformRoutesToTrade returned undefined')
+      return { state: TradeState.INVALID, trade: undefined, gasUseEstimateUSD }
+    }
     return {
       // always return VALID regardless of isFetching status
       state: TradeState.VALID,
       trade,
     }
   } catch (e) {
-    console.log('TRANSFORM BUG')
+    console.log('transformRoutesToTrade bug')
     console.debug('transformRoutesToTrade failed: ', e)
     return { state: TradeState.INVALID, trade: undefined, gasUseEstimateUSD }
   }
