@@ -63,13 +63,18 @@ export default function FeeSelector({
 
   const { isLoading, isError, largestUsageFeeTier, distributions } = useFeeTierDistribution(currencyA, currencyB)
 
+  const poolKeys: [Currency | undefined, Currency | undefined, FeeAmountEnum | undefined][] = useMemo(
+    () => [
+      [currencyA, currencyB, FeeAmountEnum.LOWEST],
+      [currencyA, currencyB, FeeAmountEnum.LOW],
+      [currencyA, currencyB, FeeAmountEnum.MEDIUM],
+      [currencyA, currencyB, FeeAmountEnum.HIGH],
+    ],
+    [currencyA, currencyB]
+  )
+
   // get pool data on-chain for latest states
-  const pools = usePools([
-    [currencyA, currencyB, FeeAmountEnum.LOWEST],
-    [currencyA, currencyB, FeeAmountEnum.LOW],
-    [currencyA, currencyB, FeeAmountEnum.MEDIUM],
-    [currencyA, currencyB, FeeAmountEnum.HIGH],
-  ])
+  const pools = usePools(poolKeys)
 
   const poolsByFeeTier: Record<FeeAmountEnum, PoolState> = useMemo(
     () =>

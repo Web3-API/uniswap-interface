@@ -63,7 +63,7 @@ export function useAllV3Ticks(
     if (currencyA && currencyB && feeAmount !== undefined) {
       void getPoolAddress()
     }
-  }, [currencyA, currencyB, feeAmount, client, getPoolAddress])
+  }, [currencyA, currencyB, feeAmount, client])
 
   const { isLoading, isError, error, isUninitialized, data } = useAllV3TicksQuery(
     poolAddress ? { poolAddress: poolAddress?.toLowerCase(), skip: 0 } : skipToken,
