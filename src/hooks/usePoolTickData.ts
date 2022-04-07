@@ -9,15 +9,8 @@ import { useAllV3TicksQuery } from 'state/data/enhanced'
 import { AllV3TicksQuery } from 'state/data/generated'
 import computeSurroundingTicks from 'utils/computeSurroundingTicks'
 
-import {
-  Uni_ChainIdEnum,
-  Uni_FeeAmountEnum as FeeAmountEnum,
-  Uni_Pool,
-  Uni_Price,
-  Uni_Query,
-  Uni_Token,
-} from '../polywrap'
-import { ensUri, feeAmountToTickSpacing, mapToken, reverseMapToken } from '../polywrap-utils'
+import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Pool, Uni_Price, Uni_Query } from '../polywrap'
+import { feeAmountToTickSpacing, mapToken, reverseMapToken, wrapperUri } from '../polywrap-utils'
 import { PoolState, usePool } from './usePools'
 
 const PRICE_FIXED_DIGITS = 8
@@ -46,22 +39,20 @@ export function useAllV3Ticks(
 ) {
   const client: Web3ApiClient = useWeb3ApiClient()
 
-  const nullToken: Uni_Token = { chainId: Uni_ChainIdEnum.MAINNET, address: '', currency: { decimals: 18 } }
   const { data: poolAddress, execute: getPoolAddress } = useWeb3ApiInvoke<string | undefined>({
-    uri: ensUri,
+    uri: wrapperUri,
     module: 'query',
     method: 'getPoolAddress',
-    input: {
-      tokenA: currencyA ? mapToken(currencyA) : nullToken,
-      tokenB: currencyB ? mapToken(currencyB) : nullToken,
-      fee: feeAmount,
-    },
   })
 
   useEffect(() => {
     console.log('useAllV3Ticks - src/hooks/usePoolTickData')
     if (currencyA && currencyB && feeAmount !== undefined) {
-      void getPoolAddress()
+      void getPoolAddress({
+        tokenA: mapToken(currencyA.wrapped),
+        tokenB: mapToken(currencyB.wrapped),
+        fee: feeAmount,
+      })
     }
   }, [currencyA, currencyB, feeAmount, client])
 
@@ -131,7 +122,7 @@ export function usePoolActiveLiquidity(
       error
     ).then((res) => setResult(res))
   }, [currencyA, currencyB, activeTick, pool, ticks, isLoading, isUninitialized, isError, error, client])
-  // todo: replace deps fun?
+
   return result
 }
 

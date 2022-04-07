@@ -426,6 +426,8 @@ export default function AddLiquidity({
     !depositBDisabled ? currencies[Field.CURRENCY_B]?.symbol : ''
   }`
 
+  console.log(ApprovalState[approvalA] + ' ' + ApprovalState[approvalB])
+
   const Buttons = () =>
     addIsUnsupported ? (
       <ButtonPrimary disabled={true} $borderRadius="12px" padding={'12px'}>

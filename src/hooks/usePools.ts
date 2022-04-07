@@ -55,7 +55,7 @@ export function usePools(
         },
         client
       )
-      if (invoke.error) throw invoke.error
+      if (invoke.error) console.error(invoke.error.message)
       return invoke.data
     })
     Promise.all(mapped).then((addresses) => setPoolAddresses(addresses))

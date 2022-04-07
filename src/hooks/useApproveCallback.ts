@@ -29,6 +29,7 @@ export function useApprovalState(amountToApprove?: CurrencyAmount<Currency>, spe
   const { account } = useActiveWeb3React()
   const token = amountToApprove?.currency?.isToken ? amountToApprove.currency : undefined
 
+  // TODO: why is useTokenAllowance returning undefined?
   const currentAllowance = useTokenAllowance(token, account ?? undefined, spender)
   const pendingApproval = useHasPendingApproval(token?.address, spender)
 

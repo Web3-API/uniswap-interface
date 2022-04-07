@@ -8,6 +8,7 @@ import { useFeeTierDistributionQuery } from 'state/data/enhanced'
 import { FeeTierDistributionQuery } from 'state/data/generated'
 
 import { Uni_FeeAmountEnum as FeeAmountEnum } from '../polywrap'
+import { mapFeeAmount } from '../polywrap-utils'
 import { PoolState, usePool } from './usePools'
 
 // maximum number of blocks past which we consider the data stale
@@ -127,12 +128,12 @@ function usePoolTVL(token0: Token | undefined, token1: Token | undefined) {
 
     const all = asToken0.concat(asToken1)
 
-    // TODO: will this work without changing FeeAmountEnum to contain fee amount values?
     // sum tvl for token0 and token1 by fee tier
     const tvlByFeeTier = all.reduce<{ [feeAmount: number]: [number | undefined, number | undefined] }>(
       (acc, value) => {
-        acc[value.feeTier][0] = (acc[value.feeTier][0] ?? 0) + Number(value.totalValueLockedToken0)
-        acc[value.feeTier][1] = (acc[value.feeTier][1] ?? 0) + Number(value.totalValueLockedToken1)
+        const feeTier: FeeAmountEnum = mapFeeAmount(value.feeTier as string)
+        acc[feeTier][0] = (acc[feeTier][0] ?? 0) + Number(value.totalValueLockedToken0)
+        acc[feeTier][1] = (acc[feeTier][1] ?? 0) + Number(value.totalValueLockedToken1)
         return acc
       },
       {
