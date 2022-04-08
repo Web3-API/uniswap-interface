@@ -66,7 +66,7 @@ export function useDarkModeManager(): [boolean, () => void] {
 
   const toggleSetDarkMode = useCallback(() => {
     dispatch(updateUserDarkMode({ userDarkMode: true }))
-  }, [darkMode, dispatch])
+  }, [dispatch])
 
   return [darkMode, toggleSetDarkMode]
 }
