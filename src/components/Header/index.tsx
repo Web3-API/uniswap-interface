@@ -1,23 +1,21 @@
 import { Trans } from '@lingui/macro'
 import useScrollPosition from '@react-hook/window-scroll'
 import { CHAIN_INFO, SupportedChainId } from 'constants/chains'
-import useTheme from 'hooks/useTheme'
 import { darken } from 'polished'
 import { NavLink } from 'react-router-dom'
-import { Text } from 'rebass'
+import { Image, Text } from 'rebass'
 import { useShowClaimPopup, useToggleSelfClaimModal } from 'state/application/hooks'
 import { useUserHasAvailableClaim } from 'state/claim/hooks'
 import { useUserHasSubmittedClaim } from 'state/transactions/hooks'
-import { useDarkModeManager } from 'state/user/hooks'
 import { useNativeCurrencyBalances } from 'state/wallet/hooks'
 import styled from 'styled-components/macro'
 
-import { ReactComponent as Logo } from '../../assets/svg/logo.svg'
+import PolywrapLogo from '../../assets/images/polywrap-logo.png'
+import UniswapLogo from '../../assets/svg/logo.svg'
 import { useActiveWeb3React } from '../../hooks/web3'
 import { ExternalLink, ThemedText } from '../../theme'
 import ClaimModal from '../claim/ClaimModal'
 import { CardNoise } from '../earn/styled'
-import Menu from '../Menu'
 import Row from '../Row'
 import { Dots } from '../swap/styleds'
 import Web3Status from '../Web3Status'
@@ -248,8 +246,6 @@ export default function Header() {
   const { account, chainId } = useActiveWeb3React()
 
   const userEthBalance = useNativeCurrencyBalances(account ? [account] : [])?.[account ?? '']
-  const [darkMode] = useDarkModeManager()
-  const { white, black } = useTheme()
 
   const toggleClaimModal = useToggleSelfClaimModal()
 
@@ -262,7 +258,6 @@ export default function Header() {
   const scrollY = useScrollPosition()
 
   const {
-    infoLink,
     addNetworkInfo: {
       nativeCurrency: { symbol: nativeCurrencySymbol },
     },
@@ -271,12 +266,23 @@ export default function Header() {
   return (
     <HeaderFrame showBackground={scrollY > 45}>
       <ClaimModal />
-      <Title href=".">
-        <UniIcon>
-          <Logo fill={darkMode ? white : black} width="24px" height="100%" title="logo" />
-          <HolidayOrnament />
-        </UniIcon>
-      </Title>
+      <div>
+        <Title href=".">
+          <UniIcon>
+            <Image src={PolywrapLogo} sx={{ width: '3.0rem', marginLeft: '1rem' }} />
+          </UniIcon>
+          <UniIcon>
+            <Image
+              src={UniswapLogo}
+              sx={{
+                width: '2.5rem',
+                marginLeft: '1rem',
+              }}
+            />
+            <HolidayOrnament />
+          </UniIcon>
+        </Title>
+      </div>
       <HeaderLinks>
         <StyledNavLink id={`swap-nav-link`} to={'/swap'}>
           <Trans>Swap</Trans>
@@ -294,13 +300,15 @@ export default function Header() {
         >
           <Trans>Pool</Trans>
         </StyledNavLink>
-        {(!chainId || chainId === SupportedChainId.MAINNET) && (
-          <StyledNavLink id={`vote-nav-link`} to={'/vote'}>
-            <Trans>Vote</Trans>
-          </StyledNavLink>
-        )}
-        <StyledExternalLink id={`charts-nav-link`} href={infoLink}>
-          <Trans>Charts</Trans>
+        <StyledNavLink id={`howitworks-nav-link`} to={'/howitworks'}>
+          <Trans>How it Works</Trans>
+        </StyledNavLink>
+        <StyledExternalLink id={'discord-nav-link'} href={'https://discord.gg/QQDAtAX8ZT'}>
+          <Trans>Discord</Trans>
+          <sup>↗</sup>
+        </StyledExternalLink>
+        <StyledExternalLink id={`docs-nav-link`} href={'https://docs.polywrap.io/uniswapv3/intro'}>
+          <Trans>Docs</Trans>
           <sup>↗</sup>
         </StyledExternalLink>
       </HeaderLinks>
@@ -336,9 +344,6 @@ export default function Header() {
             ) : null}
             <Web3Status />
           </AccountElement>
-        </HeaderElement>
-        <HeaderElement>
-          <Menu />
         </HeaderElement>
       </HeaderControls>
     </HeaderFrame>

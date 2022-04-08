@@ -19,6 +19,7 @@ import { RedirectDuplicateTokenIds } from './AddLiquidity/redirects'
 import { RedirectDuplicateTokenIdsV2 } from './AddLiquidityV2/redirects'
 import Earn from './Earn'
 import Manage from './Earn/Manage'
+import HowItWorks from './HowItWorks'
 import MigrateV2 from './MigrateV2'
 import MigrateV2Pair from './MigrateV2/MigrateV2Pair'
 import Pool from './Pool'
@@ -130,6 +131,8 @@ export default function App() {
 
                 <Route exact strict path="/migrate/v2" component={MigrateV2} />
                 <Route exact strict path="/migrate/v2/:address" component={MigrateV2Pair} />
+
+                <Route exact strict path="/howitworks" component={HowItWorks} />
 
                 <Route component={RedirectPathToSwapOnly} />
               </Switch>

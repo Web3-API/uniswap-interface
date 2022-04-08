@@ -1,0 +1,213 @@
+/* PrismJS 1.23.0
+https://prismjs.com/download.html#themes=prism-okaidia&languages=markup+css+clike+javascript */
+/**
+ * okaidia theme for JavaScript, CSS and HTML
+ * Loosely based on Monokai textmate theme by http://www.monokai.nl/
+ * @author ocodia
+ */
+
+code[class*='language-'],
+pre[class*='language-'] {
+    color: #f8f8f2;
+    background: none;
+    text-shadow: 0 1px rgba(0, 0, 0, 0.3);
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    font-size: 0.95em;
+    text-align: left;
+    white-space: pre;
+    word-spacing: normal;
+    word-break: normal;
+    word-wrap: normal;
+    line-height: 1.5;
+
+    -moz-tab-size: 4;
+    -o-tab-size: 4;
+    tab-size: 4;
+
+    -webkit-hyphens: none;
+    -moz-hyphens: none;
+    -ms-hyphens: none;
+    hyphens: none;
+}
+
+/* Code blocks */
+pre[class*='language-'] {
+    padding: 1em;
+    margin: 0.5em 0;
+    overflow: auto;
+    border-radius: 0.3em;
+}
+
+:not(pre) > code[class*='language-'],
+pre[class*='language-'] {
+    background: transparent;
+}
+
+/* Inline code */
+:not(pre) > code[class*='language-'] {
+    padding: 0.1em;
+    border-radius: 0.3em;
+    white-space: normal;
+}
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+    color: #8292a2;
+}
+
+.token.punctuation {
+    color: #f8f8f2;
+}
+
+.token.namespace {
+    opacity: 0.7;
+}
+
+.token.property,
+.token.tag,
+.token.constant,
+.token.symbol,
+.token.deleted {
+    color: #f92672;
+}
+
+.token.boolean,
+.token.number {
+    color: #ae81ff;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+    color: #74DD9F;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string,
+.token.variable {
+    color: #f8f8f2;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.function,
+.token.class-name {
+    color: #ffe272;
+}
+
+.token.keyword {
+    color: #66d9ef;
+}
+
+.token.regex,
+.token.important {
+    color: #fd971f;
+}
+
+.token.important,
+.token.bold {
+    font-weight: bold;
+}
+.token.italic {
+    font-style: italic;
+}
+
+.token.entity {
+    cursor: help;
+}
+
+.codeBlock {
+    width: 40rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.codeBlock__select {
+    padding: 0 0 3.5rem 0;
+    margin-top: -4.5rem !important;
+    justify-content: space-around;
+    width: 100%;
+}
+
+.codeBlock__btnContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.codeBlock__btn {
+    height: 2rem;
+    font-size: 0.8rem;
+    width: fit-content;
+}
+
+.codeBlock__arrow {
+    padding-left: 1.5rem;
+}
+
+.codeBlock__toggle {
+    z-index: 1000;
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.codeBlock__code {
+    margin-left: -6rem;
+    margin-top: -3rem;
+    width: 20rem;
+    display: flex;
+    justify-content: center;
+}
+
+@media (max-width: 1280px) {
+    .codeBlock__select {
+        margin-top: 0 !important;
+    }
+
+    .codeBlock__toggle {
+        width: 100%;
+    }
+}
+
+@media (max-width: 1092px) {
+    .codeBlock {
+        padding-top: 3rem;
+    }
+
+    .codeBlock__toggle {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .codeBlock__select {
+        display: flex;
+        height: 9rem;
+        flex-wrap: wrap;
+    }
+
+    .codeBlock__code {
+        width: 100%;
+        margin-top: 0;
+        align-items: center;
+    }
+
+    .codeBlock__arrow {
+        display: none;
+    }
+
+    code[class*='language-'],
+    pre[class*='language-'] {
+        font-size: 0.95em;
+    }
+}
