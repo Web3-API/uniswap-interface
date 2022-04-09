@@ -3,7 +3,7 @@ import useScrollPosition from '@react-hook/window-scroll'
 // import { CHAIN_INFO, SupportedChainId } from 'constants/chains'
 import { darken } from 'polished'
 import { NavLink } from 'react-router-dom'
-import { Image, Text } from 'rebass'
+import { Image } from 'rebass'
 import { useShowClaimPopup, useToggleSelfClaimModal } from 'state/application/hooks'
 import { useUserHasAvailableClaim } from 'state/claim/hooks'
 import { useUserHasSubmittedClaim } from 'state/transactions/hooks'
@@ -153,11 +153,11 @@ const UNIWrapper = styled.span`
   }
 `
 
-const BalanceText = styled(Text)`
-  ${({ theme }) => theme.mediaWidth.upToExtraSmall`
-    display: none;
-  `};
-`
+// const BalanceText = styled(Text)`
+//   ${({ theme }) => theme.mediaWidth.upToExtraSmall`
+//     display: none;
+//   `};
+// `
 
 const Title = styled.a`
   display: flex;
@@ -266,23 +266,21 @@ export default function Header() {
   return (
     <HeaderFrame showBackground={scrollY > 45}>
       <ClaimModal />
-      <div>
-        <Title href=".">
-          <UniIcon>
-            <Image src={PolywrapLogo} sx={{ width: '3.0rem', marginLeft: '1rem' }} />
-          </UniIcon>
-          <UniIcon>
-            <Image
-              src={UniswapLogo}
-              sx={{
-                width: '2.5rem',
-                marginLeft: '1rem',
-              }}
-            />
-            <HolidayOrnament />
-          </UniIcon>
-        </Title>
-      </div>
+      <Title href=".">
+        <UniIcon>
+          <Image src={PolywrapLogo} sx={{ width: '3.0rem', marginLeft: '1rem' }} />
+        </UniIcon>
+        <UniIcon>
+          <Image
+            src={UniswapLogo}
+            sx={{
+              width: '2.5rem',
+              marginLeft: '1rem',
+            }}
+          />
+          <HolidayOrnament />
+        </UniIcon>
+      </Title>
       <HeaderLinks>
         <StyledNavLink id={`swap-nav-link`} to={'/swap'}>
           <Trans>Swap</Trans>
