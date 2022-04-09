@@ -35,12 +35,12 @@ export function useDerivedPositionInfo(positionDetails: PositionDetails | undefi
         },
         client
       ).then((res) => {
-        if (res.error) throw res.error
+        if (res.error) console.error(res.error)
         setPosition(res.data)
       })
     }
   }, [positionDetails, pool, client])
-  // todo: replace deps fun?
+
   return {
     position,
     pool: pool ?? undefined,

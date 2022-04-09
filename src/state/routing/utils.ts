@@ -1,5 +1,5 @@
 import { Currency, CurrencyAmount, NativeCurrency, Token as UniToken, TradeType } from '@uniswap/sdk-core'
-import { Pair, Route as V2Route } from '@uniswap/v2-sdk'
+import { Route as V2Route } from '@uniswap/v2-sdk'
 import { Web3ApiClient } from '@web3api/client-js'
 
 import { nativeOnChain } from '../../constants/tokens'
@@ -55,7 +55,7 @@ export async function computeRoutes(
           },
           client
         )
-        if (routeInvoke.error) throw routeInvoke.error
+        if (routeInvoke.error) console.error(routeInvoke.error)
         routev3 = routeInvoke.data ?? null
       }
 
@@ -109,8 +109,8 @@ export async function transformRoutesToTrade(
     client
   )
   if (polyTradeInvoke.error) {
-    console.log(polyTradeInvoke.error)
-    throw polyTradeInvoke.error
+    console.error(polyTradeInvoke.error)
+    return undefined
   }
   const polyTrade = polyTradeInvoke.data as Uni_Trade
 
@@ -153,11 +153,6 @@ const parsePool = async (
   if (poolInvoke.error) throw poolInvoke.error
   return poolInvoke.data as Pool
 }
-const parsePair = ({ reserve0, reserve1 }: V2PoolInRoute): Pair =>
-  new Pair(
-    CurrencyAmount.fromRawAmount(parseUniToken(reserve0.token), reserve0.quotient),
-    CurrencyAmount.fromRawAmount(parseUniToken(reserve1.token), reserve1.quotient)
-  )
 
 function isV3Route(route: V3PoolInRoute[] | V2PoolInRoute[]): route is V3PoolInRoute[] {
   return route[0].type === 'v3-pool'

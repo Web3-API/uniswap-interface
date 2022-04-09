@@ -85,7 +85,7 @@ async function createArgentParams(
       },
       client
     )
-    if (maxInInvoke.error) throw maxInInvoke.error
+    if (maxInInvoke.error) console.error(maxInInvoke.error)
     maxIn = reverseMapTokenAmount(maxInInvoke.data)
   } else {
     maxIn = trade.maximumAmountIn(allowedSlippage)
@@ -204,15 +204,17 @@ function useSwapCallArguments(
           : {}),
       }
 
+      const isV3Trade = isTrade(trade)
+
       const swapRouterAddress = chainId
-        ? isTrade(trade)
+        ? isV3Trade
           ? V3_ROUTER_ADDRESS[chainId]
           : SWAP_ROUTER_ADDRESSES[chainId]
         : undefined
       if (!swapRouterAddress) return []
 
       let swapParams
-      if (isTrade(trade)) {
+      if (isV3Trade) {
         swapParams = Uni_Query.swapCallParameters(
           {
             trades: [trade],
@@ -482,9 +484,10 @@ export function useSwapCallback(
             ...(value && !isZero(value) ? { value } : {}),
           })
           .then(async (response) => {
+            const isV3Trade = isTrade(trade)
             const transactionInfo =
               trade.tradeType === TradeType.EXACT_INPUT || trade.tradeType === TradeTypeEnum.EXACT_INPUT
-                ? isTrade(trade)
+                ? isV3Trade
                   ? {
                       type: TransactionType.SWAP as TransactionType.SWAP,
                       tradeType: TradeType.EXACT_INPUT as TradeType.EXACT_INPUT,
@@ -513,7 +516,7 @@ export function useSwapCallback(
                       outputCurrencyId: currencyId(trade.outputAmount.currency),
                       minimumOutputCurrencyAmountRaw: trade.minimumAmountOut(allowedSlippage).quotient.toString(),
                     }
-                : isTrade(trade)
+                : isV3Trade
                 ? {
                     type: TransactionType.SWAP as TransactionType.SWAP,
                     tradeType: TradeType.EXACT_OUTPUT as TradeType.EXACT_OUTPUT,

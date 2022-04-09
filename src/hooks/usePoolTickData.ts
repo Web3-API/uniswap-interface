@@ -194,7 +194,17 @@ async function loadPoolLiquidity(
     },
     client
   )
-  if (priceInvoke.error) throw priceInvoke.error
+  if (priceInvoke.error) {
+    console.error(priceInvoke.error)
+    return {
+      isLoading,
+      isUninitialized,
+      isError,
+      error,
+      activeTick,
+      data: undefined,
+    }
+  }
   const { baseToken, quoteToken, numerator, denominator } = priceInvoke.data as Uni_Price
 
   const activeTickProcessed: TickProcessed = {

@@ -59,14 +59,13 @@ export function useDerivedV3BurnInfo(
         },
         client
       ).then((res) => {
-        if (res.error) throw res.error
+        if (res.error) console.error(res.error)
         setPositionSDK(res.data)
       })
     } else {
       setPositionSDK(undefined)
     }
   }, [pool, position, client])
-  // todo: replace deps fun?
   const liquidityPercentage = new Percent(percent, 100)
 
   const discountedAmount0 = positionSDK

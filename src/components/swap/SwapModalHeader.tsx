@@ -47,7 +47,11 @@ const ArrowWrapper = styled.div`
   z-index: 2;
 `
 
-const asyncAmount = async (client: Web3ApiClient, allowedSlippage: Percent, trade: Uni_Trade): Promise<TokenAmount> => {
+const asyncAmount = async (
+  client: Web3ApiClient,
+  allowedSlippage: Percent,
+  trade: Uni_Trade
+): Promise<TokenAmount | undefined> => {
   let invoke
   if (trade.tradeType === TradeTypeEnum.EXACT_INPUT) {
     invoke = await Uni_Query.tradeMinimumAmountOut(
@@ -68,8 +72,8 @@ const asyncAmount = async (client: Web3ApiClient, allowedSlippage: Percent, trad
       client
     )
   }
-  if (invoke.error) throw invoke.error
-  return invoke.data as TokenAmount
+  if (invoke.error) console.error(invoke.error)
+  return invoke.data
 }
 
 export default function SwapModalHeader({
@@ -93,7 +97,7 @@ export default function SwapModalHeader({
   useEffect(() => {
     console.log('SwapModalHeader - src/components/swap/SwapModalHeader')
     void asyncAmount(client, allowedSlippage, trade).then((res) => {
-      const newAmount = toSignificant(res, 6)
+      const newAmount = res ? toSignificant(res, 6) : 'undefined'
       setAmount(newAmount)
     })
   }, [trade, allowedSlippage, client])

@@ -374,7 +374,7 @@ export function PositionPage({
         },
         client
       ).then((invoke) => {
-        if (invoke.error) throw invoke.error
+        if (invoke.error) console.error(invoke.error)
         setPosition(invoke.data)
       })
     } else {

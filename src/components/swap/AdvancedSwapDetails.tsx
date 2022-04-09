@@ -61,7 +61,7 @@ const asyncAmounts = async (
       },
       client
     ).then((res) => {
-      if (res.error) throw res.error
+      if (res.error) console.error(res.error)
       return res.data
     }),
     maxAmountIn: await Uni_Query.tradeMaximumAmountIn(
@@ -72,7 +72,7 @@ const asyncAmounts = async (
       },
       client
     ).then((res) => {
-      if (res.error) throw res.error
+      if (res.error) console.error(res.error)
       return res.data
     }),
   }

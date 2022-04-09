@@ -227,12 +227,12 @@ export default function PositionListItem({ positionDetails }: PositionListItemPr
         },
         client
       ).then((res) => {
-        if (res.error) throw res.error
+        if (res.error) console.error(res.error)
         setPosition(res.data)
       })
     }
   }, [liquidity, pool, tickLower, tickUpper, client])
-  // todo: replace deps fun?
+
   const tickAtLimit = useIsTickAtLimit(feeAmount, tickLower, tickUpper)
 
   // prices

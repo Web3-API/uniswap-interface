@@ -6,13 +6,7 @@ import JSBI from 'jsbi'
 import { useEffect, useMemo, useState } from 'react'
 import { TradeState } from 'state/routing/types'
 
-import {
-  Uni_MethodParameters,
-  Uni_Query,
-  Uni_Route as Route,
-  Uni_TokenAmount as TokenAmount,
-  Uni_Trade as Trade,
-} from '../polywrap'
+import { Uni_Query, Uni_Route as Route, Uni_TokenAmount as TokenAmount, Uni_Trade as Trade } from '../polywrap'
 import { currencyDepsSDK, mapTokenAmount, mapTradeType } from '../polywrap-utils'
 import { useSingleContractWithCallData } from '../state/multicall/hooks'
 import { useAllV3Routes } from './useAllV3Routes'
@@ -69,11 +63,12 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
         },
         client
       )
-      if (invoke.error) throw invoke.error
-      const params = invoke.data as Uni_MethodParameters
-      return params.calldata
+      if (invoke.error) console.error(invoke.error)
+      return invoke.data?.calldata
     })
-    Promise.all(calldatas).then((params) => setCallParams(params))
+    Promise.all(calldatas).then((params) => {
+      setCallParams(params.filter((v) => v !== undefined) as string[])
+    })
   }, [amountSpecified, tradeType, routes, client])
 
   const quotesResults = useSingleContractWithCallData(quoter, callParams, {
@@ -173,11 +168,18 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       },
       client
     ).then((invoke) => {
-      if (invoke.error) throw invoke.error
-      setResult({
-        state: TradeState.VALID,
-        trade: invoke.data as Trade,
-      })
+      if (invoke.error) {
+        console.error(invoke.error)
+        setResult({
+          state: TradeState.INVALID,
+          trade: undefined,
+        })
+      } else {
+        setResult({
+          state: TradeState.VALID,
+          trade: invoke.data as Trade,
+        })
+      }
     })
   }, [amountSpecified, currencyIn, currencyOut, quotesResults, routes, routesLoading, tradeType, client])
 

@@ -38,30 +38,34 @@ const loadIsTickAtLimits = async (
   let tickSpacing: number | undefined = undefined
   if (tickLower !== undefined || tickUpper !== undefined) {
     const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
-    if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
-    tickSpacing = tickSpacingInvoke.data as number
+    if (tickSpacingInvoke.error) console.error(tickSpacingInvoke.error)
+    tickSpacing = tickSpacingInvoke.data
   }
 
   let lower: boolean | undefined = undefined
-  if (tickLower !== undefined) {
+  if (tickLower !== undefined && tickSpacing !== undefined) {
     const tickInvoke = await Uni_Query.MIN_TICK({}, client)
-    if (tickInvoke.error) throw tickInvoke.error
-    const tick = tickInvoke.data as number
+    if (tickInvoke.error) console.error(tickInvoke.error)
+    const tick = tickInvoke.data
 
-    const nearestTickInvoke = await Uni_Query.nearestUsableTick({ tick, tickSpacing: tickSpacing as number }, client)
-    if (nearestTickInvoke.error) throw nearestTickInvoke.error
-    lower = tickLower === nearestTickInvoke.data
+    if (tick !== undefined) {
+      const nearestTickInvoke = await Uni_Query.nearestUsableTick({ tick, tickSpacing }, client)
+      if (nearestTickInvoke.error) console.error(nearestTickInvoke.error)
+      lower = tickLower === nearestTickInvoke.data
+    }
   }
 
   let upper: boolean | undefined = undefined
-  if (tickUpper !== undefined) {
+  if (tickUpper !== undefined && tickSpacing !== undefined) {
     const tickInvoke = await Uni_Query.MAX_TICK({}, client)
-    if (tickInvoke.error) throw tickInvoke.error
-    const tick = tickInvoke.data as number
+    if (tickInvoke.error) console.error(tickInvoke.error)
+    const tick = tickInvoke.data
 
-    const nearestTickInvoke = await Uni_Query.nearestUsableTick({ tick, tickSpacing: tickSpacing as number }, client)
-    if (nearestTickInvoke.error) throw nearestTickInvoke.error
-    upper = tickUpper === nearestTickInvoke.data
+    if (tick !== undefined) {
+      const nearestTickInvoke = await Uni_Query.nearestUsableTick({ tick, tickSpacing }, client)
+      if (nearestTickInvoke.error) console.error(nearestTickInvoke.error)
+      upper = tickUpper === nearestTickInvoke.data
+    }
   }
 
   return {

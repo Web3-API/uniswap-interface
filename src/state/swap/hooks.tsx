@@ -191,7 +191,7 @@ export function useDerivedSwapInfo(): {
         },
         client
       ).then((invoke) => {
-        if (invoke.error) throw invoke.error
+        if (invoke.error) console.error(invoke.error)
         setMaximumAmountIn(invoke.data)
       })
     }

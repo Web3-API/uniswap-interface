@@ -68,7 +68,7 @@ export function useAllApprovalStates(trade: PolyTrade | undefined, allowedSlippa
         },
         client
       ).then((res) => {
-        if (res.error) throw res.error
+        if (res.error) console.error(res.error)
         setAmountToApprove(res.data)
       })
     }
@@ -179,7 +179,7 @@ export function useApproveCallbackFromTrade(
         },
         client
       ).then((res) => {
-        if (res.error) throw res.error
+        if (res.error) console.error(res.error)
         const currencyAmount = reverseMapTokenAmount(res.data)
         setAmountToApprove(currencyAmount)
       })

@@ -46,7 +46,6 @@ import { useTotalSupply } from '../../hooks/useTotalSupply'
 import { useActiveWeb3React } from '../../hooks/web3'
 import {
   Uni_FeeAmountEnum as FeeAmountEnum,
-  Uni_MintAmounts,
   Uni_Pool,
   Uni_Position as Position,
   Uni_Position,
@@ -229,7 +228,10 @@ function V2PairMigration({
         tick = pool?.tickCurrent
       } else {
         const invoke = await Uni_Query.priceToClosestTick({ price: mapPrice(v2SpotPrice) }, client)
-        if (invoke.error) throw invoke.error
+        if (invoke.error) {
+          console.error(invoke.error)
+          return { sqrtPrice: pool?.sqrtRatioX96 ?? '0' }
+        }
         tick = invoke.data as number
       }
       // the price is either the current v3 price, or the price at the tick
@@ -238,7 +240,10 @@ function V2PairMigration({
         sqrtPrice = pool?.sqrtRatioX96
       } else {
         const invoke = await Uni_Query.getSqrtRatioAtTick({ tick }, client)
-        if (invoke.error) throw invoke.error
+        if (invoke.error) {
+          console.error(invoke.error)
+          return { sqrtPrice: '0' }
+        }
         sqrtPrice = invoke.data as string
       }
 
@@ -267,7 +272,7 @@ function V2PairMigration({
           },
           client
         )
-        if (invoke.error) throw invoke.error
+        if (invoke.error) console.error(invoke.error)
         position = invoke.data
       }
       const posAmount0 = position && position.token0Amount
@@ -289,7 +294,6 @@ function V2PairMigration({
     token1Value,
     client,
   ])
-  // todo: replace deps fun?
   const { sqrtPrice, position, posAmount0, posAmount1 } = positionData
 
   const [mintAmounts, setMintAmounts] = useState<{ amount0?: string; amount1?: string }>({})
@@ -306,12 +310,11 @@ function V2PairMigration({
         },
         client
       ).then((res) => {
-        if (res.error) throw res.error
-        setMintAmounts(res.data as Uni_MintAmounts)
+        if (res.error) console.error(res.error)
+        setMintAmounts(res.data ?? {})
       })
     }
   }, [position, allowedSlippage, client])
-  // todo: replace deps fun?
 
   const { amount0: v3Amount0Min, amount1: v3Amount1Min } = mintAmounts
 

@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { SWAP_ROUTER_ADDRESSES, V3_ROUTER_ADDRESS } from '../constants/addresses'
 import { DAI, UNI, USDC } from '../constants/tokens'
-import { Uni_Query, Uni_TokenAmount, Uni_Trade as PolyTrade } from '../polywrap'
+import { Uni_Query, Uni_Trade as PolyTrade } from '../polywrap'
 import { isTrade, reverseMapTokenAmount } from '../polywrap-utils'
 import { useSingleCallResult } from '../state/multicall/hooks'
 import { useEIP2612Contract } from './useContract'
@@ -307,8 +307,8 @@ export function useERC20PermitFromTrade(
         },
         client
       ).then((res) => {
-        if (res.error) throw res.error
-        const maxAmountIn = reverseMapTokenAmount(res.data as Uni_TokenAmount)
+        if (res.error) console.error(res.error)
+        const maxAmountIn = reverseMapTokenAmount(res.data)
         setAmountToApprove(maxAmountIn)
       })
     }

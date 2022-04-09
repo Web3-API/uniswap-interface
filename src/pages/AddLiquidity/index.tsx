@@ -246,7 +246,10 @@ export default function AddLiquidity({
               },
               client
             )
-      if (invoke.error) throw invoke.error
+      if (invoke.error) {
+        console.error(invoke.error)
+        return
+      }
       const { calldata, value } = invoke.data as Uni_MethodParameters
 
       let txn: { to: string; data: string; value: string } = {
