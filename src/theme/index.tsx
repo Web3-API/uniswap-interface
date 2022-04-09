@@ -7,6 +7,7 @@ import styled, {
   ThemeProvider as StyledComponentsThemeProvider,
 } from 'styled-components/macro'
 
+import PolywrapBackgroundTile from '../assets/svg/polywrap-background-tile.svg'
 import { useIsDarkMode } from '../state/user/hooks'
 import { Colors } from './styled'
 
@@ -210,9 +211,10 @@ export const ThemedText = {
 export const ThemedGlobalStyle = createGlobalStyle`
 html {
   color: ${({ theme }) => theme.text1};
-  background-color: ${({ theme }) => theme.bg1} !important;
+  background-image: url(${PolywrapBackgroundTile}); 
+  background-size: auto;
+  // background-color: ${({ theme }) => theme.bg1} !important;
 }
-
 a {
  color: ${({ theme }) => theme.blue1}; 
 }

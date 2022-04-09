@@ -4,6 +4,7 @@ import { lazy, Suspense } from 'react'
 import { Redirect, Route, Switch } from 'react-router-dom'
 import styled from 'styled-components/macro'
 
+import PolywrapBackgroundEllipse from '../assets/svg/polywrap-background-ellipse.svg'
 import GoogleAnalyticsReporter from '../components/analytics/GoogleAnalyticsReporter'
 import AddressClaimModal from '../components/claim/AddressClaimModal'
 import ErrorBoundary from '../components/ErrorBoundary'
@@ -66,6 +67,14 @@ const Marginer = styled.div`
   margin-top: 5rem;
 `
 
+const BackgroundEllipse = styled.img`
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  left: 0;
+  top: 0;
+`
+
 function TopLevelModals() {
   const open = useModalOpen(ApplicationModal.ADDRESS_CLAIM)
   const toggle = useToggleModal(ApplicationModal.ADDRESS_CLAIM)
@@ -80,6 +89,7 @@ export default function App() {
       <Route component={ApeModeQueryParamReader} />
       <Web3ReactManager>
         <AppWrapper>
+          <BackgroundEllipse src={PolywrapBackgroundEllipse} />
           <HeaderWrapper>
             <Header />
           </HeaderWrapper>
