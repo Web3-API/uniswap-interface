@@ -2,7 +2,7 @@ import { Trans } from '@lingui/macro'
 import { Percent } from '@uniswap/sdk-core'
 import { Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import { AlertTriangle, ArrowDown } from 'react-feather'
 import { Text } from 'rebass'
 import styled, { ThemeContext } from 'styled-components/macro'
@@ -16,6 +16,7 @@ import {
   Uni_TradeTypeEnum as TradeTypeEnum,
 } from '../../polywrap'
 import { reverseMapPrice, reverseMapToken, reverseMapTokenAmount, toSignificant } from '../../polywrap-utils'
+import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
 import { ThemedText } from '../../theme'
 import { isAddress, shortenAddress } from '../../utils'
 import { computeFiatValuePriceImpact } from '../../utils/computeFiatValuePriceImpact'
@@ -93,13 +94,17 @@ export default function SwapModalHeader({
   const client: Web3ApiClient = useWeb3ApiClient()
 
   const [amount, setAmount] = useState<string>('')
+  const cancelable = useRef<CancelablePromise<TokenAmount | undefined>>()
 
   useEffect(() => {
-    console.log('SwapModalHeader - src/components/swap/SwapModalHeader')
-    void asyncAmount(client, allowedSlippage, trade).then((res) => {
+    cancelable.current?.cancel()
+    cancelable.current = makeCancelable(asyncAmount(client, allowedSlippage, trade))
+    cancelable.current?.promise.then((res) => {
+      if (!res) return
       const newAmount = res ? toSignificant(res, 6) : 'undefined'
       setAmount(newAmount)
     })
+    return () => cancelable.current?.cancel()
   }, [trade, allowedSlippage, client])
 
   const [showInverted, setShowInverted] = useState<boolean>(false)

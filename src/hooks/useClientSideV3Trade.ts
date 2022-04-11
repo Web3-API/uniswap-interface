@@ -1,13 +1,15 @@
 import { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
 import { Web3ApiClient } from '@web3api/client-js'
+import { InvokeApiResult } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
 import { SupportedChainId } from 'constants/chains'
 import JSBI from 'jsbi'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { TradeState } from 'state/routing/types'
 
 import { Uni_Query, Uni_Route as Route, Uni_TokenAmount as TokenAmount, Uni_Trade as Trade } from '../polywrap'
 import { currencyDepsSDK, mapTokenAmount, mapTradeType } from '../polywrap-utils'
+import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
 import { useSingleContractWithCallData } from '../state/multicall/hooks'
 import { useAllV3Routes } from './useAllV3Routes'
 import { useV3Quoter } from './useContract'
@@ -47,9 +49,10 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
   const { chainId } = useActiveWeb3React()
 
   const [callParams, setCallParams] = useState<string[]>([])
+  const cancelableCalldata = useRef<CancelablePromise<(string | undefined)[] | undefined>>()
 
   useEffect(() => {
-    console.log('useClientSideV3Trade 1 - src/hooks/useClientSideV3Trade')
+    cancelableCalldata.current?.cancel()
     if (!amountSpecified) {
       setCallParams([])
       return
@@ -66,9 +69,13 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       if (invoke.error) console.error(invoke.error)
       return invoke.data?.calldata
     })
-    Promise.all(calldatas).then((params) => {
-      setCallParams(params.filter((v) => v !== undefined) as string[])
+    cancelableCalldata.current = makeCancelable(Promise.all(calldatas))
+    cancelableCalldata.current?.promise.then((params) => {
+      if (!params) return
+      const definedParams = params.filter((v) => v !== undefined) as string[]
+      setCallParams(definedParams)
     })
+    return () => cancelableCalldata.current?.cancel()
   }, [amountSpecified, tradeType, routes, client])
 
   const quotesResults = useSingleContractWithCallData(quoter, callParams, {
@@ -79,9 +86,10 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
     state: TradeState.LOADING,
     trade: undefined,
   })
+  const cancelableTrade = useRef<CancelablePromise<InvokeApiResult<Trade> | undefined>>()
 
   useEffect(() => {
-    console.log('useClientSideV3Trade 2 - src/hooks/useClientSideV3Trade')
+    cancelableTrade.current?.cancel()
     if (
       !amountSpecified ||
       !currencyIn ||
@@ -157,7 +165,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       return
     }
 
-    Uni_Query.createUncheckedTrade(
+    const tradePromise = Uni_Query.createUncheckedTrade(
       {
         swap: {
           route: bestRoute,
@@ -167,7 +175,10 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
         tradeType: mapTradeType(tradeType),
       },
       client
-    ).then((invoke) => {
+    )
+    cancelableTrade.current = makeCancelable(tradePromise)
+    cancelableTrade.current?.promise.then((invoke) => {
+      if (!invoke) return
       if (invoke.error) {
         console.error(invoke.error)
         setResult({
@@ -181,6 +192,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
         })
       }
     })
+    return () => cancelableTrade.current?.cancel()
   }, [amountSpecified, currencyIn, currencyOut, quotesResults, routes, routesLoading, tradeType, client])
 
   return result

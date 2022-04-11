@@ -1,10 +1,10 @@
 import { Trans } from '@lingui/macro'
 import { Currency, CurrencyAmount, Price, Rounding, Token } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
+import { InvokeApiResult, Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
 import { usePool } from 'hooks/usePools'
 import JSBI from 'jsbi'
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 import { getTickToPrice } from 'utils/getTickToPrice'
 
@@ -21,6 +21,7 @@ import {
   Uni_Query,
 } from '../../../polywrap'
 import { mapPrice, mapToken, reverseMapPrice, reverseMapToken, tokenEquals } from '../../../polywrap-utils'
+import { CancelablePromise, makeCancelable } from '../../../polywrap-utils/makeCancelable'
 import { AppState } from '../../index'
 import { tryParseAmount } from '../../swap/hooks'
 import { useCurrencyBalances } from '../../wallet/hooks'
@@ -89,6 +90,78 @@ export function useV3MintActionHandlers(noLiquidity: boolean | undefined): {
     onLeftRangeInput,
     onRightRangeInput,
     onStartPriceInput,
+  }
+}
+
+const loadMockPool = async (
+  price: Price<Token, Token> | undefined,
+  feeAmount: FeeAmountEnum | undefined,
+  tokenA: Token | undefined,
+  tokenB: Token | undefined,
+  client: Web3ApiClient
+) => {
+  // invalidPrice
+  let invalidPrice
+  try {
+    let sqrtRatioX96 = undefined
+    if (price) {
+      const invoke = await Uni_Query.encodeSqrtRatioX96(
+        {
+          amount1: price.numerator.toString(),
+          amount0: price.denominator.toString(),
+        },
+        client
+      )
+      if (invoke.error) throw invoke.error
+      sqrtRatioX96 = invoke.data as string
+    }
+
+    const minSqrtRatioInvoke = await Uni_Query.MIN_SQRT_RATIO({}, client)
+    if (minSqrtRatioInvoke.error) throw minSqrtRatioInvoke.error
+    const minSqrtRatio = minSqrtRatioInvoke.data as string
+    const maxSqrtRatioInvoke = await Uni_Query.MAX_SQRT_RATIO({}, client)
+    if (maxSqrtRatioInvoke.error) throw maxSqrtRatioInvoke.error
+    const maxSqrtRatio = maxSqrtRatioInvoke.data as string
+    invalidPrice =
+      price &&
+      sqrtRatioX96 &&
+      !(
+        JSBI.greaterThanOrEqual(JSBI.BigInt(sqrtRatioX96), JSBI.BigInt(minSqrtRatio)) &&
+        JSBI.lessThan(JSBI.BigInt(sqrtRatioX96), JSBI.BigInt(maxSqrtRatio))
+      )
+  } catch {
+    invalidPrice = undefined
+  }
+  // mockPool
+  let mockPool: Pool | undefined = undefined
+  try {
+    if (tokenA && tokenB && feeAmount !== undefined && price && !invalidPrice) {
+      const tickInvoke = await Uni_Query.priceToClosestTick({ price: mapPrice(price) }, client)
+      if (tickInvoke.error) throw tickInvoke.error
+      const currentTick = tickInvoke.data as number
+      const sqrtInvoke = await Uni_Query.getSqrtRatioAtTick({ tick: currentTick }, client)
+      if (sqrtInvoke.error) throw sqrtInvoke.error
+      const currentSqrt = sqrtInvoke.data as string
+      const mockPoolInvoke = await Uni_Query.createPool(
+        {
+          tokenA: mapToken(tokenA),
+          tokenB: mapToken(tokenB),
+          fee: feeAmount,
+          sqrtRatioX96: currentSqrt,
+          liquidity: '0',
+          tickCurrent: currentTick,
+        },
+        client
+      )
+      if (mockPoolInvoke.error) throw mockPoolInvoke.error
+      mockPool = mockPoolInvoke.data as Uni_Pool
+    }
+  } catch {
+    mockPool = undefined
+  }
+  return {
+    invalidPrice,
+    mockPool,
   }
 }
 
@@ -276,74 +349,17 @@ export function useV3DerivedMintInfo(
     invalidPrice?: boolean | ''
     mockPool?: Pool
   }>({})
+  const cancelableMockPool = useRef<CancelablePromise<{ invalidPrice?: boolean | ''; mockPool?: Pool } | undefined>>()
 
   useEffect(() => {
-    const loadMockPool = async () => {
-      // invalidPrice
-      let invalidPrice
-      try {
-        let sqrtRatioX96 = undefined
-        if (price) {
-          const invoke = await Uni_Query.encodeSqrtRatioX96(
-            {
-              amount1: price.numerator.toString(),
-              amount0: price.denominator.toString(),
-            },
-            client
-          )
-          if (invoke.error) throw invoke.error
-          sqrtRatioX96 = invoke.data as string
-        }
-
-        const minSqrtRatioInvoke = await Uni_Query.MIN_SQRT_RATIO({}, client)
-        if (minSqrtRatioInvoke.error) throw minSqrtRatioInvoke.error
-        const minSqrtRatio = minSqrtRatioInvoke.data as string
-        const maxSqrtRatioInvoke = await Uni_Query.MAX_SQRT_RATIO({}, client)
-        if (maxSqrtRatioInvoke.error) throw maxSqrtRatioInvoke.error
-        const maxSqrtRatio = maxSqrtRatioInvoke.data as string
-        invalidPrice =
-          price &&
-          sqrtRatioX96 &&
-          !(
-            JSBI.greaterThanOrEqual(JSBI.BigInt(sqrtRatioX96), JSBI.BigInt(minSqrtRatio)) &&
-            JSBI.lessThan(JSBI.BigInt(sqrtRatioX96), JSBI.BigInt(maxSqrtRatio))
-          )
-      } catch {
-        invalidPrice = undefined
-      }
-      // mockPool
-      let mockPool: Pool | undefined = undefined
-      try {
-        if (tokenA && tokenB && feeAmount !== undefined && price && !invalidPrice) {
-          const tickInvoke = await Uni_Query.priceToClosestTick({ price: mapPrice(price) }, client)
-          if (tickInvoke.error) throw tickInvoke.error
-          const currentTick = tickInvoke.data as number
-          const sqrtInvoke = await Uni_Query.getSqrtRatioAtTick({ tick: currentTick }, client)
-          if (sqrtInvoke.error) throw sqrtInvoke.error
-          const currentSqrt = sqrtInvoke.data as string
-          const mockPoolInvoke = await Uni_Query.createPool(
-            {
-              tokenA: mapToken(tokenA),
-              tokenB: mapToken(tokenB),
-              fee: feeAmount,
-              sqrtRatioX96: currentSqrt,
-              liquidity: '0',
-              tickCurrent: currentTick,
-            },
-            client
-          )
-          if (mockPoolInvoke.error) throw mockPoolInvoke.error
-          mockPool = mockPoolInvoke.data as Uni_Pool
-        }
-      } catch {
-        mockPool = undefined
-      }
-      return {
-        invalidPrice,
-        mockPool,
-      }
-    }
-    loadMockPool().then((res) => setMockPoolData(res))
+    cancelableMockPool.current?.cancel()
+    const mockPoolPromise = loadMockPool(price, feeAmount, tokenA, tokenB, client)
+    cancelableMockPool.current = makeCancelable(mockPoolPromise)
+    cancelableMockPool.current?.promise.then((res) => {
+      if (!res) return
+      setMockPoolData(res)
+    })
+    return () => cancelableMockPool.current?.cancel()
   }, [price, feeAmount, tokenA, tokenB, client])
 
   const { invalidPrice, mockPool } = mockPoolData
@@ -353,21 +369,31 @@ export function useV3DerivedMintInfo(
 
   // lower and upper limits in the tick space for `feeAmoun<Trans>
   const [tickSpaceLimits, setTickSpaceLimits] = useState<{ LOWER?: number; UPPER?: number }>({})
+  const cancelableTickLimits = useRef<CancelablePromise<{ LOWER?: number; UPPER?: number } | undefined>>()
 
   useEffect(() => {
+    cancelableTickLimits.current?.cancel()
     if (feeAmount === undefined) {
       setTickSpaceLimits({})
     } else {
-      loadTickSpaceLimits(client, feeAmount).then((res) => setTickSpaceLimits(res))
+      const tickLimitsPromise = loadTickSpaceLimits(client, feeAmount)
+      cancelableTickLimits.current = makeCancelable(tickLimitsPromise)
+      cancelableTickLimits.current?.promise.then((res) => {
+        if (!res) return
+        setTickSpaceLimits(res)
+      })
     }
+    return () => cancelableTickLimits.current?.cancel()
   }, [feeAmount, client])
 
   // parse typed range values and determine closest ticks
   // lower should always be a smaller tick
   const [ticks, setTicks] = useState<{ LOWER?: number; UPPER?: number }>({})
+  const cancelableTicks = useRef<CancelablePromise<{ LOWER?: number; UPPER?: number } | undefined>>()
 
   useEffect(() => {
-    loadTicks(
+    cancelableTicks.current?.cancel()
+    const ticksPromise = loadTicks(
       existingPosition,
       feeAmount,
       invertPrice,
@@ -377,7 +403,13 @@ export function useV3DerivedMintInfo(
       token1,
       tickSpaceLimits,
       client
-    ).then((res) => setTicks(res))
+    )
+    cancelableTicks.current = makeCancelable(ticksPromise)
+    cancelableTicks.current?.promise.then((res) => {
+      if (!res) return
+      setTicks(res)
+    })
+    return () => cancelableTicks.current?.cancel()
   }, [
     existingPosition,
     feeAmount,
@@ -405,17 +437,22 @@ export function useV3DerivedMintInfo(
 
   // always returns the price with 0 as base token
   const [pricesAtTicks, setPricesAtTicks] = useState<{ LOWER?: Price<Token, Token>; UPPER?: Price<Token, Token> }>({})
+  const cancelablePrices = useRef<CancelablePromise<(Price<Token, Token> | undefined)[] | undefined>>()
   useEffect(() => {
-    console.log('useV3DerivedMintInfo src/state/mint/v3/hooks')
-    Promise.all([
+    cancelablePrices.current?.cancel()
+    const pricePromise = Promise.all([
       getTickToPrice(client, token0, token1, ticks[Bound.LOWER]),
       getTickToPrice(client, token0, token1, ticks[Bound.UPPER]),
-    ]).then((prices) => {
+    ])
+    cancelablePrices.current = makeCancelable(pricePromise)
+    cancelablePrices.current?.promise.then((prices) => {
+      if (!prices) return
       setPricesAtTicks({
         [Bound.LOWER]: prices[0],
         [Bound.UPPER]: prices[1],
       })
     })
+    return () => cancelablePrices.current?.cancel()
   }, [token0, token1, ticks, client])
 
   const { [Bound.LOWER]: lowerPrice, [Bound.UPPER]: upperPrice } = pricesAtTicks
@@ -432,8 +469,10 @@ export function useV3DerivedMintInfo(
   )
 
   const [dependentAmount, setDependentAmount] = useState<CurrencyAmount<Currency> | undefined>(undefined)
+  const cancelablePositionOne = useRef<CancelablePromise<InvokeApiResult<Position> | undefined>>()
 
   useEffect(() => {
+    cancelablePositionOne.current?.cancel()
     // we wrap the currencies just to get the price in terms of the other token
     // if price is out of range or invalid range - return 0 (single deposit will be independent)
     const wrappedIndependentAmount = independentAmount?.wrapped
@@ -471,7 +510,9 @@ export function useV3DerivedMintInfo(
             },
             client
           )
-      positionPromise.then((res) => {
+      cancelablePositionOne.current = makeCancelable(positionPromise)
+      cancelablePositionOne.current?.promise.then((res) => {
+        if (!res) return
         if (res.error) {
           console.error(res.error)
           setDependentAmount(undefined)
@@ -484,6 +525,7 @@ export function useV3DerivedMintInfo(
         setDependentAmount(amount)
       })
     }
+    return () => cancelablePositionOne.current?.cancel()
   }, [
     independentAmount,
     outOfRange,
@@ -528,8 +570,10 @@ export function useV3DerivedMintInfo(
 
   // create position entity based on users selection
   const [position, setPosition] = useState<Position | undefined>(undefined)
+  const cancelablePositionTwo = useRef<CancelablePromise<InvokeApiResult<Position> | undefined>>()
 
   useEffect(() => {
+    cancelablePositionTwo.current?.cancel()
     if (
       !poolForPosition ||
       !tokenA ||
@@ -559,7 +603,7 @@ export function useV3DerivedMintInfo(
       return
     }
 
-    Uni_Query.createPositionFromAmounts(
+    const positionPromise = Uni_Query.createPositionFromAmounts(
       {
         pool: poolForPosition,
         tickLower,
@@ -569,7 +613,10 @@ export function useV3DerivedMintInfo(
         useFullPrecision: true, // we want full precision for the theoretical position
       },
       client
-    ).then((res) => {
+    )
+    cancelablePositionTwo.current = makeCancelable(positionPromise)
+    cancelablePositionTwo.current?.promise.then((res) => {
+      if (!res) return
       if (res.error) {
         console.error(res.error)
         setPosition(undefined)
@@ -577,6 +624,7 @@ export function useV3DerivedMintInfo(
       }
       setPosition(res.data)
     })
+    return () => cancelablePositionTwo.current?.cancel()
   }, [
     parsedAmounts,
     poolForPosition,
@@ -589,7 +637,7 @@ export function useV3DerivedMintInfo(
     tickUpper,
     client,
   ])
-  // todo: replace deps fun?
+
   let errorMessage: ReactNode | undefined
   if (!account) {
     errorMessage = <Trans>Connect Wallet</Trans>

@@ -4,13 +4,14 @@ import { Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient, useWeb3ApiInvoke } from '@web3api/react'
 import JSBI from 'jsbi'
 import ms from 'ms.macro'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAllV3TicksQuery } from 'state/data/enhanced'
 import { AllV3TicksQuery } from 'state/data/generated'
 import computeSurroundingTicks from 'utils/computeSurroundingTicks'
 
 import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Pool, Uni_Price, Uni_Query } from '../polywrap'
 import { feeAmountToTickSpacing, mapToken, reverseMapToken, wrapperUri } from '../polywrap-utils'
+import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
 import { PoolState, usePool } from './usePools'
 
 const PRICE_FIXED_DIGITS = 8
@@ -46,7 +47,6 @@ export function useAllV3Ticks(
   })
 
   useEffect(() => {
-    console.log('useAllV3Ticks - src/hooks/usePoolTickData')
     if (currencyA && currencyB && feeAmount !== undefined) {
       void getPoolAddress({
         tokenA: mapToken(currencyA.wrapped),
@@ -106,10 +106,23 @@ export function usePoolActiveLiquidity(
     activeTick,
     data: undefined,
   })
+  const cancelable = useRef<
+    CancelablePromise<
+      | {
+          isLoading: boolean
+          isUninitialized: boolean
+          isError: boolean
+          error: any
+          activeTick: number | undefined
+          data: TickProcessed[] | undefined
+        }
+      | undefined
+    >
+  >()
 
   useEffect(() => {
-    console.log('usePoolActiveLiquidity - src/hooks/usePoolTickData')
-    void loadPoolLiquidity(
+    cancelable.current?.cancel()
+    const liquidityPromise = loadPoolLiquidity(
       client,
       currencyA,
       currencyB,
@@ -120,7 +133,13 @@ export function usePoolActiveLiquidity(
       isUninitialized,
       isError,
       error
-    ).then((res) => setResult(res))
+    )
+    cancelable.current = makeCancelable(liquidityPromise)
+    cancelable.current?.promise.then((res) => {
+      if (!res) return
+      setResult(res)
+    })
+    return () => cancelable.current?.cancel()
   }, [currencyA, currencyB, activeTick, pool, ticks, isLoading, isUninitialized, isError, error, client])
 
   return result

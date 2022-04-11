@@ -1,10 +1,11 @@
 import { Currency } from '@uniswap/sdk-core'
 import { Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { Uni_Pool, Uni_Query, Uni_Route, Uni_Token } from '../polywrap'
 import { mapToken, tokenEquals } from '../polywrap-utils'
+import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
 import { useV3SwapPools } from './useV3SwapPools'
 import { useActiveWeb3React } from './web3'
 
@@ -93,18 +94,23 @@ export function useAllV3Routes(
   const client: Web3ApiClient = useWeb3ApiClient()
 
   const [routes, setRoutes] = useState<{ loading: boolean; routes: Uni_Route[] }>({ loading: true, routes: [] })
+  const cancelable = useRef<CancelablePromise<Uni_Route[] | undefined>>()
 
   useEffect(() => {
-    console.log('useAllV3Routes - src/hooks/useAllV3Routes')
+    cancelable.current?.cancel()
     if (poolsLoading || !chainId || !pools || !currencyIn || !currencyOut) {
       setRoutes({ loading: true, routes: [] })
     } else {
       const currIn: Uni_Token = mapToken(currencyIn)
       const currOut: Uni_Token = mapToken(currencyOut)
-      computeAllRoutes(client, currIn, currOut, pools, chainId, [], [], currIn, 2).then((routes) => {
+      const routesPromise = computeAllRoutes(client, currIn, currOut, pools, chainId, [], [], currIn, 2)
+      cancelable.current = makeCancelable(routesPromise)
+      cancelable.current?.promise.then((routes) => {
+        if (!routes) return
         setRoutes({ loading: false, routes })
       })
     }
+    return () => cancelable.current?.cancel()
   }, [chainId, currencyIn, currencyOut, pools, poolsLoading, client])
   return routes
 }

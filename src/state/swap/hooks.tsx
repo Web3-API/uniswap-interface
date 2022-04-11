@@ -1,12 +1,12 @@
 import { parseUnits } from '@ethersproject/units'
 import { Trans } from '@lingui/macro'
 import { Currency, CurrencyAmount, Percent, TradeType } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
+import { InvokeApiResult, Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
 import { useBestTrade } from 'hooks/useBestTrade'
 import JSBI from 'jsbi'
 import { ParsedQs } from 'qs'
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 import { TradeState } from 'state/routing/types'
 
@@ -18,6 +18,7 @@ import { useActiveWeb3React } from '../../hooks/web3'
 import { Uni_Query, Uni_TokenAmount } from '../../polywrap'
 import { reverseMapTokenAmount } from '../../polywrap-utils'
 import { ExtendedTrade } from '../../polywrap-utils/interfaces'
+import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
 import { isAddress } from '../../utils'
 import { AppState } from '../index'
 import { useCurrencyBalances } from '../wallet/hooks'
@@ -177,24 +178,29 @@ export function useDerivedSwapInfo(): {
   const allowedSlippage = useSwapSlippageTolerance(trade.trade, trade.trade?.gasUseEstimateUSD ?? undefined)
 
   const [maximumAmountIn, setMaximumAmountIn] = useState<Uni_TokenAmount | undefined>(undefined)
+  const cancelable = useRef<CancelablePromise<InvokeApiResult<Uni_TokenAmount> | undefined>>()
 
   useEffect(() => {
-    console.log('useDerivedSwapInfo - src/state/swap/hooks')
+    cancelable.current?.cancel()
     if (!trade.trade) {
       setMaximumAmountIn(undefined)
     } else {
-      Uni_Query.tradeMaximumAmountIn(
+      const maxInPromise = Uni_Query.tradeMaximumAmountIn(
         {
           amountIn: trade.trade.inputAmount,
           tradeType: trade.trade.tradeType,
           slippageTolerance: allowedSlippage.toFixed(18),
         },
         client
-      ).then((invoke) => {
+      )
+      cancelable.current = makeCancelable(maxInPromise)
+      cancelable.current?.promise.then((invoke) => {
+        if (!invoke) return
         if (invoke.error) console.error(invoke.error)
         setMaximumAmountIn(invoke.data)
       })
     }
+    return () => cancelable.current?.cancel()
   }, [trade.trade, allowedSlippage, client])
 
   // compare input balance to max input based on version

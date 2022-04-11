@@ -2,7 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber'
 import { TransactionResponse } from '@ethersproject/providers'
 import { Trans } from '@lingui/macro'
 import { Currency, CurrencyAmount, Fraction, Percent, Price, Token } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
+import { InvokeApiResult, Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
 import Badge from 'components/Badge'
 import { ButtonConfirmed, ButtonGray, ButtonPrimary } from 'components/Button'
@@ -50,6 +50,7 @@ import {
   Uni_TokenAmount as TokenAmount,
 } from '../../polywrap'
 import { mapTokenAmount, reverseMapPrice, reverseMapTokenAmount, toSignificant } from '../../polywrap-utils'
+import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
 import { TransactionType } from '../../state/transactions/actions'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { ExplorerDataType, getExplorerLink } from '../../utils/getExplorerLink'
@@ -361,11 +362,12 @@ export function PositionPage({
   const [poolState, pool] = usePool(token0 ?? undefined, token1 ?? undefined, feeAmount)
 
   const [position, setPosition] = useState<Position | undefined>(undefined)
+  const cancelable = useRef<CancelablePromise<InvokeApiResult<Position> | undefined>>()
 
   useEffect(() => {
-    console.log('PositionPage 1 - src/pages/Pool/PositionPage')
+    cancelable.current?.cancel()
     if (pool && liquidity && typeof tickLower === 'number' && typeof tickUpper === 'number') {
-      Uni_Query.createPosition(
+      const positionPromise = Uni_Query.createPosition(
         {
           pool,
           liquidity: liquidity.toString(),
@@ -373,18 +375,20 @@ export function PositionPage({
           tickUpper,
         },
         client
-      ).then((invoke) => {
+      )
+      cancelable.current = makeCancelable(positionPromise)
+      cancelable.current?.promise.then((invoke) => {
+        if (!invoke) return
         if (invoke.error) console.error(invoke.error)
         setPosition(invoke.data)
       })
     } else {
       setPosition(undefined)
     }
+    return () => cancelable.current?.cancel()
   }, [liquidity, pool, tickLower, tickUpper, client])
-  // todo: replace deps fun?
+
   const pricesFromPosition = getPriceOrderingFromPositionForUI(position)
-  // const posAmount0 = reverseMapTokenAmount(position.token0Amount)
-  //   const posAmount1 = reverseMapTokenAmount(position.token1Amount)
 
   const tickAtLimit = useIsTickAtLimit(feeAmount, tickLower, tickUpper)
 

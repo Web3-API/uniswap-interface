@@ -4,13 +4,15 @@ import { Trade as RouterTrade } from '@uniswap/router-sdk'
 import { Currency, CurrencyAmount, Percent, TradeType } from '@uniswap/sdk-core'
 import { Trade as V2Trade } from '@uniswap/v2-sdk'
 import { Web3ApiClient } from '@web3api/client-js'
+import { InvokeApiResult } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getTxOptimizedSwapRouter, SwapRouterVersion } from 'utils/getTxOptimizedSwapRouter'
 
 import { SWAP_ROUTER_ADDRESSES, V2_ROUTER_ADDRESS, V3_ROUTER_ADDRESS } from '../constants/addresses'
 import { Uni_Query, Uni_TokenAmount, Uni_Trade as PolyTrade } from '../polywrap'
 import { isEther, isTrade, reverseMapTokenAmount } from '../polywrap-utils'
+import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
 import { TransactionType } from '../state/transactions/actions'
 import { useHasPendingApproval, useTransactionAdder } from '../state/transactions/hooks'
 import { calculateGasMargin } from '../utils/calculateGasMargin'
@@ -54,24 +56,29 @@ export function useAllApprovalStates(trade: PolyTrade | undefined, allowedSlippa
   const client: Web3ApiClient = useWeb3ApiClient()
 
   const [amountToApprove, setAmountToApprove] = useState<Uni_TokenAmount | undefined>(undefined)
+  const cancelable = useRef<CancelablePromise<InvokeApiResult<Uni_TokenAmount> | undefined>>()
 
   useEffect(() => {
-    console.log('useApproveCallback - src/hooks/useApproveCallback')
+    cancelable.current?.cancel()
     if (!trade || isEther(trade.inputAmount.token)) {
       setAmountToApprove(undefined)
     } else {
-      Uni_Query.tradeMaximumAmountIn(
+      const maxInPromise = Uni_Query.tradeMaximumAmountIn(
         {
           amountIn: trade.inputAmount,
           tradeType: trade.tradeType,
           slippageTolerance: allowedSlippage.toFixed(36),
         },
         client
-      ).then((res) => {
+      )
+      cancelable.current = makeCancelable(maxInPromise)
+      cancelable.current?.promise.then((res) => {
+        if (!res) return
         if (res.error) console.error(res.error)
         setAmountToApprove(res.data)
       })
     }
+    return () => cancelable.current?.cancel()
   }, [trade, allowedSlippage, client])
 
   const uniAmount = reverseMapTokenAmount(amountToApprove)
@@ -161,9 +168,10 @@ export function useApproveCallbackFromTrade(
   const client: Web3ApiClient = useWeb3ApiClient()
 
   const [amountToApprove, setAmountToApprove] = useState<CurrencyAmount<Currency> | undefined>(undefined)
+  const cancelable = useRef<CancelablePromise<InvokeApiResult<Uni_TokenAmount> | undefined>>()
 
   useEffect(() => {
-    console.log('useApproveCallbackFromTrade - src/hooks/useApproveCallback')
+    cancelable.current?.cancel()
     if (!trade) {
       setAmountToApprove(undefined)
     } else if (!isTrade(trade)) {
@@ -171,19 +179,23 @@ export function useApproveCallbackFromTrade(
     } else if (isEther(trade.inputAmount.token)) {
       setAmountToApprove(undefined)
     } else {
-      Uni_Query.tradeMaximumAmountIn(
+      const maxInPromise = Uni_Query.tradeMaximumAmountIn(
         {
           amountIn: trade.inputAmount,
           tradeType: trade.tradeType,
           slippageTolerance: allowedSlippage.toFixed(36),
         },
         client
-      ).then((res) => {
+      )
+      cancelable.current = makeCancelable(maxInPromise)
+      cancelable.current?.promise.then((res) => {
+        if (!res) return
         if (res.error) console.error(res.error)
         const currencyAmount = reverseMapTokenAmount(res.data)
         setAmountToApprove(currencyAmount)
       })
     }
+    return () => cancelable.current?.cancel()
   }, [trade, allowedSlippage, client])
 
   const approveCallback = useApproveCallback(

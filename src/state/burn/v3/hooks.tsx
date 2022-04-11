@@ -1,17 +1,18 @@
 import { Trans } from '@lingui/macro'
 import { Currency, CurrencyAmount, Percent } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
+import { InvokeApiResult, Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
 import { useToken } from 'hooks/Tokens'
 import { usePool } from 'hooks/usePools'
 import { useV3PositionFees } from 'hooks/useV3PositionFees'
 import { useActiveWeb3React } from 'hooks/web3'
-import { ReactNode, useCallback, useEffect, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 import { PositionDetails } from 'types/position'
 import { unwrappedToken } from 'utils/unwrappedToken'
 
 import { Uni_Position as Position, Uni_Query } from '../../../polywrap'
+import { CancelablePromise, makeCancelable } from '../../../polywrap-utils/makeCancelable'
 import { AppState } from '../../index'
 import { selectPercent } from './actions'
 
@@ -42,15 +43,17 @@ export function useDerivedV3BurnInfo(
   const [, pool] = usePool(token0 ?? undefined, token1 ?? undefined, position?.fee)
 
   const [positionSDK, setPositionSDK] = useState<Position | undefined>(undefined)
+  const cancelable = useRef<CancelablePromise<InvokeApiResult<Position> | undefined>>()
 
   useEffect(() => {
+    cancelable.current?.cancel()
     if (
       pool &&
       position?.liquidity &&
       typeof position?.tickLower === 'number' &&
       typeof position?.tickUpper === 'number'
     ) {
-      Uni_Query.createPosition(
+      const positionPromise = Uni_Query.createPosition(
         {
           pool,
           liquidity: position.liquidity.toString(),
@@ -58,13 +61,17 @@ export function useDerivedV3BurnInfo(
           tickUpper: position.tickUpper,
         },
         client
-      ).then((res) => {
+      )
+      cancelable.current = makeCancelable(positionPromise)
+      cancelable.current?.promise.then((res) => {
+        if (!res) return
         if (res.error) console.error(res.error)
         setPositionSDK(res.data)
       })
     } else {
       setPositionSDK(undefined)
     }
+    return () => cancelable.current?.cancel()
   }, [pool, position, client])
   const liquidityPercentage = new Percent(percent, 100)
 

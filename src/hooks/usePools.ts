@@ -3,11 +3,12 @@ import { Currency, Token } from '@uniswap/sdk-core'
 import { abi as IUniswapV3PoolStateABI } from '@uniswap/v3-core/artifacts/contracts/interfaces/pool/IUniswapV3PoolState.sol/IUniswapV3PoolState.json'
 import { Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { V3_CORE_FACTORY_ADDRESSES } from '../constants/addresses'
 import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Pool as Pool, Uni_Pool, Uni_Query } from '../polywrap'
 import { mapToken } from '../polywrap-utils'
+import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
 import { useMultipleContractSingleData } from '../state/multicall/hooks'
 import { IUniswapV3PoolStateInterface } from '../types/v3/IUniswapV3PoolState'
 import { useActiveWeb3React } from './web3'
@@ -40,9 +41,10 @@ export function usePools(
   }, [chainId, poolKeys])
 
   const [poolAddresses, setPoolAddresses] = useState<(string | undefined)[]>([])
+  const cancelableAddresses = useRef<CancelablePromise<(string | undefined)[] | undefined>>()
 
   useEffect(() => {
-    console.log('usePools 1 - src/hooks/usePools')
+    cancelableAddresses.current?.cancel()
     const v3CoreFactoryAddress = chainId && V3_CORE_FACTORY_ADDRESSES[chainId]
     const mapped = transformed.map(async (value) => {
       if (!v3CoreFactoryAddress || !value) return undefined
@@ -58,16 +60,22 @@ export function usePools(
       if (invoke.error) console.error(invoke.error.message)
       return invoke.data
     })
-    Promise.all(mapped).then((addresses) => setPoolAddresses(addresses))
+    cancelableAddresses.current = makeCancelable(Promise.all(mapped))
+    cancelableAddresses.current?.promise.then((addresses) => {
+      if (!addresses) return
+      setPoolAddresses(addresses)
+    })
+    return () => cancelableAddresses.current?.cancel()
   }, [chainId, transformed, client])
 
   const slot0s = useMultipleContractSingleData(poolAddresses, POOL_STATE_INTERFACE, 'slot0')
   const liquidities = useMultipleContractSingleData(poolAddresses, POOL_STATE_INTERFACE, 'liquidity')
 
   const [pools, setPools] = useState<[PoolState, Pool | null][]>([[PoolState.LOADING, null]])
+  const cancelablePools = useRef<CancelablePromise<[PoolState, Pool | null][] | undefined>>()
 
   useEffect(() => {
-    console.log('usePools 2 - src/hooks/usePools')
+    cancelablePools.current?.cancel()
     const mapped = poolKeys.map(async (_key, index): Promise<[PoolState, Pool | null]> => {
       const [token0, token1, fee] = transformed[index] ?? []
       if (!token0 || !token1 || fee === undefined || !slot0s[index]) return [PoolState.INVALID, null]
@@ -102,7 +110,12 @@ export function usePools(
         return [PoolState.NOT_EXISTS, null]
       }
     })
-    Promise.all(mapped).then((res) => setPools(res))
+    cancelablePools.current = makeCancelable(Promise.all(mapped))
+    cancelablePools.current?.promise.then((res) => {
+      if (!res) return
+      setPools(res)
+    })
+    return () => cancelablePools.current?.cancel()
   }, [liquidities, poolKeys, slot0s, transformed, client])
 
   return pools

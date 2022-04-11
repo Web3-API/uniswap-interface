@@ -5,12 +5,13 @@ import { useWeb3ApiClient } from '@web3api/react'
 import Card from 'components/Card'
 import { LoadingRows } from 'components/Loader/styled'
 import { useActiveWeb3React } from 'hooks/web3'
-import { useContext, useEffect, useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import styled, { ThemeContext } from 'styled-components/macro'
 
 import { Uni_Query, Uni_TokenAmount, Uni_Trade, Uni_TradeTypeEnum as TradeTypeEnum } from '../../polywrap'
 import { toSignificant } from '../../polywrap-utils'
 import { ExtendedTrade } from '../../polywrap-utils/interfaces'
+import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
 import { Separator, ThemedText } from '../../theme'
 import { computeRealizedLPFeePercent } from '../../utils/prices'
 import { AutoColumn } from '../Column'
@@ -95,11 +96,18 @@ export function AdvancedSwapDetails({ trade, allowedSlippage, syncing = false }:
   const client: Web3ApiClient = useWeb3ApiClient()
 
   const [amounts, setAmounts] = useState<{ minAmountOut?: Uni_TokenAmount; maxAmountIn?: Uni_TokenAmount }>({})
+  const cancelable =
+    useRef<CancelablePromise<{ minAmountOut?: Uni_TokenAmount; maxAmountIn?: Uni_TokenAmount } | undefined>>()
   useEffect(() => {
-    console.log('AdvancedSwapDetails - src/components/swap/AdvancedSwapDetails')
     if (trade) {
-      void asyncAmounts(client, allowedSlippage, trade).then((res) => setAmounts(res))
+      cancelable.current?.cancel()
+      cancelable.current = makeCancelable(asyncAmounts(client, allowedSlippage, trade))
+      cancelable.current?.promise.then((res) => {
+        if (!res) return
+        setAmounts(res)
+      })
     }
+    return () => cancelable.current?.cancel()
   }, [allowedSlippage, trade, client])
   const { minAmountOut, maxAmountIn } = amounts
 

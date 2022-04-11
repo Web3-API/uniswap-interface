@@ -1,8 +1,8 @@
 import { Contract } from '@ethersproject/contracts'
 import { TransactionResponse } from '@ethersproject/providers'
 import { Trans } from '@lingui/macro'
-import { CurrencyAmount, Fraction, Percent, Price, Token } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
+import { Currency, CurrencyAmount, Fraction, Percent, Price, Token } from '@uniswap/sdk-core'
+import { InvokeApiResult, Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
 import Badge, { BadgeVariant } from 'components/Badge'
 import { ButtonConfirmed } from 'components/Button'
@@ -19,7 +19,7 @@ import { PoolState, usePool } from 'hooks/usePools'
 import useTheme from 'hooks/useTheme'
 import useTransactionDeadline from 'hooks/useTransactionDeadline'
 import JSBI from 'jsbi'
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, AlertTriangle, ArrowDown } from 'react-feather'
 import ReactGA from 'react-ga'
 import { Redirect, RouteComponentProps } from 'react-router'
@@ -44,15 +44,9 @@ import { useV2LiquidityTokenPermit } from '../../hooks/useERC20Permit'
 import useIsArgentWallet from '../../hooks/useIsArgentWallet'
 import { useTotalSupply } from '../../hooks/useTotalSupply'
 import { useActiveWeb3React } from '../../hooks/web3'
-import {
-  Uni_FeeAmountEnum as FeeAmountEnum,
-  Uni_Pool,
-  Uni_Position as Position,
-  Uni_Position,
-  Uni_Query,
-  Uni_TokenAmount as TokenAmount,
-} from '../../polywrap'
+import { Uni_FeeAmountEnum, Uni_MintAmounts, Uni_Pool, Uni_Position, Uni_Query, Uni_TokenAmount } from '../../polywrap'
 import { mapPrice, mapToken, reverseMapPrice, reverseMapTokenAmount } from '../../polywrap-utils'
+import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
 import { NEVER_RELOAD, useSingleCallResult } from '../../state/multicall/hooks'
 import { TransactionType } from '../../state/transactions/actions'
 import { useTokenBalance } from '../../state/wallet/hooks'
@@ -117,6 +111,83 @@ function LiquidityInfo({
 // hard-code this for now
 const percentageToMigrate = 100
 
+const loadPositionData = async (
+  pool: Uni_Pool | undefined,
+  v2SpotPrice: Price<Currency, Currency>,
+  tickLower: number | undefined,
+  tickUpper: number | undefined,
+  invalidRange: boolean,
+  token0: Token,
+  token1: Token,
+  feeAmount: Uni_FeeAmountEnum,
+  token0Value: CurrencyAmount<Token>,
+  token1Value: CurrencyAmount<Token>,
+  client: Web3ApiClient
+): Promise<{
+  posAmount1?: Uni_TokenAmount
+  posAmount0?: Uni_TokenAmount
+  position?: Uni_Position
+  sqrtPrice: string
+}> => {
+  // the v3 tick is either the pool's tickCurrent, or the tick closest to the v2 spot price
+  let tick
+  if (pool?.tickCurrent) {
+    tick = pool?.tickCurrent
+  } else {
+    const invoke = await Uni_Query.priceToClosestTick({ price: mapPrice(v2SpotPrice) }, client)
+    if (invoke.error) {
+      console.error(invoke.error)
+      return { sqrtPrice: pool?.sqrtRatioX96 ?? '0' }
+    }
+    tick = invoke.data as number
+  }
+  // the price is either the current v3 price, or the price at the tick
+  let sqrtPrice
+  if (pool?.sqrtRatioX96) {
+    sqrtPrice = pool?.sqrtRatioX96
+  } else {
+    const invoke = await Uni_Query.getSqrtRatioAtTick({ tick }, client)
+    if (invoke.error) {
+      console.error(invoke.error)
+      return { sqrtPrice: '0' }
+    }
+    sqrtPrice = invoke.data as string
+  }
+
+  let position: Uni_Position | undefined = undefined
+  if (typeof tickLower === 'number' && typeof tickUpper === 'number' && !invalidRange) {
+    const invoke = await Uni_Query.createPositionFromAmounts(
+      {
+        pool:
+          pool ??
+          ((await Uni_Query.createPool(
+            {
+              tokenA: mapToken(token0),
+              tokenB: mapToken(token1),
+              fee: feeAmount,
+              sqrtRatioX96: sqrtPrice,
+              liquidity: '0',
+              tickCurrent: tick,
+            },
+            client
+          )) as Uni_Pool),
+        tickLower,
+        tickUpper,
+        amount0: token0Value.quotient.toString(),
+        amount1: token1Value.quotient.toString(),
+        useFullPrecision: true, // we want full precision for the theoretical position
+      },
+      client
+    )
+    if (invoke.error) console.error(invoke.error)
+    position = invoke.data
+  }
+  const posAmount0 = position && position.token0Amount
+  const posAmount1 = position && position.token1Amount
+
+  return { sqrtPrice, position, posAmount0, posAmount1 }
+}
+
 function V2PairMigration({
   pair,
   pairBalance,
@@ -168,11 +239,11 @@ function V2PairMigration({
   )
 
   // set up v3 pool
-  const [feeAmount, setFeeAmount] = useState(FeeAmountEnum.MEDIUM)
+  const [feeAmount, setFeeAmount] = useState(Uni_FeeAmountEnum.MEDIUM)
   const [poolState, pool] = usePool(token0, token1, feeAmount)
   const noLiquidity = poolState === PoolState.NOT_EXISTS
 
-  const handleFeePoolSelect = (fee: FeeAmountEnum) => setFeeAmount(fee)
+  const handleFeePoolSelect = (fee: Uni_FeeAmountEnum) => setFeeAmount(fee)
 
   // get spot prices + price difference
   const v2SpotPrice = useMemo(
@@ -214,73 +285,43 @@ function V2PairMigration({
 
   const [positionData, setPositionData] = useState<{
     sqrtPrice: string
-    position?: Position
-    posAmount0?: TokenAmount
-    posAmount1?: TokenAmount
+    position?: Uni_Position
+    posAmount0?: Uni_TokenAmount
+    posAmount1?: Uni_TokenAmount
   }>({ sqrtPrice: pool?.sqrtRatioX96 ?? '0' })
+  const cancelablePositionData = useRef<
+    CancelablePromise<
+      | {
+          sqrtPrice: string
+          position?: Uni_Position
+          posAmount0?: Uni_TokenAmount
+          posAmount1?: Uni_TokenAmount
+        }
+      | undefined
+    >
+  >()
 
   useEffect(() => {
-    console.log('V2PairMigration 1 - src/pages/MigrateV2/MigrateV2Pair')
-    const loadPositionData = async () => {
-      // the v3 tick is either the pool's tickCurrent, or the tick closest to the v2 spot price
-      let tick
-      if (pool?.tickCurrent) {
-        tick = pool?.tickCurrent
-      } else {
-        const invoke = await Uni_Query.priceToClosestTick({ price: mapPrice(v2SpotPrice) }, client)
-        if (invoke.error) {
-          console.error(invoke.error)
-          return { sqrtPrice: pool?.sqrtRatioX96 ?? '0' }
-        }
-        tick = invoke.data as number
-      }
-      // the price is either the current v3 price, or the price at the tick
-      let sqrtPrice
-      if (pool?.sqrtRatioX96) {
-        sqrtPrice = pool?.sqrtRatioX96
-      } else {
-        const invoke = await Uni_Query.getSqrtRatioAtTick({ tick }, client)
-        if (invoke.error) {
-          console.error(invoke.error)
-          return { sqrtPrice: '0' }
-        }
-        sqrtPrice = invoke.data as string
-      }
-
-      let position: Uni_Position | undefined = undefined
-      if (typeof tickLower === 'number' && typeof tickUpper === 'number' && !invalidRange) {
-        const invoke = await Uni_Query.createPositionFromAmounts(
-          {
-            pool:
-              pool ??
-              ((await Uni_Query.createPool(
-                {
-                  tokenA: mapToken(token0),
-                  tokenB: mapToken(token1),
-                  fee: feeAmount,
-                  sqrtRatioX96: sqrtPrice,
-                  liquidity: '0',
-                  tickCurrent: tick,
-                },
-                client
-              )) as Uni_Pool),
-            tickLower,
-            tickUpper,
-            amount0: token0Value.quotient.toString(),
-            amount1: token1Value.quotient.toString(),
-            useFullPrecision: true, // we want full precision for the theoretical position
-          },
-          client
-        )
-        if (invoke.error) console.error(invoke.error)
-        position = invoke.data
-      }
-      const posAmount0 = position && position.token0Amount
-      const posAmount1 = position && position.token1Amount
-
-      return { sqrtPrice, position, posAmount0, posAmount1 }
-    }
-    loadPositionData().then((res) => setPositionData(res))
+    cancelablePositionData.current?.cancel()
+    const positionDataPromise = loadPositionData(
+      pool ?? undefined,
+      v2SpotPrice,
+      tickLower,
+      tickUpper,
+      invalidRange,
+      token0,
+      token1,
+      feeAmount,
+      token0Value,
+      token1Value,
+      client
+    )
+    cancelablePositionData.current = makeCancelable(positionDataPromise)
+    cancelablePositionData.current?.promise.then((res) => {
+      if (!res) return
+      setPositionData(res)
+    })
+    return () => cancelablePositionData.current?.cancel()
   }, [
     pool,
     v2SpotPrice,
@@ -297,23 +338,28 @@ function V2PairMigration({
   const { sqrtPrice, position, posAmount0, posAmount1 } = positionData
 
   const [mintAmounts, setMintAmounts] = useState<{ amount0?: string; amount1?: string }>({})
+  const cancelableMintAmounts = useRef<CancelablePromise<InvokeApiResult<Uni_MintAmounts> | undefined>>()
 
   useEffect(() => {
-    console.log('V2PairMigration 2 - src/pages/MigrateV2/MigrateV2Pair')
+    cancelableMintAmounts.current?.cancel()
     if (!position) {
       setMintAmounts({})
     } else {
-      Uni_Query.mintAmountsWithSlippage(
+      const mintAmountsPromise = Uni_Query.mintAmountsWithSlippage(
         {
           position,
           slippageTolerance: allowedSlippage.toFixed(18),
         },
         client
-      ).then((res) => {
+      )
+      cancelableMintAmounts.current = makeCancelable(mintAmountsPromise)
+      cancelableMintAmounts.current?.promise.then((res) => {
+        if (!res) return
         if (res.error) console.error(res.error)
         setMintAmounts(res.data ?? {})
       })
     }
+    return () => cancelableMintAmounts.current?.cancel()
   }, [position, allowedSlippage, client])
 
   const { amount0: v3Amount0Min, amount1: v3Amount1Min } = mintAmounts

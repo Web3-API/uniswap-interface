@@ -213,5 +213,4 @@ export function positionDeps(position: Uni_Position | undefined) {
   } else {
     return [...poolDeps(position.pool), position.liquidity, position.tickLower, position.tickUpper]
   }
-  // todo: replace deps fun?
 }

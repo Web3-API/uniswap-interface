@@ -1,10 +1,11 @@
-import { Web3ApiClient } from '@web3api/client-js'
+import { InvokeApiResult, Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
 import { usePool } from 'hooks/usePools'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PositionDetails } from 'types/position'
 
 import { Uni_Pool as Pool, Uni_Position as Position, Uni_Query } from '../polywrap'
+import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
 import { useCurrency } from './Tokens'
 
 export function useDerivedPositionInfo(positionDetails: PositionDetails | undefined): {
@@ -20,13 +21,14 @@ export function useDerivedPositionInfo(positionDetails: PositionDetails | undefi
   const [, pool] = usePool(currency0 ?? undefined, currency1 ?? undefined, positionDetails?.fee)
 
   const [position, setPosition] = useState<Position | undefined>(undefined)
+  const cancelable = useRef<CancelablePromise<InvokeApiResult<Position> | undefined>>()
 
   useEffect(() => {
-    console.log('useDerivedPositionInfo - src/hooks/useDerivedPositionInfo')
+    cancelable.current?.cancel()
     if (!pool || !positionDetails) {
       setPosition(undefined)
     } else {
-      Uni_Query.createPosition(
+      const positionPromise = Uni_Query.createPosition(
         {
           pool,
           liquidity: positionDetails.liquidity.toString(),
@@ -34,11 +36,15 @@ export function useDerivedPositionInfo(positionDetails: PositionDetails | undefi
           tickUpper: positionDetails.tickUpper,
         },
         client
-      ).then((res) => {
+      )
+      cancelable.current = makeCancelable(positionPromise)
+      cancelable.current?.promise.then((res) => {
+        if (!res) return
         if (res.error) console.error(res.error)
         setPosition(res.data)
       })
     }
+    return () => cancelable.current?.cancel()
   }, [positionDetails, pool, client])
 
   return {

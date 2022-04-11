@@ -1,6 +1,7 @@
 import { Trans } from '@lingui/macro'
 import { Percent, Price, Token as UniToken } from '@uniswap/sdk-core'
 import { Web3ApiClient } from '@web3api/client-js'
+import { InvokeApiResult } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
 import Badge from 'components/Badge'
 import RangeBadge from 'components/Badge/RangeBadge'
@@ -11,7 +12,7 @@ import { RowBetween } from 'components/Row'
 import { useToken } from 'hooks/Tokens'
 import useIsTickAtLimit from 'hooks/useIsTickAtLimit'
 import { usePool } from 'hooks/usePools'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bound } from 'state/mint/v3/actions'
 import styled from 'styled-components/macro'
@@ -23,6 +24,7 @@ import { unwrappedToken } from 'utils/unwrappedToken'
 import { DAI, USDC, USDT, WBTC, WRAPPED_NATIVE_CURRENCY } from '../../constants/tokens'
 import { Uni_Position, Uni_Query } from '../../polywrap'
 import { reverseMapPrice, reverseMapToken } from '../../polywrap-utils'
+import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
 
 const LinkRow = styled(Link)`
   align-items: center;
@@ -211,14 +213,15 @@ export default function PositionListItem({ positionDetails }: PositionListItemPr
   const [, pool] = usePool(currency0 ?? undefined, currency1 ?? undefined, feeAmount)
 
   const [position, setPosition] = useState<Uni_Position | undefined>(undefined)
+  const cancelable = useRef<CancelablePromise<InvokeApiResult<Uni_Position> | undefined>>()
 
   // construct Position from details returned
   useEffect(() => {
-    console.log('PositionListItem - src/components/PositionListItem')
+    cancelable.current?.cancel()
     if (!pool) {
       setPosition(undefined)
     } else {
-      Uni_Query.createPosition(
+      const positionPromise = Uni_Query.createPosition(
         {
           pool,
           liquidity: liquidity.toString(),
@@ -226,11 +229,15 @@ export default function PositionListItem({ positionDetails }: PositionListItemPr
           tickUpper,
         },
         client
-      ).then((res) => {
+      )
+      cancelable.current = makeCancelable(positionPromise)
+      cancelable.current?.promise.then((res) => {
+        if (!res) return
         if (res.error) console.error(res.error)
         setPosition(res.data)
       })
     }
+    return () => cancelable.current?.cancel()
   }, [liquidity, pool, tickLower, tickUpper, client])
 
   const tickAtLimit = useIsTickAtLimit(feeAmount, tickLower, tickUpper)

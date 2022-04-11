@@ -2,15 +2,16 @@ import { splitSignature } from '@ethersproject/bytes'
 import { Trade } from '@uniswap/router-sdk'
 import { Currency, CurrencyAmount, Percent, Token, TradeType } from '@uniswap/sdk-core'
 import { Trade as V2Trade } from '@uniswap/v2-sdk'
-import { Web3ApiClient } from '@web3api/client-js'
+import { InvokeApiResult, Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
 import JSBI from 'jsbi'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { SWAP_ROUTER_ADDRESSES, V3_ROUTER_ADDRESS } from '../constants/addresses'
 import { DAI, UNI, USDC } from '../constants/tokens'
-import { Uni_Query, Uni_Trade as PolyTrade } from '../polywrap'
+import { Uni_Query, Uni_TokenAmount as TokenAmount, Uni_Trade as PolyTrade } from '../polywrap'
 import { isTrade, reverseMapTokenAmount } from '../polywrap-utils'
+import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
 import { useSingleCallResult } from '../state/multicall/hooks'
 import { useEIP2612Contract } from './useContract'
 import useIsArgentWallet from './useIsArgentWallet'
@@ -291,27 +292,32 @@ export function useERC20PermitFromTrade(
     : undefined
 
   const [amountToApprove, setAmountToApprove] = useState<CurrencyAmount<Currency> | undefined>()
+  const cancelable = useRef<CancelablePromise<InvokeApiResult<TokenAmount> | undefined>>()
 
   useEffect(() => {
-    console.log('useERC20Permit - src/hooks/useERC20Permit')
+    cancelable.current?.cancel()
     if (!trade) {
       setAmountToApprove(undefined)
     } else if (!isTrade(trade)) {
       setAmountToApprove(trade.maximumAmountIn(allowedSlippage))
     } else {
-      Uni_Query.tradeMaximumAmountIn(
+      const maxInPromise = Uni_Query.tradeMaximumAmountIn(
         {
           slippageTolerance: allowedSlippage.toFixed(36),
           amountIn: trade.inputAmount,
           tradeType: trade.tradeType,
         },
         client
-      ).then((res) => {
+      )
+      cancelable.current = makeCancelable(maxInPromise)
+      cancelable.current?.promise.then((res) => {
+        if (!res) return
         if (res.error) console.error(res.error)
         const maxAmountIn = reverseMapTokenAmount(res.data)
         setAmountToApprove(maxAmountIn)
       })
     }
+    return () => cancelable.current?.cancel()
   }, [trade, allowedSlippage, client])
 
   return useERC20Permit(amountToApprove, swapRouterAddress, null)

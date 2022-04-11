@@ -4,12 +4,13 @@ import { Web3ApiClient } from '@web3api/client-js'
 import { useWeb3ApiClient } from '@web3api/react'
 import { useStablecoinAmountFromFiatValue } from 'hooks/useUSDCPrice'
 import ms from 'ms.macro'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useBlockNumber } from 'state/application/hooks'
 import { useGetQuoteQuery } from 'state/routing/slice'
 import { useClientSideRouter } from 'state/user/hooks'
 
 import { ExtendedTrade } from '../../polywrap-utils/interfaces'
+import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
 import { GetQuoteResult, TradeState } from './types'
 import { computeRoutes, transformRoutesToTrade } from './utils'
 
@@ -74,7 +75,8 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
   otherCurrency?: Currency
 ): {
   state: TradeState
-  trade: ExtendedTrade | undefined
+  trade?: ExtendedTrade
+  gasUseEstimateUSD?: CurrencyAmount<Token> | null
 } {
   const [currencyIn, currencyOut]: [Currency | undefined, Currency | undefined] = useMemo(
     () =>
@@ -105,14 +107,20 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
 
   const [tradeResult, setTradeResult] = useState<{
     state: TradeState
-    trade: ExtendedTrade | undefined
+    trade?: ExtendedTrade
+    gasUseEstimateUSD?: CurrencyAmount<Token> | null
   }>({
     state: TradeState.LOADING,
-    trade: undefined,
   })
+  const cancelable =
+    useRef<
+      CancelablePromise<
+        { state: TradeState; trade?: ExtendedTrade; gasUseEstimateUSD?: CurrencyAmount<Token> | null } | undefined
+      >
+    >()
 
   useEffect(() => {
-    console.log('useRoutingAPITrade - src/state/routing/useRoutingAPITrade')
+    cancelable.current?.cancel()
     if (!currencyIn || !currencyOut) {
       setTradeResult({
         state: TradeState.INVALID,
@@ -147,9 +155,13 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
       return
     }
 
-    void loadTrade(client, currencyIn, currencyOut, tradeType, quoteResult, gasUseEstimateUSD).then((res) =>
+    const tradePromise = loadTrade(client, currencyIn, currencyOut, tradeType, quoteResult, gasUseEstimateUSD)
+    cancelable.current = makeCancelable(tradePromise)
+    cancelable.current?.promise.then((res) => {
+      if (!res) return
       setTradeResult(res)
-    )
+    })
+    return () => cancelable.current?.cancel()
   }, [
     currencyIn,
     currencyOut,
@@ -172,7 +184,7 @@ const loadTrade = async (
   tradeType: TradeType,
   quoteResult: GetQuoteResult | undefined,
   gasUseEstimateUSD: CurrencyAmount<Token> | null
-) => {
+): Promise<{ state: TradeState; trade?: ExtendedTrade; gasUseEstimateUSD?: CurrencyAmount<Token> | null }> => {
   const route = await computeRoutes(client, currencyIn, currencyOut, tradeType, quoteResult)
 
   if (!route || route.length === 0) {
@@ -194,7 +206,6 @@ const loadTrade = async (
       trade,
     }
   } catch (e) {
-    console.log('transformRoutesToTrade bug')
     console.debug('transformRoutesToTrade failed: ', e)
     return { state: TradeState.INVALID, trade: undefined, gasUseEstimateUSD }
   }
