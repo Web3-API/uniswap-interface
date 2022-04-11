@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { TradeState } from 'state/routing/types'
 
 import { Uni_Query, Uni_Route as Route, Uni_TokenAmount as TokenAmount, Uni_Trade as Trade } from '../polywrap'
-import { currencyDepsSDK, mapTokenAmount, mapTradeType } from '../polywrap-utils'
+import { currencyDepsSDK, mapTokenAmount, mapTradeType, reverseMapToken } from '../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
 import { useSingleContractWithCallData } from '../state/multicall/hooks'
 import { useAllV3Routes } from './useAllV3Routes'
@@ -129,7 +129,9 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
 
         // overwrite the current best if it's not defined or if this route is better
         if (tradeType === TradeType.EXACT_INPUT) {
-          const amountOut = CurrencyAmount.fromRawAmount(currencyOut, result.amountOut.toString())
+          const amountOutStr = result.amountOut
+          if (!amountOutStr) return currentBest
+          const amountOut = CurrencyAmount.fromRawAmount(currencyOut, amountOutStr)
           if (currentBest.amountOut === null || JSBI.lessThan(currentBest.amountOut.quotient, amountOut.quotient)) {
             return {
               bestRoute: routes[i],
@@ -138,7 +140,9 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
             }
           }
         } else {
-          const amountIn = CurrencyAmount.fromRawAmount(currencyIn, result.amountIn.toString())
+          const amountInStr = result.amountIn
+          if (!amountInStr) return currentBest
+          const amountIn = CurrencyAmount.fromRawAmount(currencyIn, amountInStr)
           if (currentBest.amountIn === null || JSBI.greaterThan(currentBest.amountIn.quotient, amountIn.quotient)) {
             return {
               bestRoute: routes[i],
@@ -165,6 +169,14 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       return
     }
 
+    // occurs when values change asynchronously
+    if (!bestRoute.input || !reverseMapToken(bestRoute.input)?.wrapped.equals(amountIn.currency.wrapped)) {
+      return
+    }
+    if (!bestRoute.output || !reverseMapToken(bestRoute.output)?.wrapped.equals(amountOut.currency.wrapped)) {
+      return
+    }
+
     const tradePromise = Uni_Query.createUncheckedTrade(
       {
         swap: {
@@ -181,10 +193,6 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       if (!invoke) return
       if (invoke.error) {
         console.error(invoke.error)
-        setResult({
-          state: TradeState.INVALID,
-          trade: undefined,
-        })
       } else {
         setResult({
           state: TradeState.VALID,
