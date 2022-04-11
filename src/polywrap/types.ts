@@ -308,9 +308,11 @@ export enum Uni_ChainIdEnum {
   GOERLI,
   KOVAN,
   OPTIMISM,
-  OPTIMISM_KOVAN,
+  OPTIMISTIC_KOVAN,
   ARBITRUM_ONE,
-  ARBITRUM_ONE_RINKEBY,
+  ARBITRUM_RINKEBY,
+  POLYGON,
+  POLYGON_MUMBAI,
 }
 
 export type Uni_ChainIdString =
@@ -320,9 +322,11 @@ export type Uni_ChainIdString =
   | 'GOERLI'
   | 'KOVAN'
   | 'OPTIMISM'
-  | 'OPTIMISM_KOVAN'
+  | 'OPTIMISTIC_KOVAN'
   | 'ARBITRUM_ONE'
-  | 'ARBITRUM_ONE_RINKEBY'
+  | 'ARBITRUM_RINKEBY'
+  | 'POLYGON'
+  | 'POLYGON_MUMBAI'
 
 export type Uni_ChainId = Uni_ChainIdEnum | Uni_ChainIdString
 

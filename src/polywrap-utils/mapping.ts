@@ -31,11 +31,15 @@ export function mapChainId(input: number): ChainIdEnum {
     case 10:
       return ChainIdEnum.OPTIMISM
     case 69:
-      return ChainIdEnum.OPTIMISM_KOVAN
+      return ChainIdEnum.OPTIMISTIC_KOVAN
     case 42161:
       return ChainIdEnum.ARBITRUM_ONE
     case 421611:
-      return ChainIdEnum.ARBITRUM_ONE_RINKEBY
+      return ChainIdEnum.ARBITRUM_RINKEBY
+    case 137:
+      return ChainIdEnum.POLYGON
+    case 80001:
+      return ChainIdEnum.POLYGON_MUMBAI
     default:
       throw new Error('Unknown chain ID. This should never happen.')
   }

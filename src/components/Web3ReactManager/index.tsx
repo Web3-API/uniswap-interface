@@ -9,7 +9,8 @@ import styled from 'styled-components/macro'
 import { network } from '../../connectors'
 import { NetworkContextName } from '../../constants/misc'
 import { useEagerConnect, useInactiveListener } from '../../hooks/web3'
-import { ethereumPluginUri, networks } from '../../polywrap-utils'
+import { Uni_ChainIdEnum } from '../../polywrap'
+import { ethereumPluginUri, mapChainId } from '../../polywrap-utils'
 
 const MessageWrapper = styled.div`
   display: flex;
@@ -56,10 +57,9 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
 
   useEffect(() => {
     if (chainId && library) {
-      const id = chainId.toString()
-      const currentNetwork = networks[id]
+      const currentNetwork = Uni_ChainIdEnum[mapChainId(chainId)]
       const config = {
-        [currentNetwork.name]: {
+        [currentNetwork]: {
           provider: library,
           signer: library.getSigner(),
         },
@@ -67,7 +67,7 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
       setEthPlugin(
         ethereumPlugin({
           networks: config,
-          defaultNetwork: currentNetwork.name,
+          defaultNetwork: currentNetwork,
         })
       )
     }

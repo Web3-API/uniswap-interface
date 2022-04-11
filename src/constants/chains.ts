@@ -26,7 +26,7 @@ export enum SupportedChainId {
   POLYGON_MUMBAI = 80001,
 }
 
-const INFURA_KEY = process.env.REACT_APP_INFURA_KEY
+export const INFURA_KEY = process.env.REACT_APP_INFURA_KEY ?? 'b76cba91dc954ceebff27244923224b1'
 if (typeof INFURA_KEY === 'undefined') {
   throw new Error(`REACT_APP_INFURA_KEY must be a defined environment variable`)
 }
