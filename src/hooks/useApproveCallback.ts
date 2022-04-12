@@ -198,26 +198,7 @@ export function useApproveCallbackFromTrade(
     return () => cancelable.current?.cancel()
   }, [trade, allowedSlippage, client])
 
-  const approveCallback = useApproveCallback(
-    amountToApprove,
-    chainId
-      ? trade instanceof V2Trade
-        ? V2_ROUTER_ADDRESS[chainId]
-        : isTrade(trade)
-        ? V3_ROUTER_ADDRESS[chainId]
-        : SWAP_ROUTER_ADDRESSES[chainId]
-      : undefined
-  )
-
-  // // TODO: remove L162-168 after testing is done. This error will help detect mistakes in the logic.
-  // if (
-  //   (trade instanceof V2Trade && approveCallback[0] !== ApprovalState.APPROVED) ||
-  //   (isTrade(trade) && approveCallback[0] !== ApprovalState.APPROVED)
-  // ) {
-  //   throw new Error('Trying to approve legacy router')
-  // }
-
-  return approveCallback
+  return useApproveCallback(amountToApprove, chainId ? V3_ROUTER_ADDRESS[chainId] : undefined)
 }
 
 export function useApprovalOptimizedTrade(

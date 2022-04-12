@@ -1,5 +1,6 @@
 import { Trans } from '@lingui/macro'
 import { useWeb3React } from '@web3-react/core'
+import { PluginPackage } from '@web3api/client-js'
 import { PluginRegistration } from '@web3api/core-js'
 import { ethereumPlugin } from '@web3api/ethereum-plugin-js'
 import { Web3ApiProvider } from '@web3api/react'
@@ -28,7 +29,7 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
   const { active: networkActive, error: networkError, activate: activateNetwork } = useWeb3React(NetworkContextName)
 
   // Web3API integration.
-  const [ethPlugin, setEthPlugin] = useState<any>(
+  const [ethPlugin, setEthPlugin] = useState<PluginPackage>(
     ethereumPlugin({
       networks: {
         mainnet: {

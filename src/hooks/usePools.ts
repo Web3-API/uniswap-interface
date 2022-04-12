@@ -47,7 +47,9 @@ export function usePools(
     cancelableAddresses.current?.cancel()
     const v3CoreFactoryAddress = chainId && V3_CORE_FACTORY_ADDRESSES[chainId]
     const mapped = transformed.map(async (value) => {
-      if (!v3CoreFactoryAddress || !value) return undefined
+      if (!v3CoreFactoryAddress || !value) {
+        return undefined
+      }
       const invoke = await Uni_Query.computePoolAddress(
         {
           factoryAddress: v3CoreFactoryAddress,
@@ -57,7 +59,9 @@ export function usePools(
         },
         client
       )
-      if (invoke.error) console.error(invoke.error.message)
+      if (invoke.error) {
+        console.error(invoke.error.message)
+      }
       return invoke.data
     })
     cancelableAddresses.current = makeCancelable(Promise.all(mapped))

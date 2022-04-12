@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { TradeState } from 'state/routing/types'
 
 import { Uni_Query, Uni_Route as Route, Uni_TokenAmount as TokenAmount, Uni_Trade as Trade } from '../polywrap'
-import { currencyDepsSDK, mapTokenAmount, mapTradeType, reverseMapToken } from '../polywrap-utils'
+import { currencyDepsSDK, mapTokenAmount, mapTradeType, reverseMapChainId, reverseMapToken } from '../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
 import { useSingleContractWithCallData } from '../state/multicall/hooks'
 import { useAllV3Routes } from './useAllV3Routes'
@@ -50,6 +50,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
 
   const [callParams, setCallParams] = useState<string[]>([])
   const cancelableCalldata = useRef<CancelablePromise<(string | undefined)[] | undefined>>()
+  const reRunEffect = useRef<boolean>(false)
 
   useEffect(() => {
     cancelableCalldata.current?.cancel()
@@ -57,6 +58,14 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       setCallParams([])
       return
     }
+    if (
+      amountSpecified.currency.chainId !== chainId ||
+      (routes.length > 0 && reverseMapChainId(routes[0].input.chainId) !== chainId)
+    ) {
+      reRunEffect.current = !reRunEffect.current
+      return
+    }
+
     const calldatas = routes.map(async (route) => {
       const invoke = await Uni_Query.quoteCallParameters(
         {
@@ -76,7 +85,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       setCallParams(definedParams)
     })
     return () => cancelableCalldata.current?.cancel()
-  }, [amountSpecified, tradeType, routes, client])
+  }, [amountSpecified, tradeType, routes, client, reRunEffect.current])
 
   const quotesResults = useSingleContractWithCallData(quoter, callParams, {
     gasRequired: chainId ? QUOTE_GAS_OVERRIDES[chainId] ?? DEFAULT_GAS_QUOTE : undefined,
@@ -169,7 +178,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       return
     }
 
-    // occurs when values change asynchronously
+    // mismatch can occur when token direction is reversed and values change asynchronously
     if (!bestRoute.input || !reverseMapToken(bestRoute.input)?.wrapped.equals(amountIn.currency.wrapped)) {
       return
     }
