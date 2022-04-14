@@ -1,13 +1,13 @@
 import { Trans } from '@lingui/macro'
 import useScrollPosition from '@react-hook/window-scroll'
-// import { CHAIN_INFO, SupportedChainId } from 'constants/chains'
+import { CHAIN_INFO, SupportedChainId } from 'constants/chains'
 import { darken } from 'polished'
 import { NavLink } from 'react-router-dom'
-import { Image } from 'rebass'
+import { Image, Text } from 'rebass'
 import { useShowClaimPopup, useToggleSelfClaimModal } from 'state/application/hooks'
 import { useUserHasAvailableClaim } from 'state/claim/hooks'
 import { useUserHasSubmittedClaim } from 'state/transactions/hooks'
-// import { useNativeCurrencyBalances } from 'state/wallet/hooks'
+import { useNativeCurrencyBalances } from 'state/wallet/hooks'
 import styled from 'styled-components/macro'
 
 import PolywrapLogo from '../../assets/images/polywrap-logo.png'
@@ -18,7 +18,7 @@ import ClaimModal from '../claim/ClaimModal'
 import { CardNoise } from '../earn/styled'
 import Row from '../Row'
 import { Dots } from '../swap/styleds'
-// import Web3Status from '../Web3Status'
+import Web3Status from '../Web3Status'
 import HolidayOrnament from './HolidayOrnament'
 import NetworkSelector from './NetworkSelector'
 
@@ -153,11 +153,11 @@ const UNIWrapper = styled.span`
   }
 `
 
-// const BalanceText = styled(Text)`
-//   ${({ theme }) => theme.mediaWidth.upToExtraSmall`
-//     display: none;
-//   `};
-// `
+const BalanceText = styled(Text)`
+  ${({ theme }) => theme.mediaWidth.upToExtraSmall`
+    display: none;
+  `};
+`
 
 const Title = styled.a`
   display: flex;
@@ -245,7 +245,7 @@ const StyledExternalLink = styled(ExternalLink).attrs({
 export default function Header() {
   const { account, chainId } = useActiveWeb3React()
 
-  // const userEthBalance = useNativeCurrencyBalances(account ? [account] : [])?.[account ?? '']
+  const userEthBalance = useNativeCurrencyBalances(account ? [account] : [])?.[account ?? '']
 
   const toggleClaimModal = useToggleSelfClaimModal()
 
@@ -257,11 +257,11 @@ export default function Header() {
 
   const scrollY = useScrollPosition()
 
-  // const {
-  //   addNetworkInfo: {
-  //     nativeCurrency: { symbol: nativeCurrencySymbol },
-  //   },
-  // } = CHAIN_INFO[chainId ? chainId : SupportedChainId.MAINNET]
+  const {
+    addNetworkInfo: {
+      nativeCurrency: { symbol: nativeCurrencySymbol },
+    },
+  } = CHAIN_INFO[chainId ? chainId : SupportedChainId.MAINNET]
 
   return (
     <HeaderFrame showBackground={scrollY > 45}>
@@ -336,16 +336,16 @@ export default function Header() {
               <CardNoise />
             </UNIWrapper>
           )}
-          {/*<AccountElement active={!!account}>*/}
-          {/*  {account && userEthBalance ? (*/}
-          {/*    <BalanceText style={{ flexShrink: 0, userSelect: 'none' }} pl="0.75rem" pr="0.5rem" fontWeight={500}>*/}
-          {/*      <Trans>*/}
-          {/*        {userEthBalance?.toSignificant(3)} {nativeCurrencySymbol}*/}
-          {/*      </Trans>*/}
-          {/*    </BalanceText>*/}
-          {/*  ) : null}*/}
-          {/*  <Web3Status />*/}
-          {/*</AccountElement>*/}
+          <AccountElement active={!!account}>
+            {account && userEthBalance ? (
+              <BalanceText style={{ flexShrink: 0, userSelect: 'none' }} pl="0.75rem" pr="0.5rem" fontWeight={500}>
+                <Trans>
+                  {userEthBalance?.toSignificant(3)} {nativeCurrencySymbol}
+                </Trans>
+              </BalanceText>
+            ) : null}
+            <Web3Status />
+          </AccountElement>
         </HeaderElement>
       </HeaderControls>
     </HeaderFrame>
