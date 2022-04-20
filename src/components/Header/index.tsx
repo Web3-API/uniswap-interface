@@ -3,7 +3,7 @@ import useScrollPosition from '@react-hook/window-scroll'
 import { CHAIN_INFO, SupportedChainId } from 'constants/chains'
 import { darken } from 'polished'
 import { NavLink } from 'react-router-dom'
-import { Image, Text } from 'rebass'
+import { Flex, Image, Text } from 'rebass'
 import { useShowClaimPopup, useToggleSelfClaimModal } from 'state/application/hooks'
 import { useUserHasAvailableClaim } from 'state/claim/hooks'
 import { useUserHasSubmittedClaim } from 'state/transactions/hooks'
@@ -24,7 +24,7 @@ import NetworkSelector from './NetworkSelector'
 
 const HeaderFrame = styled.div<{ showBackground: boolean }>`
   display: grid;
-  grid-template-columns: 120px 1fr 120px;
+  grid-template-columns: 1fr 120px;
   align-items: center;
   justify-content: space-between;
   align-items: center;
@@ -32,7 +32,7 @@ const HeaderFrame = styled.div<{ showBackground: boolean }>`
   width: 100%;
   top: 0;
   position: relative;
-  padding: 1rem;
+  padding: 0rem;
   z-index: 21;
   position: relative;
   /* Background slide effect on scroll. */
@@ -87,6 +87,7 @@ const HeaderLinks = styled(Row)`
   justify-self: center;
   background-color: ${({ theme }) => theme.bg0};
   width: fit-content;
+  height: fit-content;
   padding: 2px;
   border-radius: 16px;
   display: grid;
@@ -266,54 +267,56 @@ export default function Header() {
   return (
     <HeaderFrame showBackground={scrollY > 45}>
       <ClaimModal />
-      <Title href=".">
-        <UniIcon>
-          <Image src={PolywrapLogo} sx={{ width: '3.0rem', marginLeft: '1rem' }} />
-        </UniIcon>
-        <UniIcon>
-          <Image
-            src={UniswapLogo}
-            sx={{
-              width: '2.5rem',
-              marginLeft: '1rem',
-            }}
-          />
-          <HolidayOrnament />
-        </UniIcon>
-      </Title>
-      <HeaderLinks>
-        <StyledNavLink id={`swap-nav-link`} to={'/swap'}>
-          <Trans>Swap</Trans>
-        </StyledNavLink>
-        <StyledNavLink
-          id={`pool-nav-link`}
-          to={'/pool'}
-          isActive={(match, { pathname }) =>
-            Boolean(match) ||
-            pathname.startsWith('/add') ||
-            pathname.startsWith('/remove') ||
-            pathname.startsWith('/increase') ||
-            pathname.startsWith('/find')
-          }
-        >
-          <Trans>Pool</Trans>
-        </StyledNavLink>
-        <StyledNavLink id={`howitworks-nav-link`} to={'/howitworks'}>
-          <Trans>How it Works</Trans>
-        </StyledNavLink>
-        <StyledExternalLink id={'discord-nav-link'} href={'https://discord.gg/QQDAtAX8ZT'}>
-          <Trans>Discord</Trans>
-          <sup>↗</sup>
-        </StyledExternalLink>
-        <StyledExternalLink id={`docs-nav-link`} href={'https://docs.polywrap.io/uniswapv3/intro'}>
-          <Trans>Docs</Trans>
-          <sup>↗</sup>
-        </StyledExternalLink>
-        <StyledExternalLink id={`ens-nav-link`} href={'https://docs.polywrap.io/uniswapv3/intro'}>
-          <Trans>ENS</Trans>
-          <sup>↗</sup>
-        </StyledExternalLink>
-      </HeaderLinks>
+      <Flex sx={{ paddingTop: '10px' }}>
+        <Title href=".">
+          <UniIcon>
+            <Image src={PolywrapLogo} sx={{ width: '3.0rem', marginLeft: '1rem' }} />
+          </UniIcon>
+          <UniIcon>
+            <Image
+              src={UniswapLogo}
+              sx={{
+                width: '2.5rem',
+                marginLeft: '1rem',
+              }}
+            />
+            <HolidayOrnament />
+          </UniIcon>
+        </Title>
+        <HeaderLinks>
+          <StyledNavLink id={`swap-nav-link`} to={'/swap'}>
+            <Trans>Swap</Trans>
+          </StyledNavLink>
+          <StyledNavLink
+            id={`pool-nav-link`}
+            to={'/pool'}
+            isActive={(match, { pathname }) =>
+              Boolean(match) ||
+              pathname.startsWith('/add') ||
+              pathname.startsWith('/remove') ||
+              pathname.startsWith('/increase') ||
+              pathname.startsWith('/find')
+            }
+          >
+            <Trans>Pool</Trans>
+          </StyledNavLink>
+          <StyledNavLink id={`howitworks-nav-link`} to={'/howitworks'}>
+            <Trans>How it Works</Trans>
+          </StyledNavLink>
+          <StyledExternalLink id={'discord-nav-link'} href={'https://discord.gg/QQDAtAX8ZT'}>
+            <Trans>Discord</Trans>
+            <sup>↗</sup>
+          </StyledExternalLink>
+          <StyledExternalLink id={`docs-nav-link`} href={'https://docs.polywrap.io/uniswapv3/intro'}>
+            <Trans>Docs</Trans>
+            <sup>↗</sup>
+          </StyledExternalLink>
+          <StyledExternalLink id={`ens-nav-link`} href={'https://docs.polywrap.io/uniswapv3/intro'}>
+            <Trans>ENS</Trans>
+            <sup>↗</sup>
+          </StyledExternalLink>
+        </HeaderLinks>
+      </Flex>
 
       <HeaderControls>
         <HeaderElement>
