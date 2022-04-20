@@ -8,7 +8,7 @@ import Code from './Code'
 
 const CodeTabs = styled(Tabs)`
   -webkit-tap-highlight-color: transparent;
-  width: 40rem;
+  width: 46rem;
 `
 // @ts-ignore
 CodeTabs.tabsRole = 'Tabs'
@@ -51,7 +51,7 @@ LeftCornerTab.tabsRole = 'Tab'
 
 const CodeTabPanel = styled(TabPanel)`
   display: none;
-  padding: 1.5rem;
+  padding: 0.1rem 1.5rem;
   background: #293653;
   border-radius: 0 0 8px 8px;
 

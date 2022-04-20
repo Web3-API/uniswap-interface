@@ -9,10 +9,10 @@ import { ButtonPolywrap } from '../components/Button'
 import { Uni_Token, Uni_TradeTypeEnum } from '../polywrap'
 import CodeblockTabs, { CodeTabsProps } from './CodeblockTabs'
 import PolywrapTooltip from './PolywrapTooltip'
-import { useQuoteCallParametersCode, useSwapCallParametersCode, useUncheckedTradeCode } from './useCode'
+import { useCreateUncheckedTradeCode, useQuoteCallParametersCode, useSwapCallParametersCode } from './useCode'
 
 const CodeblockContainer = styled(Flex)`
-  width: 40rem;
+  width: 46rem;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -75,26 +75,29 @@ const Codeblock = (props: React.PropsWithChildren<Props>) => {
   const independentAmount = tradeType === Uni_TradeTypeEnum.EXACT_INPUT ? input : output
   const dependentAmount = tradeType === Uni_TradeTypeEnum.EXACT_INPUT ? output : input
 
-  const { query: queryStrA, variables: variablesStrA } = useQuoteCallParametersCode({
+  const { query: quoteCallParametersQuery, variables: quoteCallParametersVariables } = useQuoteCallParametersCode({
     independentToken,
     independentAmount,
     tradeType,
   })
-  const { query: queryStrB, variables: variablesStrB } = useUncheckedTradeCode({
+  const { query: createUncheckedTradeQuery, variables: createUncheckedTradeVariables } = useCreateUncheckedTradeCode({
     dependentToken,
     dependentAmount,
     tradeType,
   })
-  const { query: queryStrC, variables: variablesStrC } = useSwapCallParametersCode({
+  const { query: swapCallParamtersQuery, variables: swapCallParametersVariables } = useSwapCallParametersCode({
     slippageTolerance,
     recipient,
     deadline,
   })
 
-  const [{ query, variables }, setQuery] = useState<CodeTabsProps>({ query: queryStrA, variables: variablesStrA })
-  const queryAHandler = () => setQuery({ query: queryStrA, variables: variablesStrA })
-  const queryBHandler = () => setQuery({ query: queryStrB, variables: variablesStrB })
-  const queryCHandler = () => setQuery({ query: queryStrC, variables: variablesStrC })
+  const [{ query, variables }, setQuery] = useState<CodeTabsProps>({
+    query: quoteCallParametersQuery,
+    variables: quoteCallParametersVariables,
+  })
+  const queryAHandler = () => setQuery({ query: quoteCallParametersQuery, variables: quoteCallParametersVariables })
+  const queryBHandler = () => setQuery({ query: createUncheckedTradeQuery, variables: createUncheckedTradeVariables })
+  const queryCHandler = () => setQuery({ query: swapCallParamtersQuery, variables: swapCallParametersVariables })
 
   return (
     <>
@@ -102,22 +105,22 @@ const Codeblock = (props: React.PropsWithChildren<Props>) => {
         <CodeblockSelect>
           <ButtonContainer>
             <ButtonPolywrap onClick={queryAHandler}>
-              bestTradeExactIn
-              <PolywrapTooltip text="Given a list of pairs, a fixed amount in, and token amount out, this method returns the best maxNumResults trades that swap an input token amount to an output token, making at most maxHops hops. The returned trades are sorted by output amount, in decreasing order, and all share the given input amount. " />
+              quoteCallParameters
+              <PolywrapTooltip text="Given a route of pools to swap through and a specified amount of input or output, quoteCallParameters returns calldata for an Ethereum transaction. The calldata can be sent to Uniswap's Quoter smart contract to evaluate the trade result without executing it." />
             </ButtonPolywrap>
           </ButtonContainer>
           <Arrow src={ArrowRight} />
           <ButtonContainer>
             <ButtonPolywrap onClick={queryBHandler}>
-              swapCallParameters
-              <PolywrapTooltip text="swapCallParameters accepts a Trade and a set of trade options as input. It transforms the trade into parameter values that can later be used to submit an Ethereum transaction that will execute the trade in Uniswap's smart contracts." />
+              createUncheckedTrade
+              <PolywrapTooltip text="createUncheckedTrade uses an input amount, an output amount, and a trade route to create a Trade without simulating swaps to verify the amounts." />
             </ButtonPolywrap>
           </ButtonContainer>
           <Arrow src={ArrowRight} />
           <ButtonContainer>
             <ButtonPolywrap onClick={queryCHandler}>
-              execCall
-              <PolywrapTooltip text="Using the output of swapCallParameters, execCall submits an Ethereum transaction and returns the transaction hash that uniquely identifies it on the Ethereum blockchain." />
+              swapCallParameters
+              <PolywrapTooltip text="swapCallParameters accepts a Trade and a set of swap options as input. It transforms the trade into calldata for an Ethereum transaction that will execute the trade in Uniswap's smart contracts." />
             </ButtonPolywrap>
           </ButtonContainer>
         </CodeblockSelect>

@@ -183,7 +183,6 @@
     "node-vibrant": "^3.2.1-alpha.1",
     "polished": "^3.3.2",
     "popper-max-size-modifier": "^0.2.0",
-    "prismjs": "^1.27.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-feather": "^2.0.8",

@@ -2,7 +2,6 @@ import '../../polywrap-components/howItWorks.css'
 import '../../polywrap-components/prism.css'
 import '../../components/Card/index'
 
-import Prism from 'prismjs'
 import React, { useEffect } from 'react'
 import { Flex, Image, Text } from 'rebass'
 
@@ -38,8 +37,8 @@ Client.invoke({
 
 export default function HowItWorks() {
   useEffect(() => {
-    setTimeout(() => Prism.highlightAll(), 0)
-  })
+    window.Prism.highlightAll()
+  }, [])
 
   return (
     <>
@@ -99,7 +98,7 @@ export default function HowItWorks() {
             <pre className="line-numbers">
               <code className="language-js">{query}</code>
             </pre>
-            <pre className="line-numbers">
+            <pre>
               <code className="language-js">{invoke}</code>
             </pre>
           </OutlineCard>

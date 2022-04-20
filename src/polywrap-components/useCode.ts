@@ -36,15 +36,15 @@ export function useQuoteCallParametersCode({
 const tradeType = TradeType.${Uni_TradeTypeEnum[tradeType]}
 const amountSpecified = {
   token: {
-    chainId: ${independentToken ? 'ChainId.' + Uni_ChainIdEnum[independentToken.chainId] : ''},
+    chainId: ${independentToken ? 'ChainId.' + Uni_ChainIdEnum[independentToken.chainId] : 'undefined'},
     address: '${independentToken ? independentToken.address : ''}',
     currency: {
-      decimals: ${independentToken ? independentToken.currency.decimals : ''},
-      symbol: '${independentToken ? independentToken.currency.symbol : ''}',
-      name: '${independentToken ? independentToken.currency.name : ''}',
+      decimals: ${independentToken ? independentToken.currency.decimals : 'undefined'},
+      symbol: ${independentToken ? `'${independentToken.currency.symbol}'` : undefined},
+      name: ${independentToken ? `'${independentToken.currency.name}'` : undefined},
     }
   },
-  amount: '${independentAmount ?? ''}',
+  amount: '${independentAmount ?? 0}',
 }
 `.trim(),
     }),
@@ -63,7 +63,7 @@ Client.invoke({
       inputAmount: amountIn,
       outputAmount: amountOut,
     },
-    tradeType,
+    tradeType: tradeType,
   }
 })`.trim()
 
@@ -73,7 +73,11 @@ export interface createUncheckedTradeVariables {
   tradeType: Uni_TradeTypeEnum
 }
 
-export function useUncheckedTradeCode({ dependentToken, dependentAmount, tradeType }: createUncheckedTradeVariables): {
+export function useCreateUncheckedTradeCode({
+  dependentToken,
+  dependentAmount,
+  tradeType,
+}: createUncheckedTradeVariables): {
   query: string
   variables: string
 } {
@@ -84,15 +88,15 @@ export function useUncheckedTradeCode({ dependentToken, dependentAmount, tradeTy
 const tradeType = TradeType.${Uni_TradeTypeEnum[tradeType]}
 const ${tradeType === Uni_TradeTypeEnum.EXACT_INPUT ? 'amountOut' : 'amountIn'} = {
   token: {
-    chainId: ChainId.${dependentToken ? 'ChainId.' + Uni_ChainIdEnum[dependentToken.chainId] : ''},
+    chainId: ${dependentToken ? 'ChainId.' + Uni_ChainIdEnum[dependentToken.chainId] : 'undefined'},
     address: '${dependentToken ? dependentToken.address : ''}',
     currency: {
-      decimals: ${dependentToken ? dependentToken.currency.decimals : ''},
-      symbol: '${dependentToken ? dependentToken.currency.symbol : ''}',
-      name: '${dependentToken ? dependentToken.currency.name : ''}',
+      decimals: ${dependentToken ? dependentToken.currency.decimals : 'undefined'},
+      symbol: ${dependentToken ? `'${dependentToken.currency.symbol}'` : undefined},
+      name: ${dependentToken ? `'${dependentToken.currency.name}'` : undefined},
     }
   },
-  amount: '${dependentAmount ?? ''}',
+  amount: '${dependentAmount ?? '0'}',
 }
 `.trim(),
     }),
@@ -128,8 +132,8 @@ export function useSwapCallParametersCode({ slippageTolerance, recipient, deadli
       variables: `
 const swapOptions = {
   slippageTolerance: ${slippageTolerance}%,
-  recipient: '${recipient ?? ''}',
-  deadline: '${deadline ?? ''}',
+  recipient: ${recipient ? `'${recipient}'` : undefined},
+  deadline: ${deadline ? `'${deadline}'` : undefined},
   inputTokenPermit: inputTokenPermit
 }
 `.trim(),

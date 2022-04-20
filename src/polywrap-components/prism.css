@@ -12,7 +12,7 @@ pre[class*='language-'] {
     background: none;
     text-shadow: 0 1px rgba(0, 0, 0, 0.3);
     font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-    font-size: 0.95em;
+    font-size: 0.95rem;
     text-align: left;
     white-space: pre;
     word-spacing: normal;
@@ -32,10 +32,8 @@ pre[class*='language-'] {
 
 /* Code blocks */
 pre[class*='language-'] {
-    padding: 1em;
-    margin: 0.5em 0;
     overflow: auto;
-    border-radius: 0.3em;
+    border-radius: 0.3rem;
 }
 
 :not(pre) > code[class*='language-'],
@@ -45,8 +43,7 @@ pre[class*='language-'] {
 
 /* Inline code */
 :not(pre) > code[class*='language-'] {
-    padding: 0.1em;
-    border-radius: 0.3em;
+    border-radius: 0.3rem;
     white-space: normal;
 }
 
@@ -57,22 +54,19 @@ pre[class*='language-'] {
     color: #8292a2;
 }
 
-.token.punctuation {
-    color: #f8f8f2;
-}
-
 .token.namespace {
     opacity: 0.7;
 }
 
+.token.operator,
 .token.property,
 .token.tag,
-.token.constant,
-.token.symbol,
 .token.deleted {
-    color: #f92672;
+    color: #66d9ef;
 }
 
+.token.punctuation,
+.token.constant,
 .token.boolean,
 .token.number {
     color: #ae81ff;
@@ -87,11 +81,8 @@ pre[class*='language-'] {
     color: #74DD9F;
 }
 
-.token.operator,
 .token.entity,
 .token.url,
-.language-css .token.string,
-.style .token.string,
 .token.variable {
     color: #f8f8f2;
 }
@@ -103,10 +94,7 @@ pre[class*='language-'] {
     color: #ffe272;
 }
 
-.token.keyword {
-    color: #66d9ef;
-}
-
+.token.keyword,
 .token.regex,
 .token.important {
     color: #fd971f;
@@ -127,6 +115,47 @@ pre[class*='language-'] {
 @media (max-width: 960px) {
     code[class*='language-'],
     pre[class*='language-'] {
-        font-size: 0.95em;
+        font-size: 0.95rem;
     }
+}
+
+pre[class*="language-"].line-numbers {
+    position: relative;
+    padding-left: 2rem;
+    counter-reset: linenumber;
+}
+
+pre[class*="language-"].line-numbers > code {
+    position: relative;
+    white-space: inherit;
+}
+
+.line-numbers .line-numbers-rows {
+    position: absolute;
+    pointer-events: none;
+    top: 0;
+    font-size: 0.95rem;
+    left: -2rem;
+    width: 2rem; /* works for line-numbers below 1000 lines */
+    letter-spacing: -1px;
+
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+
+}
+
+.line-numbers-rows > span {
+    display: block;
+    counter-increment: linenumber;
+}
+
+.line-numbers-rows > span:before {
+    font-family: 'Fira Code', monospace;
+    content: counter(linenumber);
+    color: rgba(255, 255, 255, 0.5);
+    display: block;
+    padding-right: 1rem;
+    text-align: right;
 }
