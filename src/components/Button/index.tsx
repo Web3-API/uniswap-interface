@@ -363,3 +363,18 @@ export function ButtonRadioChecked({ active = false, children, ...rest }: { acti
     )
   }
 }
+
+export const ButtonPolywrap = styled(ButtonGray)`
+  background-color: ${({ theme }) => theme.bg0};
+  height: 39px;
+  width: fit-content;
+  position: relative;
+  cursor: pointer;
+  white-space: nowrap;
+  :hover {
+    opacity: 0.8;
+  }
+  :active {
+    opacity: 0.9;
+  }
+`
