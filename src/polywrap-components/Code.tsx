@@ -3,9 +3,6 @@ import './prism.css'
 import React, { useEffect } from 'react'
 import styled from 'styled-components/macro'
 
-// width: 20rem;
-// display: flex;
-// justify-content: center;
 export const CodeWrapper = styled.div`
   background: transparent;
   width: 40rem;
@@ -13,11 +10,11 @@ export const CodeWrapper = styled.div`
   position: relative;
   border-radius: 10px;
 
-  @media (max-width: 960px) {
+  ${({ theme }) => theme.mediaWidth.upToMedium`
     width: 100%;
     margin-top: 0;
     align-items: center;
-  }
+  `};
 `
 
 interface Props {
@@ -28,6 +25,7 @@ const Code = (props: React.PropsWithChildren<Props>) => {
   const { codeString } = props
 
   useEffect(() => {
+    // @ts-ignore
     window.Prism.highlightAll()
   }, [codeString])
 

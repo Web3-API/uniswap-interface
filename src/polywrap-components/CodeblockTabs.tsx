@@ -8,7 +8,8 @@ import Code from './Code'
 
 const CodeTabs = styled(Tabs)`
   -webkit-tap-highlight-color: transparent;
-  width: 46rem;
+  width: 100%;
+  max-width: 46rem;
 `
 // @ts-ignore
 CodeTabs.tabsRole = 'Tabs'

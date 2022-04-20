@@ -37,6 +37,7 @@ Client.invoke({
 
 export default function HowItWorks() {
   useEffect(() => {
+    // @ts-ignore
     window.Prism.highlightAll()
   }, [])
 

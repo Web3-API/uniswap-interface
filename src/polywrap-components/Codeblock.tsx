@@ -12,14 +12,14 @@ import PolywrapTooltip from './PolywrapTooltip'
 import { useCreateUncheckedTradeCode, useQuoteCallParametersCode, useSwapCallParametersCode } from './useCode'
 
 const CodeblockContainer = styled(Flex)`
-  width: 46rem;
+  max-width: 46rem;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
 
-  @media (max-width: 960px) {
+  ${({ theme }) => theme.mediaWidth.upToMedium`
     padding-top: 3rem;
-  }
+  `};
 `
 
 const CodeblockSelect = styled(Flex)`
@@ -28,15 +28,10 @@ const CodeblockSelect = styled(Flex)`
   justify-content: space-between;
   width: 100%;
 
-  @media (max-width: 1280px) {
-    margin-top: 0 !important;
-  }
-
-  @media (max-width: 960px) {
+  ${({ theme }) => theme.mediaWidth.upToMedium`
     display: flex;
-    height: 9rem;
     flex-wrap: wrap;
-  }
+  `};
 `
 
 const ButtonContainer = styled(Flex)`
@@ -49,9 +44,9 @@ const ButtonContainer = styled(Flex)`
 const Arrow = styled(Image)`
   filter: invert(79%) sepia(31%) saturate(554%) hue-rotate(90deg) brightness(96%) contrast(87%);
 
-  @media (max-width: 960px) {
+  ${({ theme }) => theme.mediaWidth.upToMedium`
     display: none;
-  }
+  `};
 `
 
 interface Props {

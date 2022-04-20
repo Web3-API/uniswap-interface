@@ -16,6 +16,10 @@ export const BodyWrapper = styled.main<{ margin?: string; maxWidth?: string }>`
   margin-left: 0;
   margin-right: 2rem;
   z-index: ${Z_INDEX.deprecated_content};
+
+  ${({ theme }) => theme.mediaWidth.upToMedium`
+    margin-right: 0;
+  `};
 `
 
 /**

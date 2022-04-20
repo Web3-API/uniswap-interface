@@ -42,20 +42,6 @@ const HeaderFrame = styled.div<{ showBackground: boolean }>`
   box-shadow: 0px 0px 0px 1px ${({ theme, showBackground }) => (showBackground ? theme.bg2 : 'transparent;')};
   transition: background-position 0.1s, box-shadow 0.1s;
   background-blend-mode: hard-light;
-
-  ${({ theme }) => theme.mediaWidth.upToLarge`
-    grid-template-columns: 48px 1fr 1fr;
-  `};
-
-  ${({ theme }) => theme.mediaWidth.upToMedium`
-    padding:  1rem;
-    grid-template-columns: 1fr 1fr;
-  `};
-
-  ${({ theme }) => theme.mediaWidth.upToSmall`
-    padding:  1rem;
-    grid-template-columns: 36px 1fr;
-  `};
 `
 
 const HeaderControls = styled.div`
@@ -243,6 +229,18 @@ const StyledExternalLink = styled(ExternalLink).attrs({
   }
 `
 
+const DisappearingNavLink = styled(StyledNavLink)`
+  ${({ theme }) => theme.mediaWidth.upToLarge`
+    display: none;
+  `};
+`
+
+const DisappearingExternalLink = styled(StyledExternalLink)`
+  ${({ theme }) => theme.mediaWidth.upToMedium`
+    display: none;
+  `};
+`
+
 export default function Header() {
   const { account, chainId } = useActiveWeb3React()
 
@@ -300,9 +298,9 @@ export default function Header() {
           >
             <Trans>Pool</Trans>
           </StyledNavLink>
-          <StyledNavLink id={`howitworks-nav-link`} to={'/howitworks'}>
+          <DisappearingNavLink id={`howitworks-nav-link`} to={'/howitworks'}>
             <Trans>How it Works</Trans>
-          </StyledNavLink>
+          </DisappearingNavLink>
           <StyledExternalLink id={'discord-nav-link'} href={'https://discord.gg/QQDAtAX8ZT'}>
             <Trans>Discord</Trans>
             <sup>↗</sup>
@@ -311,10 +309,10 @@ export default function Header() {
             <Trans>Docs</Trans>
             <sup>↗</sup>
           </StyledExternalLink>
-          <StyledExternalLink id={`ens-nav-link`} href={'https://docs.polywrap.io/uniswapv3/intro'}>
+          <DisappearingExternalLink id={`ens-nav-link`} href={'https://docs.polywrap.io/uniswapv3/intro'}>
             <Trans>ENS</Trans>
             <sup>↗</sup>
-          </StyledExternalLink>
+          </DisappearingExternalLink>
         </HeaderLinks>
       </Flex>
 
