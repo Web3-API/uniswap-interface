@@ -28,6 +28,19 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
   const { active, library, chainId } = useWeb3React()
   const { active: networkActive, error: networkError, activate: activateNetwork } = useWeb3React(NetworkContextName)
 
+  // try to eagerly connect to an injected provider, if it exists and has granted access already
+  const triedEager = useEagerConnect()
+
+  // after eagerly trying injected, if the network connect ever isn't active or in an error state, activate itd
+  useEffect(() => {
+    if (triedEager && !networkActive && !networkError && !active) {
+      activateNetwork(network)
+    }
+  }, [triedEager, networkActive, networkError, activateNetwork, active])
+
+  // when there's no account connected, react to logins (broadly speaking) on the injected provider, if it exists
+  useInactiveListener(!triedEager)
+
   // Web3API integration.
   const [ethPlugin, setEthPlugin] = useState<PluginPackage>(
     ethereumPlugin({
@@ -46,16 +59,6 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
     },
   ]
 
-  // try to eagerly connect to an injected provider, if it exists and has granted access already
-  const triedEager = useEagerConnect()
-
-  // after eagerly trying injected, if the network connect ever isn't active or in an error state, activate itd
-  useEffect(() => {
-    if (triedEager && !networkActive && !networkError && !active) {
-      activateNetwork(network)
-    }
-  }, [triedEager, networkActive, networkError, activateNetwork, active])
-
   useEffect(() => {
     if (chainId && library) {
       const currentNetwork = Uni_ChainIdEnum[mapChainId(chainId)]
@@ -73,9 +76,6 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
       )
     }
   }, [library, chainId])
-
-  // when there's no account connected, react to logins (broadly speaking) on the injected provider, if it exists
-  useInactiveListener(!triedEager)
 
   // if the account context isn't active, and there's an error on the network context, it's an irrecoverable error
   if (triedEager && !active && networkError) {
