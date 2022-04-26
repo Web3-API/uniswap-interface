@@ -38,8 +38,6 @@ export function useAllV3Ticks(
   currencyB: Currency | undefined,
   feeAmount: FeeAmountEnum | undefined
 ) {
-  const client: Web3ApiClient = useWeb3ApiClient()
-
   const { data: poolAddress, execute: getPoolAddress } = useWeb3ApiInvoke<string | undefined>({
     uri: wrapperUri,
     module: 'query',
@@ -54,7 +52,7 @@ export function useAllV3Ticks(
         fee: feeAmount,
       })
     }
-  }, [currencyA, currencyB, feeAmount, client])
+  }, [currencyA, currencyB, feeAmount])
 
   const { isLoading, isError, error, isUninitialized, data } = useAllV3TicksQuery(
     poolAddress ? { poolAddress: poolAddress?.toLowerCase(), skip: 0 } : skipToken,
