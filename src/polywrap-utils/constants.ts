@@ -6,8 +6,8 @@ export const ETHER: Uni_Currency = {
   symbol: 'ETH',
 }
 
-export const ensUri = 'ens/rinkeby/univ3.eth'
-export const ipfsCid = 'ipfs/QmYnjDEVUu2mdyzuPPA3TBXu4sDFPEcbgaLquJrAdFxx4K' // QmUgwdty2NMwLmhMaQfU6DHMFZrdiLxLP45Wts2kTs876p
+export const ensUri = ''
+export const ipfsCid = 'QmPhYV3bLMW2qZGzHtmEyjj73PDqD3yhhsxhgxRAWQFLru' // 'ipfs/QmYnjDEVUu2mdyzuPPA3TBXu4sDFPEcbgaLquJrAdFxx4K'
 export const wrapperUri = ipfsCid
 export const ethereumPluginUri = 'ens/ethereum.web3api.eth'
 
