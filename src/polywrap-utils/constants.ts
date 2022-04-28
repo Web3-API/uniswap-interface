@@ -7,7 +7,7 @@ export const ETHER: Uni_Currency = {
 }
 
 export const ensUri = ''
-export const ipfsCid = 'QmPhYV3bLMW2qZGzHtmEyjj73PDqD3yhhsxhgxRAWQFLru' // 'ipfs/QmYnjDEVUu2mdyzuPPA3TBXu4sDFPEcbgaLquJrAdFxx4K'
+export const ipfsCid = 'ipfs/QmPhYV3bLMW2qZGzHtmEyjj73PDqD3yhhsxhgxRAWQFLru' // 'ipfs/QmYnjDEVUu2mdyzuPPA3TBXu4sDFPEcbgaLquJrAdFxx4K'
 export const wrapperUri = ipfsCid
 export const ethereumPluginUri = 'ens/ethereum.web3api.eth'
 
