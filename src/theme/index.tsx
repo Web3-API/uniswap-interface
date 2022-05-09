@@ -213,7 +213,6 @@ html {
   color: ${({ theme }) => theme.text1};
   background-image: url(${PolywrapBackgroundTile}); 
   background-size: auto;
-  // background-color: ${({ theme }) => theme.bg1} !important;
 }
 a {
  color: ${({ theme }) => theme.blue1}; 
