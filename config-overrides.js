@@ -1,19 +1,20 @@
-const fs = require("fs");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const TerserPlugin = require('terser-webpack-plugin')
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 module.exports = function override(config, env) {
-  config.optimization.minimize = false;
-
-  const minimizer = config.optimization.minimizer;
-
-  minimizer[0].options.terserOptions.mangle = undefined;
-  minimizer[0].options.terserOptions.keep_classnames = true;
-  minimizer[0].options.terserOptions.keep_fnames = true;
-
-  const plugins = config.plugins;
-
-  plugins[0].options.minify.minifyJS = false;
-
-  fs.writeFileSync(__dirname + "/config-after.json", JSON.stringify(config, null, 2));
-
-  return config;
-};
+  //do stuff with the webpack config...
+  return {
+    ...config,
+    optimization: {
+      minimizer: [
+        new TerserPlugin({
+          terserOptions: {
+            keep_fnames: true,
+            keep_classnames: true,
+          },
+        }),
+      ],
+    },
+  }
+}
