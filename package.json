@@ -127,9 +127,7 @@
     "web-vitals": "^2.1.0",
     "workbox-core": "^6.1.0",
     "workbox-precaching": "^6.1.0",
-    "workbox-routing": "^6.1.0",
-    "path-browserify": "^1.0.1",
-    "url": "^0.11.0"
+    "workbox-routing": "^6.1.0"
   },
   "resolutions": {
     "@walletconnect/ethereum-provider": "1.6.5"
