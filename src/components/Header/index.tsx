@@ -321,7 +321,10 @@ export default function Header() {
           <StyledExternalLink id={`discord-nav-link`} href={'https://discord.gg/QQDAtAX8ZT'}>
             Discord <span style={{ fontSize: '11px' }}>↗</span>
           </StyledExternalLink>
-          <StyledExternalLink id={`docs-nav-link`} href={'https://docs.polywrap.io/uniswapv2/uniswapv2-polywrap-intro'}>
+          <StyledExternalLink
+            id={`docs-nav-link`}
+            href={'https://docs.polywrap.io/demos/uniswapv2/uniswapv2-polywrap-intro'}
+          >
             Documentation <span style={{ fontSize: '11px' }}>↗</span>
           </StyledExternalLink>
           <StyledExternalLink id={`ens-nav-link`} href={'https://app.ens.domains/name/v2.uniswap.web3api.eth'}>
