@@ -5,8 +5,8 @@ import { useBlockNumber } from 'state/application/hooks'
 import { useSingleCallResult } from 'state/multicall/hooks'
 import { unwrappedToken } from 'utils/unwrappedToken'
 
-import { Uni_Pool as Pool } from '../polywrap'
 import { reverseMapToken } from '../polywrap-utils'
+import { Uni_Pool as Pool } from '../wrap'
 import { useV3NFTPositionManagerContract } from './useContract'
 
 const MAX_UINT128 = BigNumber.from(2).pow(128).sub(1)

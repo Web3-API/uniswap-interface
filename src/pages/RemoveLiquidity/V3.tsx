@@ -1,9 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { TransactionResponse } from '@ethersproject/providers'
 import { Trans } from '@lingui/macro'
+import { PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { Percent } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 import RangeBadge from 'components/Badge/RangeBadge'
 import { ButtonConfirmed, ButtonPrimary } from 'components/Button'
 import { LightCard } from 'components/Card'
@@ -34,11 +34,11 @@ import { ThemedText } from 'theme'
 
 import TransactionConfirmationModal, { ConfirmationModalContent } from '../../components/TransactionConfirmationModal'
 import { WRAPPED_NATIVE_CURRENCY } from '../../constants/tokens'
-import { Uni_MethodParameters, Uni_Query, Uni_TokenAmount as TokenAmount } from '../../polywrap'
 import { mapTokenAmount } from '../../polywrap-utils'
 import { TransactionType } from '../../state/transactions/actions'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { currencyId } from '../../utils/currencyId'
+import { Uni_MethodParameters, Uni_Module, Uni_TokenAmount as TokenAmount } from '../../wrap'
 import AppBody from '../AppBody'
 import { ResponsiveHeaderText, SmallMaxButton, Wrapper } from './styled'
 
@@ -70,7 +70,7 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
   const theme = useTheme()
   const { account, chainId, library } = useActiveWeb3React()
 
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   // flag for receiving WETH
   const [receiveWETH, setReceiveWETH] = useState(false)
@@ -120,7 +120,7 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
       return
     }
 
-    const invoke = await Uni_Query.removeCallParameters(
+    const invoke = await Uni_Module.removeCallParameters(
       {
         position: positionSDK,
         options: {

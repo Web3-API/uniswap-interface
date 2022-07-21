@@ -41,6 +41,7 @@ export default Input
 interface StringInputProps extends Omit<HTMLProps<HTMLInputElement>, 'onChange' | 'as' | 'value'> {
   value: string
   onChange: (input: string) => void
+  placeholder?: string
 }
 
 export const StringInput = forwardRef<HTMLInputElement, StringInputProps>(function StringInput(
@@ -74,6 +75,8 @@ interface NumericInputProps extends Omit<HTMLProps<HTMLInputElement>, 'onChange'
 interface EnforcedNumericInputProps extends NumericInputProps {
   // Validates nextUserInput; returns stringified value or undefined if valid, or null if invalid
   enforcer: (nextUserInput: string) => string | undefined | null
+  pattern?: string
+  placeholder?: string
 }
 
 const NumericInput = forwardRef<HTMLInputElement, EnforcedNumericInputProps>(function NumericInput(

@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
 
-import { Uni_ChainIdEnum, Uni_Token, Uni_TradeTypeEnum } from '../polywrap'
+import { Uni_ChainIdEnum, Uni_Token, Uni_TradeTypeEnum } from '../wrap'
 
 const quoteCallParametersQuery: string = `
 Client.query({
   uri: ensUri,
-  query: \`query {
+  query: \`module {
       quoteCallParameters(
           route: $route,
           amount: $amountSpecified,
@@ -55,7 +55,6 @@ const amountSpecified = {
 const createUncheckedTradeQuery: string = `
 Client.invoke({
   uri: ensUri,
-  module: 'query',
   method: 'createUncheckedTrade',
   input: {
     swap: {
@@ -107,7 +106,7 @@ const ${tradeType === Uni_TradeTypeEnum.EXACT_INPUT ? 'amountOut' : 'amountIn'} 
 const swapCallParametersQuery: string = `
 Client.query({
   uri: ensUri,
-  query: \`query {
+  query: \`module {
       swapCallParameters(
           trades: $trades
           options: $swapOptions,

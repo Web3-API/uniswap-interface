@@ -1,9 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { TransactionResponse } from '@ethersproject/providers'
 import { Trans } from '@lingui/macro'
+import { PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { Currency, CurrencyAmount, Percent } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 import UnsupportedCurrencyFooter from 'components/swap/UnsupportedCurrencyFooter'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import { AlertTriangle } from 'react-feather'
@@ -46,7 +46,6 @@ import useTransactionDeadline from '../../hooks/useTransactionDeadline'
 import { useUSDCValue } from '../../hooks/useUSDCPrice'
 import { useV3PositionFromTokenId } from '../../hooks/useV3Positions'
 import { useActiveWeb3React } from '../../hooks/web3'
-import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_MethodParameters, Uni_Query } from '../../polywrap'
 import { mapFeeAmount, mapToken, reverseMapFeeAmount } from '../../polywrap-utils'
 import { useWalletModalToggle } from '../../state/application/hooks'
 import { Bound, Field } from '../../state/mint/v3/actions'
@@ -58,6 +57,7 @@ import approveAmountCalldata from '../../utils/approveAmountCalldata'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { currencyId } from '../../utils/currencyId'
 import { maxAmountSpend } from '../../utils/maxAmountSpend'
+import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_MethodParameters, Uni_Module } from '../../wrap'
 import { Dots } from '../Pool/styleds'
 import { Review } from './Review'
 import {
@@ -90,7 +90,7 @@ export default function AddLiquidity({
   const addTransaction = useTransactionAdder()
   const positionManager = useV3NFTPositionManagerContract()
 
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   // check for existing position if tokenId in url
   const { position: existingPositionDetails, loading: positionLoading } = useV3PositionFromTokenId(
@@ -222,7 +222,7 @@ export default function AddLiquidity({
       const useNative = baseCurrency.isNative ? baseCurrency : quoteCurrency.isNative ? quoteCurrency : undefined
       const invoke =
         hasExistingPosition && tokenId
-          ? await Uni_Query.addCallParameters(
+          ? await Uni_Module.addCallParameters(
               {
                 position,
                 options: {
@@ -234,7 +234,7 @@ export default function AddLiquidity({
               },
               client
             )
-          : await Uni_Query.addCallParameters(
+          : await Uni_Module.addCallParameters(
               {
                 position,
                 options: {

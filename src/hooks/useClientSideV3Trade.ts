@@ -1,16 +1,16 @@
+import { PolywrapClient } from '@polywrap/client-js'
+import { InvokeResult } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
-import { InvokeApiResult } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 import { SupportedChainId } from 'constants/chains'
 import JSBI from 'jsbi'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { TradeState } from 'state/routing/types'
 
-import { Uni_Query, Uni_Route as Route, Uni_TokenAmount as TokenAmount, Uni_Trade as Trade } from '../polywrap'
 import { currencyDepsSDK, mapTokenAmount, mapTradeType, reverseMapChainId, reverseMapToken } from '../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
 import { useSingleContractWithCallData } from '../state/multicall/hooks'
+import { Uni_Module, Uni_Route as Route, Uni_TokenAmount as TokenAmount, Uni_Trade as Trade } from '../wrap'
 import { useAllV3Routes } from './useAllV3Routes'
 import { useV3Quoter } from './useContract'
 import { useActiveWeb3React } from './web3'
@@ -33,7 +33,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
   amountSpecified?: CurrencyAmount<Currency>,
   otherCurrency?: Currency
 ): { state: TradeState; trade: Trade | undefined } {
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   const [currencyIn, currencyOut] = useMemo(
     () =>
@@ -67,7 +67,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
     }
 
     const calldatas = routes.map(async (route) => {
-      const invoke = await Uni_Query.quoteCallParameters(
+      const invoke = await Uni_Module.quoteCallParameters(
         {
           route,
           amount: mapTokenAmount(amountSpecified) as TokenAmount,
@@ -95,7 +95,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
     state: TradeState.LOADING,
     trade: undefined,
   })
-  const cancelableTrade = useRef<CancelablePromise<InvokeApiResult<Trade> | undefined>>()
+  const cancelableTrade = useRef<CancelablePromise<InvokeResult<Trade> | undefined>>()
 
   useEffect(() => {
     cancelableTrade.current?.cancel()
@@ -186,7 +186,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       return
     }
 
-    const tradePromise = Uni_Query.createUncheckedTrade(
+    const tradePromise = Uni_Module.createUncheckedTrade(
       {
         swap: {
           route: bestRoute,

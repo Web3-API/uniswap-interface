@@ -12,7 +12,7 @@ import {
   Uni_Token,
   Uni_TokenAmount,
   Uni_Trade,
-} from '../polywrap'
+} from '../wrap'
 import { ETHER } from './constants'
 
 export function isEther(token: Uni_Token | undefined): boolean {

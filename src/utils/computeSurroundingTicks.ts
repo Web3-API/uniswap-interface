@@ -1,17 +1,17 @@
+import { PolywrapClient } from '@polywrap/client-js'
 import { Token } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
 import { TickProcessed } from 'hooks/usePoolTickData'
 import JSBI from 'jsbi'
 import { AllV3TicksQuery } from 'state/data/generated'
 
-import { Uni_Price, Uni_Query } from '../polywrap'
 import { mapToken, reverseMapPrice } from '../polywrap-utils'
+import { Uni_Module, Uni_Price } from '../wrap'
 
 const PRICE_FIXED_DIGITS = 8
 
 // Computes the numSurroundingTicks above or below the active tick.
 export default async function computeSurroundingTicks(
-  client: Web3ApiClient,
+  client: PolywrapClient,
   token0: Token,
   token1: Token,
   activeTickProcessed: TickProcessed,
@@ -28,7 +28,7 @@ export default async function computeSurroundingTicks(
   for (let i = pivot + (ascending ? 1 : -1); ascending ? i < sortedTickData.length : i >= 0; ascending ? i++ : i--) {
     const tickIdx = Number(sortedTickData[i].tickIdx)
 
-    const price = await Uni_Query.tickToPrice(
+    const price = await Uni_Module.tickToPrice(
       {
         baseToken: mapToken(token0),
         quoteToken: mapToken(token1),

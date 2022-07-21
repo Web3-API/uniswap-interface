@@ -14,7 +14,7 @@ import {
   Uni_Price as Price,
   Uni_Token as Token,
   Uni_TokenAmount as TokenAmount,
-} from '../polywrap'
+} from '../wrap'
 import { isEther } from './utils'
 
 export function reverseMapChainId(input: ChainId | number): number {

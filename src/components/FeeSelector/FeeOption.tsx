@@ -7,7 +7,7 @@ import React from 'react'
 import styled from 'styled-components/macro'
 import { ThemedText } from 'theme'
 
-import { Uni_FeeAmountEnum as FeeAmountEnum } from '../../polywrap'
+import { Uni_FeeAmountEnum as FeeAmountEnum } from '../../wrap'
 import { FeeTierPercentageBadge } from './FeeTierPercentageBadge'
 import { FEE_AMOUNT_DETAIL } from './shared'
 

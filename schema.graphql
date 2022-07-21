@@ -1,1 +1,1 @@
-#import * into Uni from "w3://fs/./../../integrations/uniswapv3/wrapper/build"
+#import * into Uni from "wrap://ipfs/QmZ62dnMvxcGmVYoB6zHbaRvn7zbGAWN3f7sTY8FttTtzi"

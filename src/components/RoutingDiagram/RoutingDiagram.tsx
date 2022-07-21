@@ -12,8 +12,8 @@ import styled from 'styled-components/macro'
 import { ThemedText, Z_INDEX } from 'theme'
 
 import { ReactComponent as DotLine } from '../../assets/svg/dot_line.svg'
-import { Uni_FeeAmountEnum as FeeAmountEnum } from '../../polywrap'
 import { reverseMapFeeAmount } from '../../polywrap-utils'
+import { Uni_FeeAmountEnum as FeeAmountEnum } from '../../wrap'
 import { MouseoverTooltip } from '../Tooltip'
 
 export interface RoutingDiagramEntry {

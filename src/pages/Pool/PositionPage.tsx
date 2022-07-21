@@ -1,9 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { TransactionResponse } from '@ethersproject/providers'
 import { Trans } from '@lingui/macro'
+import { InvokeResult, PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { Currency, CurrencyAmount, Fraction, Percent, Price, Token } from '@uniswap/sdk-core'
-import { InvokeApiResult, Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 import Badge from 'components/Badge'
 import { ButtonConfirmed, ButtonGray, ButtonPrimary } from 'components/Button'
 import { DarkCard, LightCard } from 'components/Card'
@@ -42,18 +42,18 @@ import RateToggle from '../../components/RateToggle'
 import { SwitchLocaleLink } from '../../components/SwitchLocaleLink'
 import { usePositionTokenURI } from '../../hooks/usePositionTokenURI'
 import useTheme from '../../hooks/useTheme'
-import {
-  Uni_MethodParameters,
-  Uni_Pool as Pool,
-  Uni_Position as Position,
-  Uni_Query,
-  Uni_TokenAmount as TokenAmount,
-} from '../../polywrap'
 import { mapTokenAmount, reverseMapPrice, reverseMapTokenAmount, toSignificant } from '../../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
 import { TransactionType } from '../../state/transactions/actions'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { ExplorerDataType, getExplorerLink } from '../../utils/getExplorerLink'
+import {
+  Uni_MethodParameters,
+  Uni_Module,
+  Uni_Pool as Pool,
+  Uni_Position as Position,
+  Uni_TokenAmount as TokenAmount,
+} from '../../wrap'
 import { LoadingRows } from './styleds'
 
 const PageWrapper = styled.div`
@@ -330,7 +330,7 @@ export function PositionPage({
   const { chainId, account, library } = useActiveWeb3React()
   const theme = useTheme()
 
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   const parsedTokenId = tokenIdFromUrl ? BigNumber.from(tokenIdFromUrl) : undefined
   const { loading, position: positionDetails } = useV3PositionFromTokenId(parsedTokenId)
@@ -362,12 +362,12 @@ export function PositionPage({
   const [poolState, pool] = usePool(token0 ?? undefined, token1 ?? undefined, feeAmount)
 
   const [position, setPosition] = useState<Position | undefined>(undefined)
-  const cancelable = useRef<CancelablePromise<InvokeApiResult<Position> | undefined>>()
+  const cancelable = useRef<CancelablePromise<InvokeResult<Position> | undefined>>()
 
   useEffect(() => {
     cancelable.current?.cancel()
     if (pool && liquidity && typeof tickLower === 'number' && typeof tickUpper === 'number') {
-      const positionPromise = Uni_Query.createPosition(
+      const positionPromise = Uni_Module.createPosition(
         {
           pool,
           liquidity: liquidity.toString(),
@@ -457,7 +457,7 @@ export function PositionPage({
 
     setCollecting(true)
 
-    const invoke = await Uni_Query.collectCallParameters(
+    const invoke = await Uni_Module.collectCallParameters(
       {
         options: {
           tokenId: tokenId.toString(),

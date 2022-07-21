@@ -14,9 +14,9 @@ import { useDarkModeManager } from 'state/user/hooks'
 import styled from 'styled-components/macro'
 import { Separator, ThemedText } from 'theme'
 
-import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_TradeTypeEnum as TradeTypeEnum } from '../../polywrap'
 import { reverseMapToken, reverseMapTokenAmount } from '../../polywrap-utils'
 import { ExtendedTrade } from '../../polywrap-utils/interfaces'
+import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_TradeTypeEnum as TradeTypeEnum } from '../../wrap'
 import { SUPPORTED_GAS_ESTIMATE_CHAIN_IDS } from './GasEstimateBadge'
 import { AutoRouterLabel, AutoRouterLogo } from './RouterLabel'
 

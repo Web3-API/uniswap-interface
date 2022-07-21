@@ -1,11 +1,11 @@
+import { PolywrapClient } from '@polywrap/client-js'
 import { Currency, CurrencyAmount, NativeCurrency, Token as UniToken, TradeType } from '@uniswap/sdk-core'
 import { Route as V2Route } from '@uniswap/v2-sdk'
-import { Web3ApiClient } from '@web3api/client-js'
 
 import { nativeOnChain } from '../../constants/tokens'
-import { Uni_Pool as Pool, Uni_Query, Uni_Route, Uni_Token as Token, Uni_TokenAmount, Uni_Trade } from '../../polywrap'
 import { mapChainId, mapFeeAmount, mapToken, mapTokenAmount, mapTradeType } from '../../polywrap-utils'
 import { ExtendedTrade } from '../../polywrap-utils/interfaces'
+import { Uni_Module, Uni_Pool as Pool, Uni_Route, Uni_Token as Token, Uni_TokenAmount, Uni_Trade } from '../../wrap'
 import { GetQuoteResult, V2PoolInRoute, V3PoolInRoute } from './types'
 
 /**
@@ -13,7 +13,7 @@ import { GetQuoteResult, V2PoolInRoute, V3PoolInRoute } from './types'
  * a `Trade`.
  */
 export async function computeRoutes(
-  client: Web3ApiClient,
+  client: PolywrapClient,
   currencyIn: Currency | undefined,
   currencyOut: Currency | undefined,
   tradeType: TradeType,
@@ -47,7 +47,7 @@ export async function computeRoutes(
 
       let routev3 = null
       if (isV3Route(route)) {
-        const routeInvoke = await Uni_Query.createRoute(
+        const routeInvoke = await Uni_Module.createRoute(
           {
             pools: await Promise.all(route.map((route) => parsePool(client, route))),
             inToken: mapToken(parsedCurrencyIn),
@@ -77,7 +77,7 @@ export async function computeRoutes(
 }
 
 export async function transformRoutesToTrade(
-  client: Web3ApiClient,
+  client: PolywrapClient,
   route:
     | {
         routev3: Uni_Route | null
@@ -100,7 +100,7 @@ export async function transformRoutesToTrade(
   if (swaps.length === 0) {
     return undefined
   }
-  const polyTradeInvoke = await Uni_Query.createUncheckedTradeWithMultipleRoutes(
+  const polyTradeInvoke = await Uni_Module.createUncheckedTradeWithMultipleRoutes(
     {
       swaps,
       tradeType: mapTradeType(tradeType),
@@ -135,10 +135,10 @@ const parseToken = ({ address, chainId, decimals, symbol }: GetQuoteResult['rout
 }
 
 const parsePool = async (
-  client: Web3ApiClient,
+  client: PolywrapClient,
   { fee, sqrtRatioX96, liquidity, tickCurrent, tokenIn, tokenOut }: V3PoolInRoute
 ): Promise<Pool> => {
-  const poolInvoke = await Uni_Query.createPool(
+  const poolInvoke = await Uni_Module.createPool(
     {
       tokenA: parseToken(tokenIn),
       tokenB: parseToken(tokenOut),

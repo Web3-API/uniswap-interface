@@ -4,9 +4,9 @@ import { Contract } from '@ethersproject/contracts'
 import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers'
 import { Token } from '@uniswap/sdk-core'
 
-import { Uni_FeeAmountEnum as FeeAmountEnum } from '../polywrap'
 import { reverseMapFeeAmount } from '../polywrap-utils'
 import { TokenAddressMap } from '../state/lists/hooks'
+import { Uni_FeeAmountEnum as FeeAmountEnum } from '../wrap'
 
 // returns the checksummed address if the address is valid, otherwise returns false
 export function isAddress(value: any): string | false {

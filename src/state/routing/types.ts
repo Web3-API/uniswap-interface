@@ -2,7 +2,7 @@ import { RouteV3, Trade } from '@uniswap/router-sdk'
 import { Currency, CurrencyAmount, Token, TradeType } from '@uniswap/sdk-core'
 import { Route as V2Route } from '@uniswap/v2-sdk'
 
-import { Uni_Trade as PolyTrade } from '../../polywrap'
+import { Uni_Trade as PolyTrade } from '../../wrap'
 
 export enum TradeState {
   LOADING,

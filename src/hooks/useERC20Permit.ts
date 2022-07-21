@@ -1,18 +1,18 @@
 import { splitSignature } from '@ethersproject/bytes'
+import { InvokeResult, PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { Trade } from '@uniswap/router-sdk'
 import { Currency, CurrencyAmount, Percent, Token, TradeType } from '@uniswap/sdk-core'
 import { Trade as V2Trade } from '@uniswap/v2-sdk'
-import { InvokeApiResult, Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 import JSBI from 'jsbi'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { SWAP_ROUTER_ADDRESSES, V3_ROUTER_ADDRESS } from '../constants/addresses'
 import { DAI, UNI, USDC } from '../constants/tokens'
-import { Uni_Query, Uni_TokenAmount as TokenAmount, Uni_Trade as PolyTrade } from '../polywrap'
 import { isTrade, reverseMapTokenAmount } from '../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
 import { useSingleCallResult } from '../state/multicall/hooks'
+import { Uni_Module, Uni_TokenAmount as TokenAmount, Uni_Trade as PolyTrade } from '../wrap'
 import { useEIP2612Contract } from './useContract'
 import useIsArgentWallet from './useIsArgentWallet'
 import useTransactionDeadline from './useTransactionDeadline'
@@ -280,7 +280,7 @@ export function useERC20PermitFromTrade(
   trade: V2Trade<Currency, Currency, TradeType> | PolyTrade | Trade<Currency, Currency, TradeType> | undefined,
   allowedSlippage: Percent
 ) {
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
   const { chainId } = useActiveWeb3React()
   const swapRouterAddress = chainId
     ? // v2 router does not support
@@ -292,7 +292,7 @@ export function useERC20PermitFromTrade(
     : undefined
 
   const [amountToApprove, setAmountToApprove] = useState<CurrencyAmount<Currency> | undefined>()
-  const cancelable = useRef<CancelablePromise<InvokeApiResult<TokenAmount> | undefined>>()
+  const cancelable = useRef<CancelablePromise<InvokeResult<TokenAmount> | undefined>>()
 
   useEffect(() => {
     cancelable.current?.cancel()
@@ -301,7 +301,7 @@ export function useERC20PermitFromTrade(
     } else if (!isTrade(trade)) {
       setAmountToApprove(trade.maximumAmountIn(allowedSlippage))
     } else {
-      const maxInPromise = Uni_Query.tradeMaximumAmountIn(
+      const maxInPromise = Uni_Module.tradeMaximumAmountIn(
         {
           slippageTolerance: allowedSlippage.toFixed(36),
           amountIn: trade.inputAmount,

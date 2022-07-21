@@ -2,7 +2,7 @@ import { Trans } from '@lingui/macro'
 import { ReactNode } from 'react'
 import { Text } from 'rebass'
 
-import { Uni_Trade as Trade } from '../../polywrap'
+import { Uni_Trade as Trade } from '../../wrap'
 import { ButtonError } from '../Button'
 import { AutoRow } from '../Row'
 import { SwapCallbackError } from './styleds'

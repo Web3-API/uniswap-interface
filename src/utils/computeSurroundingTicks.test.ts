@@ -1,9 +1,9 @@
+import { PolywrapClient } from '@polywrap/client-js'
 import { Token } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
 import JSBI from 'jsbi'
 import { AllV3TicksQuery } from 'state/data/generated'
 
-import { Uni_FeeAmountEnum, Uni_Query } from '../polywrap'
+import { Uni_FeeAmountEnum, Uni_Module } from '../wrap'
 import computeSurroundingTicks from './computeSurroundingTicks'
 
 const getV3Tick = (tickIdx: number, liquidityNet: number) => ({
@@ -14,13 +14,13 @@ const getV3Tick = (tickIdx: number, liquidityNet: number) => ({
 })
 
 describe('#computeSurroundingTicks', () => {
-  const client: Web3ApiClient = new Web3ApiClient()
+  const client: PolywrapClient = new PolywrapClient()
 
   it('correctly compute active liquidity', async () => {
     const token0 = new Token(1, '0x2170ed0880ac9a755fd29b2688956bd959f933f8', 18)
     const token1 = new Token(1, '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984', 18)
     const feeAmount = Uni_FeeAmountEnum.LOW
-    const spacing = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client).then((res) => {
+    const spacing = await Uni_Module.feeAmountToTickSpacing({ feeAmount }, client).then((res) => {
       if (res.error) throw res.error
       return res.data as number
     })

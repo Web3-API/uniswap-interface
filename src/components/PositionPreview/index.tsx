@@ -16,8 +16,8 @@ import { ThemedText } from 'theme'
 import { formatTickPrice } from 'utils/formatTickPrice'
 import { unwrappedToken } from 'utils/unwrappedToken'
 
-import { Uni_Position as Position } from '../../polywrap'
 import { reverseMapFeeAmount, reverseMapPrice, reverseMapToken, toSignificant } from '../../polywrap-utils'
+import { Uni_Position as Position } from '../../wrap'
 
 export const PositionPreview = ({
   position,

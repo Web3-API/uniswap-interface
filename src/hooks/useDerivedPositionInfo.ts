@@ -1,18 +1,18 @@
-import { InvokeApiResult, Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
+import { InvokeResult, PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { usePool } from 'hooks/usePools'
 import { useEffect, useRef, useState } from 'react'
 import { PositionDetails } from 'types/position'
 
-import { Uni_Pool as Pool, Uni_Position as Position, Uni_Query } from '../polywrap'
 import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
+import { Uni_Module, Uni_Pool as Pool, Uni_Position as Position } from '../wrap'
 import { useCurrency } from './Tokens'
 
 export function useDerivedPositionInfo(positionDetails: PositionDetails | undefined): {
   position?: Position
   pool?: Pool
 } {
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   const currency0 = useCurrency(positionDetails?.token0)
   const currency1 = useCurrency(positionDetails?.token1)
@@ -21,14 +21,14 @@ export function useDerivedPositionInfo(positionDetails: PositionDetails | undefi
   const [, pool] = usePool(currency0 ?? undefined, currency1 ?? undefined, positionDetails?.fee)
 
   const [position, setPosition] = useState<Position | undefined>(undefined)
-  const cancelable = useRef<CancelablePromise<InvokeApiResult<Position> | undefined>>()
+  const cancelable = useRef<CancelablePromise<InvokeResult<Position> | undefined>>()
 
   useEffect(() => {
     cancelable.current?.cancel()
     if (!pool || !positionDetails) {
       setPosition(undefined)
     } else {
-      const positionPromise = Uni_Query.createPosition(
+      const positionPromise = Uni_Module.createPosition(
         {
           pool,
           liquidity: positionDetails.liquidity.toString(),

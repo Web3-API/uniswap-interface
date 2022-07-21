@@ -1,8 +1,8 @@
 import { Trans } from '@lingui/macro'
+import { PolywrapClient } from '@polywrap/client-js'
+import { InvokeResult } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { Percent, Price, Token as UniToken } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
-import { InvokeApiResult } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 import Badge from 'components/Badge'
 import RangeBadge from 'components/Badge/RangeBadge'
 import DoubleCurrencyLogo from 'components/DoubleLogo'
@@ -22,9 +22,9 @@ import { formatTickPrice } from 'utils/formatTickPrice'
 import { unwrappedToken } from 'utils/unwrappedToken'
 
 import { DAI, USDC, USDT, WBTC, WRAPPED_NATIVE_CURRENCY } from '../../constants/tokens'
-import { Uni_Position, Uni_Query } from '../../polywrap'
 import { reverseMapPrice, reverseMapToken } from '../../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
+import { Uni_Module, Uni_Position } from '../../wrap'
 
 const LinkRow = styled(Link)`
   align-items: center;
@@ -202,7 +202,7 @@ export default function PositionListItem({ positionDetails }: PositionListItemPr
     tickUpper,
   } = positionDetails
 
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   const token0 = useToken(token0Address)
   const token1 = useToken(token1Address)
@@ -213,7 +213,7 @@ export default function PositionListItem({ positionDetails }: PositionListItemPr
   const [, pool] = usePool(currency0 ?? undefined, currency1 ?? undefined, feeAmount)
 
   const [position, setPosition] = useState<Uni_Position | undefined>(undefined)
-  const cancelable = useRef<CancelablePromise<InvokeApiResult<Uni_Position> | undefined>>()
+  const cancelable = useRef<CancelablePromise<InvokeResult<Uni_Position> | undefined>>()
 
   // construct Position from details returned
   useEffect(() => {
@@ -221,7 +221,7 @@ export default function PositionListItem({ positionDetails }: PositionListItemPr
     if (!pool) {
       setPosition(undefined)
     } else {
-      const positionPromise = Uni_Query.createPosition(
+      const positionPromise = Uni_Module.createPosition(
         {
           pool,
           liquidity: liquidity.toString(),

@@ -14,7 +14,7 @@ import {
   Uni_Token as Token,
   Uni_TokenAmount as TokenAmount,
   Uni_TradeTypeEnum as TradeTypeEnum,
-} from '../polywrap'
+} from '../wrap'
 
 export function mapChainId(input: number): ChainIdEnum {
   switch (input) {

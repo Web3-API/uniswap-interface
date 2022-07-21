@@ -1,21 +1,21 @@
 import { MaxUint256 } from '@ethersproject/constants'
 import { TransactionResponse } from '@ethersproject/providers'
+import { PolywrapClient } from '@polywrap/client-js'
+import { InvokeResult } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { Trade as RouterTrade } from '@uniswap/router-sdk'
 import { Currency, CurrencyAmount, Percent, TradeType } from '@uniswap/sdk-core'
 import { Trade as V2Trade } from '@uniswap/v2-sdk'
-import { Web3ApiClient } from '@web3api/client-js'
-import { InvokeApiResult } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getTxOptimizedSwapRouter, SwapRouterVersion } from 'utils/getTxOptimizedSwapRouter'
 
 import { SWAP_ROUTER_ADDRESSES, V2_ROUTER_ADDRESS, V3_ROUTER_ADDRESS } from '../constants/addresses'
-import { Uni_Query, Uni_TokenAmount, Uni_Trade as PolyTrade } from '../polywrap'
 import { isEther, isTrade, reverseMapTokenAmount } from '../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
 import { TransactionType } from '../state/transactions/actions'
 import { useHasPendingApproval, useTransactionAdder } from '../state/transactions/hooks'
 import { calculateGasMargin } from '../utils/calculateGasMargin'
+import { Uni_Module, Uni_TokenAmount, Uni_Trade as PolyTrade } from '../wrap'
 import { useTokenContract } from './useContract'
 import { useTokenAllowance } from './useTokenAllowance'
 import { useActiveWeb3React } from './web3'
@@ -53,17 +53,17 @@ export function useApprovalState(amountToApprove?: CurrencyAmount<Currency>, spe
 /** Returns approval state for all known swap routers */
 export function useAllApprovalStates(trade: PolyTrade | undefined, allowedSlippage: Percent) {
   const { chainId } = useActiveWeb3React()
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   const [amountToApprove, setAmountToApprove] = useState<Uni_TokenAmount | undefined>(undefined)
-  const cancelable = useRef<CancelablePromise<InvokeApiResult<Uni_TokenAmount> | undefined>>()
+  const cancelable = useRef<CancelablePromise<InvokeResult<Uni_TokenAmount> | undefined>>()
 
   useEffect(() => {
     cancelable.current?.cancel()
     if (!trade || isEther(trade.inputAmount.token)) {
       setAmountToApprove(undefined)
     } else {
-      const maxInPromise = Uni_Query.tradeMaximumAmountIn(
+      const maxInPromise = Uni_Module.tradeMaximumAmountIn(
         {
           amountIn: trade.inputAmount,
           tradeType: trade.tradeType,
@@ -165,10 +165,10 @@ export function useApproveCallbackFromTrade(
   allowedSlippage: Percent
 ) {
   const { chainId } = useActiveWeb3React()
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   const [amountToApprove, setAmountToApprove] = useState<CurrencyAmount<Currency> | undefined>(undefined)
-  const cancelable = useRef<CancelablePromise<InvokeApiResult<Uni_TokenAmount> | undefined>>()
+  const cancelable = useRef<CancelablePromise<InvokeResult<Uni_TokenAmount> | undefined>>()
 
   useEffect(() => {
     cancelable.current?.cancel()
@@ -179,7 +179,7 @@ export function useApproveCallbackFromTrade(
     } else if (isEther(trade.inputAmount.token)) {
       setAmountToApprove(undefined)
     } else {
-      const maxInPromise = Uni_Query.tradeMaximumAmountIn(
+      const maxInPromise = Uni_Module.tradeMaximumAmountIn(
         {
           amountIn: trade.inputAmount,
           tradeType: trade.tradeType,

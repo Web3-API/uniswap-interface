@@ -1,4 +1,4 @@
-import { Uni_Currency } from '../polywrap'
+import { Uni_Currency } from '../wrap'
 
 export const ETHER: Uni_Currency = {
   decimals: 18,
@@ -6,10 +6,9 @@ export const ETHER: Uni_Currency = {
   symbol: 'ETH',
 }
 
-export const ensUri = 'w3://ens/rinkeby/uniswapv3.eth'
-export const ipfsCid = 'w3://ipfs/QmcFf5GY1EboKGtf1cJQM8BxyPbwk3pVjwt4zVyiYeftSD'
-export const wrapperUri = ipfsCid
-export const ethereumPluginUri = 'ens/ethereum.web3api.eth'
+export const ensUri = 'wrap://ens/goerli/v3.uniswap.wrappers.eth'
+export const ipfsCid = 'wrap://ipfs/QmZ62dnMvxcGmVYoB6zHbaRvn7zbGAWN3f7sTY8FttTtzi'
+export const wrapperUri = ensUri
 
 // infura keys
 // b00b2c2cc09c487685e9fb061256d6a6

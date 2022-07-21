@@ -1,8 +1,8 @@
 import { parseUnits } from '@ethersproject/units'
 import { Trans } from '@lingui/macro'
+import { InvokeResult, PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { Currency, CurrencyAmount, Percent, TradeType } from '@uniswap/sdk-core'
-import { InvokeApiResult, Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 import { useBestTrade } from 'hooks/useBestTrade'
 import JSBI from 'jsbi'
 import { ParsedQs } from 'qs'
@@ -15,11 +15,11 @@ import useENS from '../../hooks/useENS'
 import useParsedQueryString from '../../hooks/useParsedQueryString'
 import useSwapSlippageTolerance from '../../hooks/useSwapSlippageTolerance'
 import { useActiveWeb3React } from '../../hooks/web3'
-import { Uni_Query, Uni_TokenAmount } from '../../polywrap'
 import { reverseMapTokenAmount } from '../../polywrap-utils'
 import { ExtendedTrade } from '../../polywrap-utils/interfaces'
 import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
 import { isAddress } from '../../utils'
+import { Uni_Module, Uni_TokenAmount } from '../../wrap'
 import { AppState } from '../index'
 import { useCurrencyBalances } from '../wallet/hooks'
 import { Field, replaceSwapState, selectCurrency, setRecipient, switchCurrencies, typeInput } from './actions'
@@ -111,7 +111,7 @@ export function useDerivedSwapInfo(): {
   allowedSlippage: Percent
 } {
   const { account } = useActiveWeb3React()
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   const {
     independentField,
@@ -178,14 +178,14 @@ export function useDerivedSwapInfo(): {
   const allowedSlippage = useSwapSlippageTolerance(trade.trade, trade.trade?.gasUseEstimateUSD ?? undefined)
 
   const [maximumAmountIn, setMaximumAmountIn] = useState<Uni_TokenAmount | undefined>(undefined)
-  const cancelable = useRef<CancelablePromise<InvokeApiResult<Uni_TokenAmount> | undefined>>()
+  const cancelable = useRef<CancelablePromise<InvokeResult<Uni_TokenAmount> | undefined>>()
 
   useEffect(() => {
     cancelable.current?.cancel()
     if (!trade.trade) {
       setMaximumAmountIn(undefined)
     } else {
-      const maxInPromise = Uni_Query.tradeMaximumAmountIn(
+      const maxInPromise = Uni_Module.tradeMaximumAmountIn(
         {
           amountIn: trade.trade.inputAmount,
           tradeType: trade.trade.tradeType,

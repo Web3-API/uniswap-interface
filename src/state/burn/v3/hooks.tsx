@@ -1,7 +1,7 @@
 import { Trans } from '@lingui/macro'
+import { InvokeResult, PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { Currency, CurrencyAmount, Percent } from '@uniswap/sdk-core'
-import { InvokeApiResult, Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 import { useToken } from 'hooks/Tokens'
 import { usePool } from 'hooks/usePools'
 import { useV3PositionFees } from 'hooks/useV3PositionFees'
@@ -11,8 +11,8 @@ import { useAppDispatch, useAppSelector } from 'state/hooks'
 import { PositionDetails } from 'types/position'
 import { unwrappedToken } from 'utils/unwrappedToken'
 
-import { Uni_Position as Position, Uni_Query } from '../../../polywrap'
 import { CancelablePromise, makeCancelable } from '../../../polywrap-utils/makeCancelable'
+import { Uni_Module, Uni_Position as Position } from '../../../wrap'
 import { AppState } from '../../index'
 import { selectPercent } from './actions'
 
@@ -33,7 +33,7 @@ export function useDerivedV3BurnInfo(
   outOfRange: boolean
   error?: ReactNode
 } {
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
   const { account } = useActiveWeb3React()
   const { percent } = useBurnV3State()
 
@@ -43,7 +43,7 @@ export function useDerivedV3BurnInfo(
   const [, pool] = usePool(token0 ?? undefined, token1 ?? undefined, position?.fee)
 
   const [positionSDK, setPositionSDK] = useState<Position | undefined>(undefined)
-  const cancelable = useRef<CancelablePromise<InvokeApiResult<Position> | undefined>>()
+  const cancelable = useRef<CancelablePromise<InvokeResult<Position> | undefined>>()
 
   useEffect(() => {
     cancelable.current?.cancel()
@@ -53,7 +53,7 @@ export function useDerivedV3BurnInfo(
       typeof position?.tickLower === 'number' &&
       typeof position?.tickUpper === 'number'
     ) {
-      const positionPromise = Uni_Query.createPosition(
+      const positionPromise = Uni_Module.createPosition(
         {
           pool,
           liquidity: position.liquidity.toString(),

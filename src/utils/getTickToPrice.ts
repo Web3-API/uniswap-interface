@@ -1,11 +1,11 @@
+import { PolywrapClient } from '@polywrap/client-js'
 import { Price, Token } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
 
-import { Uni_Price, Uni_Query } from '../polywrap'
 import { mapToken, reverseMapPrice } from '../polywrap-utils'
+import { Uni_Module, Uni_Price } from '../wrap'
 
 export async function getTickToPrice(
-  client: Web3ApiClient,
+  client: PolywrapClient,
   baseToken?: Token,
   quoteToken?: Token,
   tick?: number
@@ -13,7 +13,7 @@ export async function getTickToPrice(
   if (!baseToken || !quoteToken || typeof tick !== 'number') {
     return undefined
   }
-  return Uni_Query.tickToPrice(
+  return Uni_Module.tickToPrice(
     {
       baseToken: mapToken(baseToken),
       quoteToken: mapToken(quoteToken),

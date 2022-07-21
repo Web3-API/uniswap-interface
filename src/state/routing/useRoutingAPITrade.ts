@@ -1,7 +1,7 @@
+import { PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { skipToken } from '@reduxjs/toolkit/query/react'
 import { Currency, CurrencyAmount, Token, TradeType } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 import { useStablecoinAmountFromFiatValue } from 'hooks/useUSDCPrice'
 import ms from 'ms.macro'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -100,7 +100,7 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
 
   const quoteResult: GetQuoteResult | undefined = useFreshData(data, Number(data?.blockNumber) || 0)
 
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   // get USD gas cost of trade in active chains stablecoin amount
   const gasUseEstimateUSD = useStablecoinAmountFromFiatValue(quoteResult?.gasUseEstimateUSD) ?? null
@@ -178,7 +178,7 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
 }
 
 const loadTrade = async (
-  client: Web3ApiClient,
+  client: PolywrapClient,
   currencyIn: Currency,
   currencyOut: Currency,
   tradeType: TradeType,

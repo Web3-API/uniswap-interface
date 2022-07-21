@@ -1,17 +1,17 @@
+import { PolywrapClient } from '@polywrap/client-js'
 import { CurrencyAmount, Percent, Token } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
 import JSBI from 'jsbi'
 
 import {
   Uni_ChainIdEnum,
   Uni_FeeAmountEnum,
+  Uni_Module,
   Uni_Pool,
-  Uni_Query,
   Uni_Route,
   Uni_Token,
   Uni_Trade,
   Uni_TradeTypeEnum,
-} from '../polywrap'
+} from '../wrap'
 import { computeRealizedLPFeeAmount, warningSeverity } from './prices'
 
 const token1 = new Token(1, '0x0000000000000000000000000000000000000001', 18)
@@ -41,17 +41,17 @@ const polyToken3: Uni_Token = {
 const currencyAmount = (token: Token, amount: number) => CurrencyAmount.fromRawAmount(token, JSBI.BigInt(amount))
 
 const getTrade = async (
-  client: Web3ApiClient,
+  client: PolywrapClient,
   pools: Array<Uni_Pool>,
   inToken: Uni_Token,
   outToken: Uni_Token,
   tradeType: Uni_TradeTypeEnum,
   amount: string
 ): Promise<Uni_Trade> => {
-  const routeInvoke = await Uni_Query.createRoute({ pools, inToken, outToken }, client)
+  const routeInvoke = await Uni_Module.createRoute({ pools, inToken, outToken }, client)
   if (routeInvoke.error) throw routeInvoke.error
   const route = routeInvoke.data as Uni_Route
-  const tradeInvoke = await Uni_Query.createTradeFromRoutes(
+  const tradeInvoke = await Uni_Module.createTradeFromRoutes(
     {
       tradeRoutes: [
         {
@@ -71,12 +71,12 @@ const getTrade = async (
 }
 
 describe('prices', () => {
-  const client: Web3ApiClient = new Web3ApiClient()
+  const client: PolywrapClient = new PolywrapClient()
   let polyPool12: Uni_Pool
   let polyPool13: Uni_Pool
 
   beforeAll(async () => {
-    const polyPool12Invoke = await Uni_Query.createPool(
+    const polyPool12Invoke = await Uni_Module.createPool(
       {
         tokenA: polyToken1,
         tokenB: polyToken2,
@@ -90,7 +90,7 @@ describe('prices', () => {
     if (polyPool12Invoke.error) throw polyPool12Invoke.error
     polyPool12 = polyPool12Invoke.data as Uni_Pool
 
-    const polyPool13Invoke = await Uni_Query.createPool(
+    const polyPool13Invoke = await Uni_Module.createPool(
       {
         tokenA: polyToken1,
         tokenB: polyToken3,

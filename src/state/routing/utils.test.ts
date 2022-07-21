@@ -1,5 +1,5 @@
+import { PolywrapClient } from '@polywrap/client-js'
 import { Token, TradeType } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
 
 import { nativeOnChain } from '../../constants/tokens'
 import { mapToken } from '../../polywrap-utils'
@@ -22,7 +22,7 @@ const polyWETH = mapToken(ETH.wrapped)
 const amount = (raw: TemplateStringsArray) => (parseInt(raw[0]) * 1e6).toString()
 
 describe('#useRoute', () => {
-  const client: Web3ApiClient = new Web3ApiClient()
+  const client: PolywrapClient = new PolywrapClient()
 
   it('handles an undefined payload', async () => {
     const result = await computeRoutes(client, undefined, undefined, TradeType.EXACT_INPUT, undefined)

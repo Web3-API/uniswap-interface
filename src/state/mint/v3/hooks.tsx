@@ -1,7 +1,7 @@
 import { Trans } from '@lingui/macro'
+import { InvokeResult, PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { Currency, CurrencyAmount, Price, Rounding, Token } from '@uniswap/sdk-core'
-import { InvokeApiResult, Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 import { usePool } from 'hooks/usePools'
 import JSBI from 'jsbi'
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -11,17 +11,17 @@ import { getTickToPrice } from 'utils/getTickToPrice'
 import { BIG_INT_ZERO } from '../../../constants/misc'
 import { PoolState } from '../../../hooks/usePools'
 import { useActiveWeb3React } from '../../../hooks/web3'
+import { mapPrice, mapToken, reverseMapPrice, reverseMapToken, tokenEquals } from '../../../polywrap-utils'
+import { CancelablePromise, makeCancelable } from '../../../polywrap-utils/makeCancelable'
 import {
   Uni_FeeAmountEnum as FeeAmountEnum,
   Uni_FeeAmountEnum,
+  Uni_Module,
   Uni_Pool as Pool,
   Uni_Pool,
   Uni_Position as Position,
   Uni_Price,
-  Uni_Query,
-} from '../../../polywrap'
-import { mapPrice, mapToken, reverseMapPrice, reverseMapToken, tokenEquals } from '../../../polywrap-utils'
-import { CancelablePromise, makeCancelable } from '../../../polywrap-utils/makeCancelable'
+} from '../../../wrap'
 import { AppState } from '../../index'
 import { tryParseAmount } from '../../swap/hooks'
 import { useCurrencyBalances } from '../../wallet/hooks'
@@ -98,14 +98,14 @@ const loadMockPool = async (
   feeAmount: FeeAmountEnum | undefined,
   tokenA: Token | undefined,
   tokenB: Token | undefined,
-  client: Web3ApiClient
+  client: PolywrapClient
 ) => {
   // invalidPrice
   let invalidPrice
   try {
     let sqrtRatioX96 = undefined
     if (price) {
-      const invoke = await Uni_Query.encodeSqrtRatioX96(
+      const invoke = await Uni_Module.encodeSqrtRatioX96(
         {
           amount1: price.numerator.toString(),
           amount0: price.denominator.toString(),
@@ -116,10 +116,10 @@ const loadMockPool = async (
       sqrtRatioX96 = invoke.data as string
     }
 
-    const minSqrtRatioInvoke = await Uni_Query.MIN_SQRT_RATIO({}, client)
+    const minSqrtRatioInvoke = await Uni_Module.MIN_SQRT_RATIO({}, client)
     if (minSqrtRatioInvoke.error) throw minSqrtRatioInvoke.error
     const minSqrtRatio = minSqrtRatioInvoke.data as string
-    const maxSqrtRatioInvoke = await Uni_Query.MAX_SQRT_RATIO({}, client)
+    const maxSqrtRatioInvoke = await Uni_Module.MAX_SQRT_RATIO({}, client)
     if (maxSqrtRatioInvoke.error) throw maxSqrtRatioInvoke.error
     const maxSqrtRatio = maxSqrtRatioInvoke.data as string
     invalidPrice =
@@ -136,13 +136,13 @@ const loadMockPool = async (
   let mockPool: Pool | undefined = undefined
   try {
     if (tokenA && tokenB && feeAmount !== undefined && price && !invalidPrice) {
-      const tickInvoke = await Uni_Query.priceToClosestTick({ price: mapPrice(price) }, client)
+      const tickInvoke = await Uni_Module.priceToClosestTick({ price: mapPrice(price) }, client)
       if (tickInvoke.error) throw tickInvoke.error
       const currentTick = tickInvoke.data as number
-      const sqrtInvoke = await Uni_Query.getSqrtRatioAtTick({ tick: currentTick }, client)
+      const sqrtInvoke = await Uni_Module.getSqrtRatioAtTick({ tick: currentTick }, client)
       if (sqrtInvoke.error) throw sqrtInvoke.error
       const currentSqrt = sqrtInvoke.data as string
-      const mockPoolInvoke = await Uni_Query.createPool(
+      const mockPoolInvoke = await Uni_Module.createPool(
         {
           tokenA: mapToken(tokenA),
           tokenB: mapToken(tokenB),
@@ -165,21 +165,21 @@ const loadMockPool = async (
   }
 }
 
-const loadTickSpaceLimits = async (client: Web3ApiClient, feeAmount: Uni_FeeAmountEnum) => {
+const loadTickSpaceLimits = async (client: PolywrapClient, feeAmount: Uni_FeeAmountEnum) => {
   try {
-    const minTickInvoke = await Uni_Query.MIN_TICK({}, client)
+    const minTickInvoke = await Uni_Module.MIN_TICK({}, client)
     if (minTickInvoke.error) throw minTickInvoke.error
     const minTick = minTickInvoke.data as number
 
-    const maxTickInvoke = await Uni_Query.MAX_TICK({}, client)
+    const maxTickInvoke = await Uni_Module.MAX_TICK({}, client)
     if (maxTickInvoke.error) throw maxTickInvoke.error
     const maxTick = maxTickInvoke.data as number
 
-    const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+    const tickSpacingInvoke = await Uni_Module.feeAmountToTickSpacing({ feeAmount }, client)
     if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
     const tickSpacing = tickSpacingInvoke.data as number
 
-    const lowerInvoke = await Uni_Query.nearestUsableTick(
+    const lowerInvoke = await Uni_Module.nearestUsableTick(
       {
         tick: minTick,
         tickSpacing,
@@ -189,7 +189,7 @@ const loadTickSpaceLimits = async (client: Web3ApiClient, feeAmount: Uni_FeeAmou
     if (lowerInvoke.error) throw lowerInvoke.error
     const lower: number = lowerInvoke.data as number
 
-    const upperInvoke = await Uni_Query.nearestUsableTick(
+    const upperInvoke = await Uni_Module.nearestUsableTick(
       {
         tick: maxTick,
         tickSpacing,
@@ -217,7 +217,7 @@ const loadTicks = async (
   token0: Token | undefined,
   token1: Token | undefined,
   tickSpaceLimits: { LOWER?: number; UPPER?: number },
-  client: Web3ApiClient
+  client: PolywrapClient
 ) => {
   return {
     [Bound.LOWER]:
@@ -272,7 +272,7 @@ export function useV3DerivedMintInfo(
   ticksAtLimit: { [bound in Bound]?: boolean | undefined }
 } {
   const { account } = useActiveWeb3React()
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   const { independentField, typedValue, leftRangeTypedValue, rightRangeTypedValue, startPriceTypedValue } =
     useV3MintState()
@@ -469,7 +469,7 @@ export function useV3DerivedMintInfo(
   )
 
   const [dependentAmount, setDependentAmount] = useState<CurrencyAmount<Currency> | undefined>(undefined)
-  const cancelablePositionOne = useRef<CancelablePromise<InvokeApiResult<Position> | undefined>>()
+  const cancelablePositionOne = useRef<CancelablePromise<InvokeResult<Position> | undefined>>()
 
   useEffect(() => {
     cancelablePositionOne.current?.cancel()
@@ -491,7 +491,7 @@ export function useV3DerivedMintInfo(
     } else {
       const indEqualsToken0 = tokenEquals(mapToken(wrappedIndependentAmount.currency), poolForPosition.token0)
       const positionPromise = indEqualsToken0
-        ? Uni_Query.createPositionFromAmount0(
+        ? Uni_Module.createPositionFromAmount0(
             {
               pool: poolForPosition,
               tickLower,
@@ -501,7 +501,7 @@ export function useV3DerivedMintInfo(
             },
             client
           )
-        : Uni_Query.createPositionFromAmount1(
+        : Uni_Module.createPositionFromAmount1(
             {
               pool: poolForPosition,
               tickLower,
@@ -570,7 +570,7 @@ export function useV3DerivedMintInfo(
 
   // create position entity based on users selection
   const [position, setPosition] = useState<Position | undefined>(undefined)
-  const cancelablePositionTwo = useRef<CancelablePromise<InvokeApiResult<Position> | undefined>>()
+  const cancelablePositionTwo = useRef<CancelablePromise<InvokeResult<Position> | undefined>>()
 
   useEffect(() => {
     cancelablePositionTwo.current?.cancel()
@@ -603,7 +603,7 @@ export function useV3DerivedMintInfo(
       return
     }
 
-    const positionPromise = Uni_Query.createPositionFromAmounts(
+    const positionPromise = Uni_Module.createPositionFromAmounts(
       {
         pool: poolForPosition,
         tickLower,
@@ -702,21 +702,21 @@ export function useRangeHopCallbacks(
   pool?: Pool | undefined | null
 ) {
   const dispatch = useAppDispatch()
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   const baseToken = useMemo(() => baseCurrency?.wrapped, [baseCurrency])
   const quoteToken = useMemo(() => quoteCurrency?.wrapped, [quoteCurrency])
 
   const getDecrementLower = useCallback(async () => {
     if (baseToken && quoteToken && typeof tickLower === 'number' && feeAmount !== undefined) {
-      const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+      const tickSpacingInvoke = await Uni_Module.feeAmountToTickSpacing({ feeAmount }, client)
       if (tickSpacingInvoke.error) {
         console.error(tickSpacingInvoke.error)
         return ''
       }
       const tickSpacing = tickSpacingInvoke.data as number
 
-      const newPriceInvoke = await Uni_Query.tickToPrice(
+      const newPriceInvoke = await Uni_Module.tickToPrice(
         {
           baseToken: mapToken(baseToken),
           quoteToken: mapToken(quoteToken),
@@ -734,14 +734,14 @@ export function useRangeHopCallbacks(
     }
     // use pool current tick as starting tick if we have pool but no tick input
     if (!(typeof tickLower === 'number') && baseToken && quoteToken && feeAmount !== undefined && pool) {
-      const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+      const tickSpacingInvoke = await Uni_Module.feeAmountToTickSpacing({ feeAmount }, client)
       if (tickSpacingInvoke.error) {
         console.error(tickSpacingInvoke.error)
         return ''
       }
       const tickSpacing = tickSpacingInvoke.data as number
 
-      const newPriceInvoke = await Uni_Query.tickToPrice(
+      const newPriceInvoke = await Uni_Module.tickToPrice(
         {
           baseToken: mapToken(baseToken),
           quoteToken: mapToken(quoteToken),
@@ -762,14 +762,14 @@ export function useRangeHopCallbacks(
 
   const getIncrementLower = useCallback(async () => {
     if (baseToken && quoteToken && typeof tickLower === 'number' && feeAmount !== undefined) {
-      const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+      const tickSpacingInvoke = await Uni_Module.feeAmountToTickSpacing({ feeAmount }, client)
       if (tickSpacingInvoke.error) {
         console.error(tickSpacingInvoke.error)
         return ''
       }
       const tickSpacing = tickSpacingInvoke.data as number
 
-      const newPriceInvoke = await Uni_Query.tickToPrice(
+      const newPriceInvoke = await Uni_Module.tickToPrice(
         {
           baseToken: mapToken(baseToken),
           quoteToken: mapToken(quoteToken),
@@ -787,14 +787,14 @@ export function useRangeHopCallbacks(
     }
     // use pool current tick as starting tick if we have pool but no tick input
     if (!(typeof tickLower === 'number') && baseToken && quoteToken && feeAmount !== undefined && pool) {
-      const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+      const tickSpacingInvoke = await Uni_Module.feeAmountToTickSpacing({ feeAmount }, client)
       if (tickSpacingInvoke.error) {
         console.error(tickSpacingInvoke.error)
         return ''
       }
       const tickSpacing = tickSpacingInvoke.data as number
 
-      const newPriceInvoke = await Uni_Query.tickToPrice(
+      const newPriceInvoke = await Uni_Module.tickToPrice(
         {
           baseToken: mapToken(baseToken),
           quoteToken: mapToken(quoteToken),
@@ -815,14 +815,14 @@ export function useRangeHopCallbacks(
 
   const getDecrementUpper = useCallback(async () => {
     if (baseToken && quoteToken && typeof tickUpper === 'number' && feeAmount !== undefined) {
-      const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+      const tickSpacingInvoke = await Uni_Module.feeAmountToTickSpacing({ feeAmount }, client)
       if (tickSpacingInvoke.error) {
         console.error(tickSpacingInvoke.error)
         return ''
       }
       const tickSpacing = tickSpacingInvoke.data as number
 
-      const newPriceInvoke = await Uni_Query.tickToPrice(
+      const newPriceInvoke = await Uni_Module.tickToPrice(
         {
           baseToken: mapToken(baseToken),
           quoteToken: mapToken(quoteToken),
@@ -840,14 +840,14 @@ export function useRangeHopCallbacks(
     }
     // use pool current tick as starting tick if we have pool but no tick input
     if (!(typeof tickUpper === 'number') && baseToken && quoteToken && feeAmount !== undefined && pool) {
-      const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+      const tickSpacingInvoke = await Uni_Module.feeAmountToTickSpacing({ feeAmount }, client)
       if (tickSpacingInvoke.error) {
         console.error(tickSpacingInvoke.error)
         return ''
       }
       const tickSpacing = tickSpacingInvoke.data as number
 
-      const newPriceInvoke = await Uni_Query.tickToPrice(
+      const newPriceInvoke = await Uni_Module.tickToPrice(
         {
           baseToken: mapToken(baseToken),
           quoteToken: mapToken(quoteToken),
@@ -868,14 +868,14 @@ export function useRangeHopCallbacks(
 
   const getIncrementUpper = useCallback(async () => {
     if (baseToken && quoteToken && typeof tickUpper === 'number' && feeAmount !== undefined) {
-      const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+      const tickSpacingInvoke = await Uni_Module.feeAmountToTickSpacing({ feeAmount }, client)
       if (tickSpacingInvoke.error) {
         console.error(tickSpacingInvoke.error)
         return ''
       }
       const tickSpacing = tickSpacingInvoke.data as number
 
-      const newPriceInvoke = await Uni_Query.tickToPrice(
+      const newPriceInvoke = await Uni_Module.tickToPrice(
         {
           baseToken: mapToken(baseToken),
           quoteToken: mapToken(quoteToken),
@@ -893,14 +893,14 @@ export function useRangeHopCallbacks(
     }
     // use pool current tick as starting tick if we have pool but no tick input
     if (!(typeof tickUpper === 'number') && baseToken && quoteToken && feeAmount !== undefined && pool) {
-      const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+      const tickSpacingInvoke = await Uni_Module.feeAmountToTickSpacing({ feeAmount }, client)
       if (tickSpacingInvoke.error) {
         console.error(tickSpacingInvoke.error)
         return ''
       }
       const tickSpacing = tickSpacingInvoke.data as number
 
-      const newPriceInvoke = await Uni_Query.tickToPrice(
+      const newPriceInvoke = await Uni_Module.tickToPrice(
         {
           baseToken: mapToken(baseToken),
           quoteToken: mapToken(quoteToken),

@@ -1,17 +1,17 @@
-import { Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
+import { PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { useEffect, useRef, useState } from 'react'
 import { Bound } from 'state/mint/v3/actions'
 
-import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Query } from '../polywrap'
 import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
+import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Module } from '../wrap'
 
 export default function useIsTickAtLimit(
   feeAmount: FeeAmountEnum | undefined,
   tickLower: number | undefined,
   tickUpper: number | undefined
 ) {
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   const [isTickAtLimit, setIsTickAtLimit] = useState<{ LOWER: boolean | undefined; UPPER: boolean | undefined }>({
     [Bound.LOWER]: undefined,
@@ -41,23 +41,23 @@ const loadIsTickAtLimits = async (
   feeAmount: FeeAmountEnum,
   tickLower: number | undefined,
   tickUpper: number | undefined,
-  client: Web3ApiClient
+  client: PolywrapClient
 ): Promise<{ LOWER: boolean | undefined; UPPER: boolean | undefined }> => {
   let tickSpacing: number | undefined = undefined
   if (tickLower !== undefined || tickUpper !== undefined) {
-    const tickSpacingInvoke = await Uni_Query.feeAmountToTickSpacing({ feeAmount }, client)
+    const tickSpacingInvoke = await Uni_Module.feeAmountToTickSpacing({ feeAmount }, client)
     if (tickSpacingInvoke.error) console.error(tickSpacingInvoke.error)
     tickSpacing = tickSpacingInvoke.data
   }
 
   let lower: boolean | undefined = undefined
   if (tickLower !== undefined && tickSpacing !== undefined) {
-    const tickInvoke = await Uni_Query.MIN_TICK({}, client)
+    const tickInvoke = await Uni_Module.MIN_TICK({}, client)
     if (tickInvoke.error) console.error(tickInvoke.error)
     const tick = tickInvoke.data
 
     if (tick !== undefined) {
-      const nearestTickInvoke = await Uni_Query.nearestUsableTick({ tick, tickSpacing }, client)
+      const nearestTickInvoke = await Uni_Module.nearestUsableTick({ tick, tickSpacing }, client)
       if (nearestTickInvoke.error) console.error(nearestTickInvoke.error)
       lower = tickLower === nearestTickInvoke.data
     }
@@ -65,12 +65,12 @@ const loadIsTickAtLimits = async (
 
   let upper: boolean | undefined = undefined
   if (tickUpper !== undefined && tickSpacing !== undefined) {
-    const tickInvoke = await Uni_Query.MAX_TICK({}, client)
+    const tickInvoke = await Uni_Module.MAX_TICK({}, client)
     if (tickInvoke.error) console.error(tickInvoke.error)
     const tick = tickInvoke.data
 
     if (tick !== undefined) {
-      const nearestTickInvoke = await Uni_Query.nearestUsableTick({ tick, tickSpacing }, client)
+      const nearestTickInvoke = await Uni_Module.nearestUsableTick({ tick, tickSpacing }, client)
       if (nearestTickInvoke.error) console.error(nearestTickInvoke.error)
       upper = tickUpper === nearestTickInvoke.data
     }

@@ -1,7 +1,7 @@
+import { PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient, usePolywrapInvoke } from '@polywrap/react'
 import { skipToken } from '@reduxjs/toolkit/query/react'
 import { Currency, Price } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient, useWeb3ApiInvoke } from '@web3api/react'
 import JSBI from 'jsbi'
 import ms from 'ms.macro'
 import { useEffect, useRef, useState } from 'react'
@@ -9,9 +9,9 @@ import { useAllV3TicksQuery } from 'state/data/enhanced'
 import { AllV3TicksQuery } from 'state/data/generated'
 import computeSurroundingTicks from 'utils/computeSurroundingTicks'
 
-import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Pool, Uni_Price, Uni_Query } from '../polywrap'
 import { feeAmountToTickSpacing, mapToken, reverseMapToken, wrapperUri } from '../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
+import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Module, Uni_Pool, Uni_Price } from '../wrap'
 import { PoolState, usePool } from './usePools'
 
 const PRICE_FIXED_DIGITS = 8
@@ -38,9 +38,8 @@ export function useAllV3Ticks(
   currencyB: Currency | undefined,
   feeAmount: FeeAmountEnum | undefined
 ) {
-  const { data: poolAddress, execute: getPoolAddress } = useWeb3ApiInvoke<string | undefined>({
+  const { data: poolAddress, execute: getPoolAddress } = usePolywrapInvoke<string | undefined>({
     uri: wrapperUri,
-    module: 'query',
     method: 'getPoolAddress',
   })
 
@@ -82,7 +81,7 @@ export function usePoolActiveLiquidity(
   activeTick: number | undefined
   data: TickProcessed[] | undefined
 } {
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
   const pool = usePool(currencyA, currencyB, feeAmount)
 
   // Find nearest valid tick for pool in case tick is not initialized.
@@ -144,7 +143,7 @@ export function usePoolActiveLiquidity(
 }
 
 async function loadPoolLiquidity(
-  client: Web3ApiClient,
+  client: PolywrapClient,
   currencyA: Currency | undefined,
   currencyB: Currency | undefined,
   activeTick: number | undefined,
@@ -203,7 +202,7 @@ async function loadPoolLiquidity(
     }
   }
 
-  const priceInvoke = await Uni_Query.tickToPrice(
+  const priceInvoke = await Uni_Module.tickToPrice(
     {
       baseToken: mapToken(token0),
       quoteToken: mapToken(token1),

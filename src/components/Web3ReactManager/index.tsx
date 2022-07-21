@@ -1,17 +1,17 @@
 import { Trans } from '@lingui/macro'
+import { PluginPackage } from '@polywrap/client-js'
+import { PluginRegistration } from '@polywrap/core-js'
+import { ethereumPlugin, EthereumPluginConfig } from '@polywrap/ethereum-plugin-js'
+import { PolywrapProvider } from '@polywrap/react'
 import { useWeb3React } from '@web3-react/core'
-import { PluginPackage } from '@web3api/client-js'
-import { PluginRegistration } from '@web3api/core-js'
-import { ethereumPlugin } from '@web3api/ethereum-plugin-js'
-import { Web3ApiProvider } from '@web3api/react'
 import { useEffect, useState } from 'react'
 import styled from 'styled-components/macro'
 
 import { network } from '../../connectors'
 import { NetworkContextName } from '../../constants/misc'
 import { useEagerConnect, useInactiveListener } from '../../hooks/web3'
-import { Uni_ChainIdEnum } from '../../polywrap'
-import { ethereumPluginUri, mapChainId } from '../../polywrap-utils'
+import { mapChainId } from '../../polywrap-utils'
+import { Uni_ChainIdEnum } from '../../wrap'
 
 const MessageWrapper = styled.div`
   display: flex;
@@ -41,8 +41,8 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
   // when there's no account connected, react to logins (broadly speaking) on the injected provider, if it exists
   useInactiveListener(!triedEager)
 
-  // Web3API integration.
-  const [ethPlugin, setEthPlugin] = useState<PluginPackage>(
+  // Polywrap integration.
+  const [ethPlugin, setEthPlugin] = useState<PluginPackage<EthereumPluginConfig>>(
     ethereumPlugin({
       networks: {
         mainnet: {
@@ -54,7 +54,7 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
 
   const plugins: PluginRegistration[] = [
     {
-      uri: ethereumPluginUri,
+      uri: 'wrap://ens/ethereum.polywrap.eth',
       plugin: ethPlugin,
     },
   ]
@@ -90,5 +90,5 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
     )
   }
 
-  return <Web3ApiProvider plugins={plugins}>{children}</Web3ApiProvider>
+  return <PolywrapProvider plugins={plugins}>{children}</PolywrapProvider>
 }

@@ -3,8 +3,8 @@ import { Percent } from '@uniswap/sdk-core'
 import JSBI from 'jsbi'
 import { ReactNode, useCallback, useMemo } from 'react'
 
-import { Uni_Trade as Trade } from '../../polywrap'
 import { reverseMapTokenAmount, tokenEquals, toSignificant } from '../../polywrap-utils'
+import { Uni_Trade as Trade } from '../../wrap'
 import TransactionConfirmationModal, {
   ConfirmationModalContent,
   TransactionErrorContent,

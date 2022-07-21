@@ -6,7 +6,7 @@ import styled from 'styled-components/macro'
 
 import ArrowRight from '../assets/images/arrow-right.svg'
 import { ButtonPolywrap } from '../components/Button'
-import { Uni_Token, Uni_TradeTypeEnum } from '../polywrap'
+import { Uni_Token, Uni_TradeTypeEnum } from '../wrap'
 import CodeblockTabs, { CodeTabsProps } from './CodeblockTabs'
 import PolywrapTooltip from './PolywrapTooltip'
 import { useCreateUncheckedTradeCode, useQuoteCallParametersCode, useSwapCallParametersCode } from './useCode'

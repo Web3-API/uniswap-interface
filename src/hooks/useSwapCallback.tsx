@@ -1,24 +1,15 @@
 import { BigNumber } from '@ethersproject/bignumber'
 // eslint-disable-next-line no-restricted-imports
 import { t, Trans } from '@lingui/macro'
+import { PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { SwapRouter, Trade as RouterTrade } from '@uniswap/router-sdk'
 import { Currency, CurrencyAmount, Percent, TradeType } from '@uniswap/sdk-core'
 import { Router as V2SwapRouter, Trade as V2Trade } from '@uniswap/v2-sdk'
-import { Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 import { ReactNode, useMemo } from 'react'
 
 import { ArgentWalletContract } from '../abis/types'
 import { SWAP_ROUTER_ADDRESSES, V3_ROUTER_ADDRESS } from '../constants/addresses'
-import {
-  Uni_MethodParameters as MethodParameters,
-  Uni_MethodParameters,
-  Uni_PermitV as PermitV,
-  Uni_Query,
-  Uni_TokenAmount,
-  Uni_Trade as PolyTrade,
-  Uni_TradeTypeEnum as TradeTypeEnum,
-} from '../polywrap'
 import { isEther, isTrade, reverseMapToken, reverseMapTokenAmount } from '../polywrap-utils'
 import { TransactionType } from '../state/transactions/actions'
 import { useTransactionAdder } from '../state/transactions/hooks'
@@ -26,6 +17,15 @@ import approveAmountCalldata from '../utils/approveAmountCalldata'
 import { calculateGasMargin } from '../utils/calculateGasMargin'
 import { currencyId } from '../utils/currencyId'
 import isZero from '../utils/isZero'
+import {
+  Uni_MethodParameters as MethodParameters,
+  Uni_MethodParameters,
+  Uni_Module,
+  Uni_PermitV as PermitV,
+  Uni_TokenAmount,
+  Uni_Trade as PolyTrade,
+  Uni_TradeTypeEnum as TradeTypeEnum,
+} from '../wrap'
 import { useArgentWalletContract } from './useArgentWalletContract'
 import { useV2RouterContract } from './useContract'
 import useENS from './useENS'
@@ -67,7 +67,7 @@ interface FailedCall extends SwapCallEstimate {
 }
 
 async function createArgentParams(
-  client: Web3ApiClient,
+  client: PolywrapClient,
   asyncParams: MethodParameters | Promise<MethodParameters>,
   trade: PolyTrade | RouterTrade<Currency, Currency, TradeType>,
   allowedSlippage: Percent,
@@ -77,7 +77,7 @@ async function createArgentParams(
   const params = await asyncParams
   let maxIn
   if (isTrade(trade)) {
-    const maxInInvoke = await Uni_Query.tradeMaximumAmountIn(
+    const maxInInvoke = await Uni_Module.tradeMaximumAmountIn(
       {
         slippageTolerance: allowedSlippage.toFixed(18),
         amountIn: trade.inputAmount,
@@ -119,7 +119,7 @@ function useSwapCallArguments(
   signatureData: SignatureData | null | undefined
 ): (SwapCall | SwapCallAsync)[] {
   const { account, chainId, library } = useActiveWeb3React()
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   const { address: recipientAddress } = useENS(recipientAddressOrName)
   const recipient = recipientAddressOrName === null ? account : recipientAddress
@@ -215,7 +215,7 @@ function useSwapCallArguments(
 
       let swapParams
       if (isV3Trade) {
-        swapParams = Uni_Query.swapCallParameters(
+        swapParams = Uni_Module.swapCallParameters(
           {
             trades: [trade],
             options: {
@@ -374,7 +374,7 @@ export function useSwapCallback(
   signatureData: SignatureData | undefined | null
 ): { state: SwapCallbackState; callback: null | (() => Promise<string>); error: ReactNode | null } {
   const { account, chainId, library } = useActiveWeb3React()
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   const swapCallsMaybeAsync = useSwapCallArguments(trade, allowedSlippage, recipientAddressOrName, signatureData)
 
@@ -495,7 +495,7 @@ export function useSwapCallback(
                       inputCurrencyAmountRaw: trade.inputAmount.amount,
                       expectedOutputCurrencyAmountRaw: trade.outputAmount.amount,
                       outputCurrencyId: currencyId(reverseMapToken(trade.outputAmount.token) as Currency),
-                      minimumOutputCurrencyAmountRaw: await Uni_Query.tradeMinimumAmountOut(
+                      minimumOutputCurrencyAmountRaw: await Uni_Module.tradeMinimumAmountOut(
                         {
                           tradeType: TradeTypeEnum.EXACT_INPUT,
                           slippageTolerance: allowedSlippage.toFixed(18),
@@ -521,7 +521,7 @@ export function useSwapCallback(
                     type: TransactionType.SWAP as TransactionType.SWAP,
                     tradeType: TradeType.EXACT_OUTPUT as TradeType.EXACT_OUTPUT,
                     inputCurrencyId: currencyId(reverseMapToken(trade.inputAmount.token) as Currency),
-                    maximumInputCurrencyAmountRaw: await Uni_Query.tradeMaximumAmountIn(
+                    maximumInputCurrencyAmountRaw: await Uni_Module.tradeMaximumAmountIn(
                       {
                         tradeType: TradeTypeEnum.EXACT_OUTPUT,
                         slippageTolerance: allowedSlippage.toFixed(18),

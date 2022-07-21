@@ -1,19 +1,19 @@
 import { Trans } from '@lingui/macro'
+import { PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { Percent } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 import Card from 'components/Card'
 import { LoadingRows } from 'components/Loader/styled'
 import { useActiveWeb3React } from 'hooks/web3'
 import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import styled, { ThemeContext } from 'styled-components/macro'
 
-import { Uni_Query, Uni_TokenAmount, Uni_Trade, Uni_TradeTypeEnum as TradeTypeEnum } from '../../polywrap'
 import { toSignificant } from '../../polywrap-utils'
 import { ExtendedTrade } from '../../polywrap-utils/interfaces'
 import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
 import { Separator, ThemedText } from '../../theme'
 import { computeRealizedLPFeePercent } from '../../utils/prices'
+import { Uni_Module, Uni_TokenAmount, Uni_Trade, Uni_TradeTypeEnum as TradeTypeEnum } from '../../wrap'
 import { AutoColumn } from '../Column'
 import { RowBetween, RowFixed } from '../Row'
 import FormattedPriceImpact from './FormattedPriceImpact'
@@ -49,12 +49,12 @@ function TextWithLoadingPlaceholder({
 }
 
 const asyncAmounts = async (
-  client: Web3ApiClient,
+  client: PolywrapClient,
   allowedSlippage: Percent,
   trade: Uni_Trade
 ): Promise<{ minAmountOut?: Uni_TokenAmount; maxAmountIn?: Uni_TokenAmount }> => {
   return {
-    minAmountOut: await Uni_Query.tradeMinimumAmountOut(
+    minAmountOut: await Uni_Module.tradeMinimumAmountOut(
       {
         slippageTolerance: allowedSlippage.toFixed(18),
         amountOut: trade.outputAmount,
@@ -65,7 +65,7 @@ const asyncAmounts = async (
       if (res.error) console.error(res.error)
       return res.data
     }),
-    maxAmountIn: await Uni_Query.tradeMaximumAmountIn(
+    maxAmountIn: await Uni_Module.tradeMaximumAmountIn(
       {
         slippageTolerance: allowedSlippage.toFixed(18),
         amountIn: trade.inputAmount,
@@ -93,7 +93,7 @@ export function AdvancedSwapDetails({ trade, allowedSlippage, syncing = false }:
     return { expectedOutputAmount, priceImpact }
   }, [trade])
 
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   const [amounts, setAmounts] = useState<{ minAmountOut?: Uni_TokenAmount; maxAmountIn?: Uni_TokenAmount }>({})
   const cancelable =

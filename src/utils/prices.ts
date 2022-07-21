@@ -8,8 +8,8 @@ import {
   ONE_HUNDRED_PERCENT,
   ZERO_PERCENT,
 } from '../constants/misc'
-import { Uni_Trade as Trade } from '../polywrap'
 import { reverseMapFeeAmount, reverseMapToken, reverseMapTokenAmount } from '../polywrap-utils'
+import { Uni_Trade as Trade } from '../wrap'
 
 // const THIRTY_BIPS_FEE = new Percent(JSBI.BigInt(30), JSBI.BigInt(10000))
 // const INPUT_FRACTION_AFTER_FEE = ONE_HUNDRED_PERCENT.subtract(THIRTY_BIPS_FEE)

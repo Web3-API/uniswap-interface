@@ -1,16 +1,16 @@
 import { Interface } from '@ethersproject/abi'
+import { PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { Currency, Token } from '@uniswap/sdk-core'
 import { abi as IUniswapV3PoolStateABI } from '@uniswap/v3-core/artifacts/contracts/interfaces/pool/IUniswapV3PoolState.sol/IUniswapV3PoolState.json'
-import { Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { V3_CORE_FACTORY_ADDRESSES } from '../constants/addresses'
-import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Pool as Pool, Uni_Pool, Uni_Query } from '../polywrap'
 import { mapToken } from '../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
 import { useMultipleContractSingleData } from '../state/multicall/hooks'
 import { IUniswapV3PoolStateInterface } from '../types/v3/IUniswapV3PoolState'
+import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Module, Uni_Pool as Pool, Uni_Pool } from '../wrap'
 import { useActiveWeb3React } from './web3'
 
 const POOL_STATE_INTERFACE = new Interface(IUniswapV3PoolStateABI) as IUniswapV3PoolStateInterface
@@ -26,7 +26,7 @@ export function usePools(
   poolKeys: [Currency | undefined, Currency | undefined, FeeAmountEnum | undefined][]
 ): [PoolState, Pool | null][] {
   const { chainId } = useActiveWeb3React()
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   const transformed: ([Token, Token, FeeAmountEnum] | null)[] = useMemo(() => {
     return poolKeys.map(([currencyA, currencyB, feeAmount]) => {
@@ -50,7 +50,7 @@ export function usePools(
       if (!v3CoreFactoryAddress || !value) {
         return undefined
       }
-      const invoke = await Uni_Query.computePoolAddress(
+      const invoke = await Uni_Module.computePoolAddress(
         {
           factoryAddress: v3CoreFactoryAddress,
           tokenA: mapToken(value[0]),
@@ -95,7 +95,7 @@ export function usePools(
       if (!slot0.sqrtPriceX96 || slot0.sqrtPriceX96.eq(0)) return [PoolState.NOT_EXISTS, null]
 
       try {
-        const invoke = await Uni_Query.createPool(
+        const invoke = await Uni_Module.createPool(
           {
             tokenA: mapToken(token0),
             tokenB: mapToken(token1),

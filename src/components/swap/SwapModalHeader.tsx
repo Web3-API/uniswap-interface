@@ -1,25 +1,25 @@
 import { Trans } from '@lingui/macro'
+import { PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { Percent } from '@uniswap/sdk-core'
-import { Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 import { useContext, useEffect, useRef, useState } from 'react'
 import { AlertTriangle, ArrowDown } from 'react-feather'
 import { Text } from 'rebass'
 import styled, { ThemeContext } from 'styled-components/macro'
 
 import { useUSDCValue } from '../../hooks/useUSDCPrice'
-import {
-  Uni_Query,
-  Uni_TokenAmount as TokenAmount,
-  Uni_Trade as Trade,
-  Uni_Trade,
-  Uni_TradeTypeEnum as TradeTypeEnum,
-} from '../../polywrap'
 import { reverseMapPrice, reverseMapToken, reverseMapTokenAmount, toSignificant } from '../../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
 import { ThemedText } from '../../theme'
 import { isAddress, shortenAddress } from '../../utils'
 import { computeFiatValuePriceImpact } from '../../utils/computeFiatValuePriceImpact'
+import {
+  Uni_Module,
+  Uni_TokenAmount as TokenAmount,
+  Uni_Trade as Trade,
+  Uni_Trade,
+  Uni_TradeTypeEnum as TradeTypeEnum,
+} from '../../wrap'
 import { ButtonPrimary } from '../Button'
 import { LightCard } from '../Card'
 import { AutoColumn } from '../Column'
@@ -49,13 +49,13 @@ const ArrowWrapper = styled.div`
 `
 
 const asyncAmount = async (
-  client: Web3ApiClient,
+  client: PolywrapClient,
   allowedSlippage: Percent,
   trade: Uni_Trade
 ): Promise<TokenAmount | undefined> => {
   let invoke
   if (trade.tradeType === TradeTypeEnum.EXACT_INPUT) {
-    invoke = await Uni_Query.tradeMinimumAmountOut(
+    invoke = await Uni_Module.tradeMinimumAmountOut(
       {
         slippageTolerance: allowedSlippage.toFixed(18),
         amountOut: trade.outputAmount,
@@ -64,7 +64,7 @@ const asyncAmount = async (
       client
     )
   } else {
-    invoke = await Uni_Query.tradeMaximumAmountIn(
+    invoke = await Uni_Module.tradeMaximumAmountIn(
       {
         slippageTolerance: allowedSlippage.toFixed(18),
         amountIn: trade.inputAmount,
@@ -91,7 +91,7 @@ export default function SwapModalHeader({
   onAcceptChanges: () => void
 }) {
   const theme = useContext(ThemeContext)
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   const [amount, setAmount] = useState<string>('')
   const cancelable = useRef<CancelablePromise<TokenAmount | undefined>>()

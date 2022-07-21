@@ -1,9 +1,9 @@
 import { Contract } from '@ethersproject/contracts'
 import { TransactionResponse } from '@ethersproject/providers'
 import { Trans } from '@lingui/macro'
+import { InvokeResult, PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 import { Currency, CurrencyAmount, Fraction, Percent, Price, Token } from '@uniswap/sdk-core'
-import { InvokeApiResult, Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
 import Badge, { BadgeVariant } from 'components/Badge'
 import { ButtonConfirmed } from 'components/Button'
 import { BlueCard, DarkGreyCard, LightCard, YellowCard } from 'components/Card'
@@ -44,7 +44,6 @@ import { useV2LiquidityTokenPermit } from '../../hooks/useERC20Permit'
 import useIsArgentWallet from '../../hooks/useIsArgentWallet'
 import { useTotalSupply } from '../../hooks/useTotalSupply'
 import { useActiveWeb3React } from '../../hooks/web3'
-import { Uni_FeeAmountEnum, Uni_MintAmounts, Uni_Pool, Uni_Position, Uni_Query, Uni_TokenAmount } from '../../polywrap'
 import { mapPrice, mapToken, reverseMapPrice, reverseMapTokenAmount } from '../../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
 import { NEVER_RELOAD, useSingleCallResult } from '../../state/multicall/hooks'
@@ -55,6 +54,7 @@ import { isAddress } from '../../utils'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { currencyId } from '../../utils/currencyId'
 import { ExplorerDataType, getExplorerLink } from '../../utils/getExplorerLink'
+import { Uni_FeeAmountEnum, Uni_MintAmounts, Uni_Module, Uni_Pool, Uni_Position, Uni_TokenAmount } from '../../wrap'
 import { BodyWrapper } from '../AppBody'
 
 const ZERO = JSBI.BigInt(0)
@@ -122,7 +122,7 @@ const loadPositionData = async (
   feeAmount: Uni_FeeAmountEnum,
   token0Value: CurrencyAmount<Token>,
   token1Value: CurrencyAmount<Token>,
-  client: Web3ApiClient
+  client: PolywrapClient
 ): Promise<{
   posAmount1?: Uni_TokenAmount
   posAmount0?: Uni_TokenAmount
@@ -134,7 +134,7 @@ const loadPositionData = async (
   if (pool?.tickCurrent) {
     tick = pool?.tickCurrent
   } else {
-    const invoke = await Uni_Query.priceToClosestTick({ price: mapPrice(v2SpotPrice) }, client)
+    const invoke = await Uni_Module.priceToClosestTick({ price: mapPrice(v2SpotPrice) }, client)
     if (invoke.error) {
       console.error(invoke.error)
       return { sqrtPrice: pool?.sqrtRatioX96 ?? '0' }
@@ -146,7 +146,7 @@ const loadPositionData = async (
   if (pool?.sqrtRatioX96) {
     sqrtPrice = pool?.sqrtRatioX96
   } else {
-    const invoke = await Uni_Query.getSqrtRatioAtTick({ tick }, client)
+    const invoke = await Uni_Module.getSqrtRatioAtTick({ tick }, client)
     if (invoke.error) {
       console.error(invoke.error)
       return { sqrtPrice: '0' }
@@ -156,11 +156,11 @@ const loadPositionData = async (
 
   let position: Uni_Position | undefined = undefined
   if (typeof tickLower === 'number' && typeof tickUpper === 'number' && !invalidRange) {
-    const invoke = await Uni_Query.createPositionFromAmounts(
+    const invoke = await Uni_Module.createPositionFromAmounts(
       {
         pool:
           pool ??
-          ((await Uni_Query.createPool(
+          ((await Uni_Module.createPool(
             {
               tokenA: mapToken(token0),
               tokenB: mapToken(token1),
@@ -205,7 +205,7 @@ function V2PairMigration({
   token0: Token
   token1: Token
 }) {
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
   const { chainId, account } = useActiveWeb3React()
   const theme = useTheme()
   const v2FactoryAddress = chainId ? V2_FACTORY_ADDRESSES[chainId] : undefined
@@ -338,14 +338,14 @@ function V2PairMigration({
   const { sqrtPrice, position, posAmount0, posAmount1 } = positionData
 
   const [mintAmounts, setMintAmounts] = useState<{ amount0?: string; amount1?: string }>({})
-  const cancelableMintAmounts = useRef<CancelablePromise<InvokeApiResult<Uni_MintAmounts> | undefined>>()
+  const cancelableMintAmounts = useRef<CancelablePromise<InvokeResult<Uni_MintAmounts> | undefined>>()
 
   useEffect(() => {
     cancelableMintAmounts.current?.cancel()
     if (!position) {
       setMintAmounts({})
     } else {
-      const mintAmountsPromise = Uni_Query.mintAmountsWithSlippage(
+      const mintAmountsPromise = Uni_Module.mintAmountsWithSlippage(
         {
           position,
           slippageTolerance: allowedSlippage.toFixed(18),
