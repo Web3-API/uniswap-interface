@@ -7,7 +7,7 @@ export const ETHER: Uni_Currency = {
 }
 
 export const ensUri = 'wrap://ens/goerli/v3.uniswap.wrappers.eth'
-export const ipfsCid = 'wrap://ipfs/QmZ62dnMvxcGmVYoB6zHbaRvn7zbGAWN3f7sTY8FttTtzi'
+export const ipfsCid = 'wrap://ipfs/QmZrTuuiSyP1aLVpJC5t2XZRfQ1HrAMhfC85xNLn8HMYUM'
 export const wrapperUri = ensUri
 
 // infura keys

@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import styled from 'styled-components/macro'
 
 import { network } from '../../connectors'
+import { INFURA_NETWORK_URLS, SupportedChainId } from '../../constants/chains'
 import { NetworkContextName } from '../../constants/misc'
 import { useEagerConnect, useInactiveListener } from '../../hooks/web3'
 import { mapChainId } from '../../polywrap-utils'
@@ -46,7 +47,7 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
     ethereumPlugin({
       networks: {
         mainnet: {
-          provider: 'https://mainnet.infura.io/v3/b00b2c2cc09c487685e9fb061256d6a6',
+          provider: INFURA_NETWORK_URLS[SupportedChainId.MAINNET],
         },
       },
     })
