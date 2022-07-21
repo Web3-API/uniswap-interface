@@ -8,10 +8,9 @@ import { useEffect, useState } from 'react'
 import styled from 'styled-components/macro'
 
 import { network } from '../../connectors'
-import { INFURA_NETWORK_URLS, SupportedChainId } from '../../constants/chains'
 import { NetworkContextName } from '../../constants/misc'
 import { useEagerConnect, useInactiveListener } from '../../hooks/web3'
-import { mapChainId } from '../../polywrap-utils'
+import { DEFAULT_ETHEREUM_PROVIDERS, mapChainId } from '../../polywrap-utils'
 import { Uni_ChainIdEnum } from '../../wrap'
 
 const MessageWrapper = styled.div`
@@ -45,11 +44,7 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
   // Polywrap integration.
   const [ethPlugin, setEthPlugin] = useState<PluginPackage<EthereumPluginConfig>>(
     ethereumPlugin({
-      networks: {
-        mainnet: {
-          provider: INFURA_NETWORK_URLS[SupportedChainId.MAINNET],
-        },
-      },
+      networks: DEFAULT_ETHEREUM_PROVIDERS,
     })
   )
 
@@ -64,6 +59,7 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
     if (chainId && library) {
       const currentNetwork = Uni_ChainIdEnum[mapChainId(chainId)]
       const config = {
+        ...DEFAULT_ETHEREUM_PROVIDERS,
         [currentNetwork]: {
           provider: library,
           signer: library.getSigner(),

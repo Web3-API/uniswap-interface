@@ -1,4 +1,6 @@
-import { Uni_Currency } from '../wrap'
+import { INFURA_NETWORK_URLS, SupportedChainId } from '../constants/chains'
+import { Uni_ChainIdEnum, Uni_Currency } from '../wrap'
+import { reverseMapChainId } from './reverseMapping'
 
 export const ETHER: Uni_Currency = {
   decimals: 18,
@@ -13,3 +15,15 @@ export const wrapperUri = ensUri
 // infura keys
 // b00b2c2cc09c487685e9fb061256d6a6
 // b76cba91dc954ceebff27244923224b1
+
+export const DEFAULT_ETHEREUM_PROVIDERS = getDefaultProviders()
+
+function getDefaultProviders(): Record<string, any> {
+  const result: Record<string, any> = {}
+  for (let i = 0; i < Object.keys(Uni_ChainIdEnum).length / 2; i++) {
+    result[Uni_ChainIdEnum[i]] = {
+      provider: INFURA_NETWORK_URLS[reverseMapChainId(i) as SupportedChainId],
+    }
+  }
+  return result
+}
