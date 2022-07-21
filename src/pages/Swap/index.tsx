@@ -379,7 +379,7 @@ export default function Swap({ history }: RouteComponentProps) {
   const transactionDeadline = useTransactionDeadline()
   const debouncedDeadline = useDebounce(transactionDeadline, 1000)
   const deadline = useMemo(() => debouncedDeadline?.toString(), [debouncedDeadline])
-  const slippageTolerance = useMemo(() => allowedSlippage.toFixed(3), [allowedSlippage])
+  const slippageTolerance = useMemo(() => allowedSlippage.toSignificant(5), [allowedSlippage])
 
   return (
     <>

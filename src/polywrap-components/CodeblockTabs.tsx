@@ -79,32 +79,32 @@ const TabText = styled(Text)`
 `
 
 export interface CodeTabsProps {
-  query: string
-  variables: string
+  invocation: string
+  args: string
 }
 
-export default function CodeblockTabs({ query, variables }: CodeTabsProps) {
+export default function CodeblockTabs({ invocation, args }: CodeTabsProps) {
   return (
     <CodeTabs selectedTabClassName="selected" selectedTabPanelClassName="selected">
       <CodeTabList>
         <LeftCornerTab>
           <Flex width={1}>
             <TSLogo src={TypeScriptLogo} />
-            <TabText>query.ts</TabText>
+            <TabText>invocation.ts</TabText>
           </Flex>
         </LeftCornerTab>
         <CodeTab>
           <Flex width={1}>
             <TSLogo src={TypeScriptLogo} />
-            <TabText>variables.ts</TabText>
+            <TabText>args.ts</TabText>
           </Flex>
         </CodeTab>
       </CodeTabList>
       <CodeTabPanel>
-        <Code codeString={query} />
+        <Code codeString={invocation} />
       </CodeTabPanel>
       <CodeTabPanel>
-        <Code codeString={variables} />
+        <Code codeString={args} />
       </CodeTabPanel>
     </CodeTabs>
   )

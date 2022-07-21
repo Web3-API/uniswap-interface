@@ -14,7 +14,7 @@ import { OutlineCard } from '../../components/Card'
 const query = `
 Client.query({
   uri: ensUri,
-  query: \`query {
+  query: \`module {
           createRoute(
               pools: $pools
               inToken: $inToken
@@ -26,9 +26,8 @@ Client.query({
 const invoke = `
 Client.invoke({
   uri: ensUri,
-  module: "query",
   method: "createRoute",
-  input: {
+  args: {
     pools,
     inToken,
     outToken
@@ -50,8 +49,8 @@ export default function HowItWorks() {
           different:
         </Text>
         <Text className="intro__h2">
-          Our team has replaced all the app functionality from the Uniswap JavaScript SDK with our own Uni v3
-          Polywrapper!
+          Our team has replaced all the app functionality from the Uniswap JavaScript SDK with our own Uni v3 Wasm
+          wrapper!
         </Text>
         <Text className="intro__text"> Scroll down to see how this all works!</Text>
 
@@ -66,7 +65,7 @@ export default function HowItWorks() {
             <Text className="steps__heading">Downloading Polywrapper from IPFS</Text>
             <Text className="steps__text">
               The first step to integrate Polywrap into any dapp is to install it as a dependency and then initializing
-              the PolywrapClient. Rather than bundling business logic into your app with a JS SDK, the Polywrapper is
+              the PolywrapClient. Rather than bundling business logic into your app with a JS SDK, the Wasm wrapper is
               deployed to a decentralized endpoint like IPFS. The Polywrap client downloads this package at runtime and
               instantiates the wasm modules containing the protocol business logic.
             </Text>
@@ -89,18 +88,18 @@ export default function HowItWorks() {
         </Flex>
         <Flex className="steps__container">
           <Flex className="steps__textContainer">
-            <Text className="steps__heading">GraphQL</Text>
+            <Text className="steps__heading">Invocation</Text>
             <Text className="steps__text">
-              With a Polywrap-enabled dapp, you can send GraphQL queries to call functions made available by the wasm
-              modules. Polywrap also features an alternative call syntax for a flexible user experience.
+              With a Polywrap-enabled dapp, you can invoke functions made available by the Wasm modules. Polywrap also
+              Polywrap also features an alternative GraphQL query syntax for a familiar user experience.
             </Text>
           </Flex>
           <OutlineCard className="steps__code">
             <pre className="line-numbers">
-              <code className="language-js">{query}</code>
+              <code className="language-js">{invoke}</code>
             </pre>
             <pre>
-              <code className="language-js">{invoke}</code>
+              <code className="language-js">{query}</code>
             </pre>
           </OutlineCard>
         </Flex>

@@ -70,56 +70,56 @@ const Codeblock = (props: React.PropsWithChildren<Props>) => {
   const independentAmount = tradeType === Uni_TradeTypeEnum.EXACT_INPUT ? input : output
   const dependentAmount = tradeType === Uni_TradeTypeEnum.EXACT_INPUT ? output : input
 
-  const { query: quoteCallParametersQuery, variables: quoteCallParametersVariables } = useQuoteCallParametersCode({
+  const { invocation: quoteCallParameters, args: quoteCallParametersArgs } = useQuoteCallParametersCode({
     independentToken,
     independentAmount,
     tradeType,
   })
-  const { query: createUncheckedTradeQuery, variables: createUncheckedTradeVariables } = useCreateUncheckedTradeCode({
+  const { invocation: createUncheckedTrade, args: createUncheckedTradeArgs } = useCreateUncheckedTradeCode({
     dependentToken,
     dependentAmount,
     tradeType,
   })
-  const { query: swapCallParamtersQuery, variables: swapCallParametersVariables } = useSwapCallParametersCode({
+  const { invocation: swapCallParamters, args: swapCallParametersArgs } = useSwapCallParametersCode({
     slippageTolerance,
     recipient,
     deadline,
   })
 
-  const [{ query, variables }, setQuery] = useState<CodeTabsProps>({
-    query: quoteCallParametersQuery,
-    variables: quoteCallParametersVariables,
+  const [{ invocation, args }, setInvoke] = useState<CodeTabsProps>({
+    invocation: quoteCallParameters,
+    args: quoteCallParametersArgs,
   })
-  const queryAHandler = () => setQuery({ query: quoteCallParametersQuery, variables: quoteCallParametersVariables })
-  const queryBHandler = () => setQuery({ query: createUncheckedTradeQuery, variables: createUncheckedTradeVariables })
-  const queryCHandler = () => setQuery({ query: swapCallParamtersQuery, variables: swapCallParametersVariables })
+  const invokeAHandler = () => setInvoke({ invocation: quoteCallParameters, args: quoteCallParametersArgs })
+  const invocationBHandler = () => setInvoke({ invocation: createUncheckedTrade, args: createUncheckedTradeArgs })
+  const invocationCHandler = () => setInvoke({ invocation: swapCallParamters, args: swapCallParametersArgs })
 
   return (
     <>
       <CodeblockContainer>
         <CodeblockSelect>
           <ButtonContainer>
-            <ButtonPolywrap onClick={queryAHandler}>
+            <ButtonPolywrap onClick={invokeAHandler}>
               quoteCallParameters
               <PolywrapTooltip text="Given a route of pools to swap through and a specified amount of input or output, quoteCallParameters returns calldata for an Ethereum transaction. The calldata can be sent to Uniswap's Quoter smart contract to evaluate the trade result without executing it." />
             </ButtonPolywrap>
           </ButtonContainer>
           <Arrow src={ArrowRight} />
           <ButtonContainer>
-            <ButtonPolywrap onClick={queryBHandler}>
+            <ButtonPolywrap onClick={invocationBHandler}>
               createUncheckedTrade
               <PolywrapTooltip text="createUncheckedTrade uses an input amount, an output amount, and a trade route to create a Trade without simulating swaps to verify the amounts." />
             </ButtonPolywrap>
           </ButtonContainer>
           <Arrow src={ArrowRight} />
           <ButtonContainer>
-            <ButtonPolywrap onClick={queryCHandler}>
+            <ButtonPolywrap onClick={invocationCHandler}>
               swapCallParameters
               <PolywrapTooltip text="swapCallParameters accepts a Trade and a set of swap options as input. It transforms the trade into calldata for an Ethereum transaction that will execute the trade in Uniswap's smart contracts." />
             </ButtonPolywrap>
           </ButtonContainer>
         </CodeblockSelect>
-        <CodeblockTabs query={query} variables={variables} />
+        <CodeblockTabs invocation={invocation} args={args} />
       </CodeblockContainer>
     </>
   )

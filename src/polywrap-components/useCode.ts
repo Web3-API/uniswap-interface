@@ -2,20 +2,18 @@ import { useMemo } from 'react'
 
 import { Uni_ChainIdEnum, Uni_Token, Uni_TradeTypeEnum } from '../wrap'
 
-const quoteCallParametersQuery: string = `
-Client.query({
+const quoteCallParameters: string = `
+Client.invoke({
   uri: ensUri,
-  query: \`module {
-      quoteCallParameters(
-          route: $route,
-          amount: $amountSpecified,
-          tradeType: $tradeType,
-      )
-    }\`,
-  variables
+  method: 'quoteCallParameters',
+  args: {
+    route: route,
+    amount: amountSpecified,
+    tradeType: tradeType,
+  }
 })`.trim()
 
-export interface quoteCallParametersVariables {
+export interface quoteCallParametersArgs {
   independentToken?: Uni_Token
   independentAmount?: string
   tradeType: Uni_TradeTypeEnum
@@ -25,14 +23,14 @@ export function useQuoteCallParametersCode({
   independentToken,
   independentAmount,
   tradeType,
-}: quoteCallParametersVariables): {
-  query: string
-  variables: string
+}: quoteCallParametersArgs): {
+  invocation: string
+  args: string
 } {
   return useMemo(
     () => ({
-      query: quoteCallParametersQuery,
-      variables: `
+      invocation: quoteCallParameters,
+      args: `
 const tradeType = TradeType.${Uni_TradeTypeEnum[tradeType]}
 const amountSpecified = {
   token: {
@@ -52,11 +50,11 @@ const amountSpecified = {
   )
 }
 
-const createUncheckedTradeQuery: string = `
+const createUncheckedTrade: string = `
 Client.invoke({
   uri: ensUri,
   method: 'createUncheckedTrade',
-  input: {
+  args: {
     swap: {
       route: bestRoute,
       inputAmount: amountIn,
@@ -66,24 +64,20 @@ Client.invoke({
   }
 })`.trim()
 
-export interface createUncheckedTradeVariables {
+export interface createUncheckedTradeArgs {
   dependentToken?: Uni_Token
   dependentAmount?: string
   tradeType: Uni_TradeTypeEnum
 }
 
-export function useCreateUncheckedTradeCode({
-  dependentToken,
-  dependentAmount,
-  tradeType,
-}: createUncheckedTradeVariables): {
-  query: string
-  variables: string
+export function useCreateUncheckedTradeCode({ dependentToken, dependentAmount, tradeType }: createUncheckedTradeArgs): {
+  invocation: string
+  args: string
 } {
   return useMemo(
     () => ({
-      query: createUncheckedTradeQuery,
-      variables: `
+      invocation: createUncheckedTrade,
+      args: `
 const tradeType = TradeType.${Uni_TradeTypeEnum[tradeType]}
 const ${tradeType === Uni_TradeTypeEnum.EXACT_INPUT ? 'amountOut' : 'amountIn'} = {
   token: {
@@ -103,32 +97,30 @@ const ${tradeType === Uni_TradeTypeEnum.EXACT_INPUT ? 'amountOut' : 'amountIn'} 
   )
 }
 
-const swapCallParametersQuery: string = `
-Client.query({
+const swapCallParameters: string = `
+Client.invoke({
   uri: ensUri,
-  query: \`module {
-      swapCallParameters(
-          trades: $trades
-          options: $swapOptions,
-      )
-    }\`,
-  variables
+  method: 'swapCallParameters',
+  args: {
+    trades: trades,
+    options: swapOptions,
+  }
 })`.trim()
 
-export interface swapCallParametersVariables {
+export interface swapCallParametersArgs {
   slippageTolerance?: string
   recipient?: string
   deadline?: string
 }
 
-export function useSwapCallParametersCode({ slippageTolerance, recipient, deadline }: swapCallParametersVariables): {
-  query: string
-  variables: string
+export function useSwapCallParametersCode({ slippageTolerance, recipient, deadline }: swapCallParametersArgs): {
+  invocation: string
+  args: string
 } {
   return useMemo(
     () => ({
-      query: swapCallParametersQuery,
-      variables: `
+      invocation: swapCallParameters,
+      args: `
 const swapOptions = {
   slippageTolerance: ${slippageTolerance}%,
   recipient: ${recipient ? `'${recipient}'` : undefined},
