@@ -1,7 +1,7 @@
 # See https://help.github.com/ignore-files/ for more about ignoring files.
 
 # generated polywrap types
-# /src/wrap
+/src/wrap
 
 # generated contract types
 /src/abis/types
