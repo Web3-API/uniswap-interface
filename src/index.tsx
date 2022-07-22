@@ -10,6 +10,7 @@ import { Provider } from 'react-redux'
 import { HashRouter } from 'react-router-dom'
 
 import Blocklist from './components/Blocklist'
+import Web3ReactManager from './components/Web3ReactManager'
 import { NetworkContextName } from './constants/misc'
 import { LanguageProvider } from './i18n'
 import App from './pages/App'
@@ -28,7 +29,7 @@ import getLibrary from './utils/getLibrary'
 const Web3ProviderNetwork = createWeb3ReactRoot(NetworkContextName)
 
 if (!!window.ethereum) {
-  window.ethereum.autoRefreshOnNetworkChange = true
+  window.ethereum.autoRefreshOnNetworkChange = false
 }
 
 function Updaters() {
@@ -52,13 +53,15 @@ ReactDOM.render(
         <LanguageProvider>
           <Web3ReactProvider getLibrary={getLibrary}>
             <Web3ProviderNetwork getLibrary={getLibrary}>
-              <Blocklist>
-                <Updaters />
-                <ThemeProvider>
-                  <ThemedGlobalStyle />
-                  <App />
-                </ThemeProvider>
-              </Blocklist>
+              <Web3ReactManager>
+                <Blocklist>
+                  <Updaters />
+                  <ThemeProvider>
+                    <ThemedGlobalStyle />
+                    <App />
+                  </ThemeProvider>
+                </Blocklist>
+              </Web3ReactManager>
             </Web3ProviderNetwork>
           </Web3ReactProvider>
         </LanguageProvider>
