@@ -10,7 +10,7 @@ import { ReactNode, useMemo } from 'react'
 
 import { ArgentWalletContract } from '../abis/types'
 import { SWAP_ROUTER_ADDRESSES, V3_ROUTER_ADDRESS } from '../constants/addresses'
-import { isEther, isTrade, reverseMapToken, reverseMapTokenAmount } from '../polywrap-utils'
+import { isNative, isTrade, reverseMapToken, reverseMapTokenAmount } from '../polywrap-utils'
 import { TransactionType } from '../state/transactions/actions'
 import { useTransactionAdder } from '../state/transactions/hooks'
 import approveAmountCalldata from '../utils/approveAmountCalldata'
@@ -250,7 +250,7 @@ function useSwapCallArguments(
       if (
         argentWalletContract &&
         ((trade instanceof RouterTrade && trade.inputAmount.currency.isToken) ||
-          (isTrade(trade) && !isEther(trade.inputAmount.token)))
+          (isTrade(trade) && !isNative(trade.inputAmount.token)))
       ) {
         return [
           {

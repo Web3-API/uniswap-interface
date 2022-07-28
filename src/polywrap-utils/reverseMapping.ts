@@ -1,11 +1,11 @@
 import {
   Currency as UniCurrency,
   CurrencyAmount as UniCurrencyAmount,
-  Ether,
   Price as UniPrice,
   Token as UniToken,
 } from '@uniswap/sdk-core'
 
+import { nativeOnChain } from '../constants/tokens'
 import {
   Uni_ChainId as ChainId,
   Uni_ChainIdEnum as ChainIdEnum,
@@ -15,7 +15,7 @@ import {
   Uni_Token as Token,
   Uni_TokenAmount as TokenAmount,
 } from '../wrap'
-import { isEther } from './utils'
+import { isNative } from './utils'
 
 export function reverseMapChainId(input: ChainId | number): number {
   switch (input) {
@@ -59,8 +59,8 @@ export function reverseMapChainId(input: ChainId | number): number {
 
 export function reverseMapToken(input?: Token): UniCurrency | undefined {
   if (!input) return undefined
-  if (isEther(input)) {
-    return Ether.onChain(reverseMapChainId(input.chainId))
+  if (isNative(input)) {
+    return nativeOnChain(reverseMapChainId(input.chainId))
   }
   return new UniToken(
     reverseMapChainId(input.chainId as ChainIdEnum),

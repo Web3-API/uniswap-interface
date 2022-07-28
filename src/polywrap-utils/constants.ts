@@ -7,9 +7,19 @@ export const ETHER: Uni_Currency = {
   name: 'Ether',
   symbol: 'ETH',
 }
+export const MATIC: Uni_Currency = {
+  decimals: 18,
+  name: 'Matic',
+  symbol: 'MATIC',
+}
+export const mMATIC: Uni_Currency = {
+  name: 'Polygon Mumbai Matic',
+  symbol: 'mMATIC',
+  decimals: 18,
+}
 
 export const ensUri = 'wrap://ens/goerli/v3.uniswap.wrappers.eth'
-export const ipfsCid = 'wrap://ipfs/QmaCE8PsWBdtZ19W7z1sWABCk7VAbfNNpbvKfM9BNoJi58' // warning: ipfs uri can be outdated
+export const ipfsCid = 'wrap://ipfs/QmRYicmQJUPSfWoXtneaF6msgvMdyz6jC8TiG3AbWVXDgd' // warning: ipfs uri can be outdated
 export const wrapperUri = ensUri
 
 // infura keys

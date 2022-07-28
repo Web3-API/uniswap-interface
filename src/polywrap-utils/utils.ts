@@ -4,6 +4,7 @@ import { Trade as V2Trade } from '@uniswap/v2-sdk'
 import JSBI from 'jsbi'
 
 import {
+  Uni_ChainIdEnum,
   Uni_Currency,
   Uni_FeeAmountEnum,
   Uni_Pool,
@@ -13,15 +14,29 @@ import {
   Uni_TokenAmount,
   Uni_Trade,
 } from '../wrap'
-import { ETHER } from './constants'
+import { ETHER, MATIC, mMATIC } from './constants'
 
-export function isEther(token: Uni_Token | undefined): boolean {
+export function isNative(token: Uni_Token | undefined): boolean {
   if (!token) return false
-  return (
-    token.currency.symbol === ETHER.symbol &&
-    token.currency.name === ETHER.name &&
-    token.currency.decimals === ETHER.decimals
-  )
+  if (token.chainId === Uni_ChainIdEnum.POLYGON) {
+    return (
+      token.currency.symbol === MATIC.symbol &&
+      token.currency.name === MATIC.name &&
+      token.currency.decimals === MATIC.decimals
+    )
+  } else if (token.chainId === Uni_ChainIdEnum.POLYGON_MUMBAI) {
+    return (
+      token.currency.symbol === mMATIC.symbol &&
+      token.currency.name === mMATIC.name &&
+      token.currency.decimals === mMATIC.decimals
+    )
+  } else {
+    return (
+      token.currency.symbol === ETHER.symbol &&
+      token.currency.name === ETHER.name &&
+      token.currency.decimals === ETHER.decimals
+    )
+  }
 }
 
 export function isToken(object: unknown): object is Uni_Token {

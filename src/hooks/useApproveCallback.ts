@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getTxOptimizedSwapRouter, SwapRouterVersion } from 'utils/getTxOptimizedSwapRouter'
 
 import { SWAP_ROUTER_ADDRESSES, V2_ROUTER_ADDRESS, V3_ROUTER_ADDRESS } from '../constants/addresses'
-import { isEther, isTrade, reverseMapTokenAmount } from '../polywrap-utils'
+import { isNative, isTrade, reverseMapTokenAmount } from '../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
 import { TransactionType } from '../state/transactions/actions'
 import { useHasPendingApproval, useTransactionAdder } from '../state/transactions/hooks'
@@ -60,7 +60,7 @@ export function useAllApprovalStates(trade: PolyTrade | undefined, allowedSlippa
 
   useEffect(() => {
     cancelable.current?.cancel()
-    if (!trade || isEther(trade.inputAmount.token)) {
+    if (!trade || isNative(trade.inputAmount.token)) {
       setAmountToApprove(undefined)
     } else {
       const maxInPromise = Uni_Module.tradeMaximumAmountIn(
@@ -176,7 +176,7 @@ export function useApproveCallbackFromTrade(
       setAmountToApprove(undefined)
     } else if (!isTrade(trade)) {
       setAmountToApprove(trade.inputAmount.currency.isToken ? trade.maximumAmountIn(allowedSlippage) : undefined)
-    } else if (isEther(trade.inputAmount.token)) {
+    } else if (isNative(trade.inputAmount.token)) {
       setAmountToApprove(undefined)
     } else {
       const maxInPromise = Uni_Module.tradeMaximumAmountIn(
