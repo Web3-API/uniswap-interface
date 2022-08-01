@@ -14,21 +14,15 @@ import {
   Uni_TokenAmount,
   Uni_Trade,
 } from '../wrap'
-import { ETHER, MATIC, mMATIC } from './constants'
+import { ETHER, MATIC } from './constants'
 
 export function isNative(token: Uni_Token | undefined): boolean {
   if (!token) return false
-  if (token.chainId === Uni_ChainIdEnum.POLYGON) {
+  if (token.chainId === Uni_ChainIdEnum.POLYGON || token.chainId === Uni_ChainIdEnum.POLYGON_MUMBAI) {
     return (
       token.currency.symbol === MATIC.symbol &&
       token.currency.name === MATIC.name &&
       token.currency.decimals === MATIC.decimals
-    )
-  } else if (token.chainId === Uni_ChainIdEnum.POLYGON_MUMBAI) {
-    return (
-      token.currency.symbol === mMATIC.symbol &&
-      token.currency.name === mMATIC.name &&
-      token.currency.decimals === mMATIC.decimals
     )
   } else {
     return (

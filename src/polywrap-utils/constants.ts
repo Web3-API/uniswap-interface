@@ -9,13 +9,8 @@ export const ETHER: Uni_Currency = {
 }
 export const MATIC: Uni_Currency = {
   decimals: 18,
-  name: 'Matic',
+  name: 'Polygon Matic',
   symbol: 'MATIC',
-}
-export const mMATIC: Uni_Currency = {
-  name: 'Polygon Mumbai Matic',
-  symbol: 'mMATIC',
-  decimals: 18,
 }
 
 export const wrapperUri = 'wrap://ens/goerli/v3.uniswap.wrappers.eth'
