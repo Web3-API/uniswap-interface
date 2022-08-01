@@ -29,7 +29,7 @@ const CheckIcon = styled(CheckCircle)`
   height: 16px;
   width: 16px;
   margin-right: 6px;
-  stroke: ${({ theme }) => theme.green1};
+  stroke: ${({ theme }) => theme.deprecated_green1};
 `
 
 const NameOverflow = styled.div`
@@ -63,20 +63,20 @@ export default function ImportRow({
   const list = token instanceof WrappedTokenInfo ? token.list : undefined
 
   return (
-    <TokenSection style={style}>
+    <TokenSection tabIndex={0} style={style}>
       <CurrencyLogo currency={token} size={'24px'} style={{ opacity: dim ? '0.6' : '1' }} />
       <AutoColumn gap="4px" style={{ opacity: dim ? '0.6' : '1' }}>
         <AutoRow>
-          <ThemedText.Body fontWeight={500}>{token.symbol}</ThemedText.Body>
-          <ThemedText.DarkGray ml="8px" fontWeight={300}>
+          <ThemedText.DeprecatedBody fontWeight={500}>{token.symbol}</ThemedText.DeprecatedBody>
+          <ThemedText.DeprecatedDarkGray ml="8px" fontWeight={300}>
             <NameOverflow title={token.name}>{token.name}</NameOverflow>
-          </ThemedText.DarkGray>
+          </ThemedText.DeprecatedDarkGray>
         </AutoRow>
         {list && list.logoURI && (
           <RowFixed>
-            <ThemedText.Small mr="4px" color={theme.text3}>
+            <ThemedText.DeprecatedSmall mr="4px" color={theme.deprecated_text3}>
               <Trans>via {list.name} </Trans>
-            </ThemedText.Small>
+            </ThemedText.DeprecatedSmall>
             <ListLogo logoURI={list.logoURI} size="12px" />
           </RowFixed>
         )}
@@ -97,9 +97,9 @@ export default function ImportRow({
       ) : (
         <RowFixed style={{ minWidth: 'fit-content' }}>
           <CheckIcon />
-          <ThemedText.Main color={theme.green1}>
+          <ThemedText.DeprecatedMain color={theme.deprecated_green1}>
             <Trans>Active</Trans>
-          </ThemedText.Main>
+          </ThemedText.DeprecatedMain>
         </RowFixed>
       )}
     </TokenSection>

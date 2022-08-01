@@ -1,6 +1,7 @@
 import { isAddress } from '@ethersproject/address'
 import { Trans } from '@lingui/macro'
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
 import JSBI from 'jsbi'
 import { useEffect, useState } from 'react'
 import { Text } from 'rebass'
@@ -8,8 +9,7 @@ import styled from 'styled-components/macro'
 
 import Circle from '../../assets/images/blue-loader.svg'
 import tokenLogo from '../../assets/images/token-logo.png'
-import { useActiveWeb3React } from '../../hooks/web3'
-import { useModalOpen, useToggleSelfClaimModal } from '../../state/application/hooks'
+import { useModalIsOpen, useToggleSelfClaimModal } from '../../state/application/hooks'
 import { ApplicationModal } from '../../state/application/reducer'
 import { useClaimCallback, useUserClaimData, useUserUnclaimedAmount } from '../../state/claim/hooks'
 import { useUserHasSubmittedClaim } from '../../state/transactions/hooks'
@@ -48,10 +48,10 @@ const SOCKS_AMOUNT = 1000
 const USER_AMOUNT = 400
 
 export default function ClaimModal() {
-  const isOpen = useModalOpen(ApplicationModal.SELF_CLAIM)
+  const isOpen = useModalIsOpen(ApplicationModal.SELF_CLAIM)
   const toggleClaimModal = useToggleSelfClaimModal()
 
-  const { account, chainId } = useActiveWeb3React()
+  const { account, chainId } = useWeb3React()
 
   // used for UI loading states
   const [attempting, setAttempting] = useState<boolean>(false)
@@ -100,63 +100,63 @@ export default function ClaimModal() {
             <CardNoise />
             <CardSection gap="md">
               <RowBetween>
-                <ThemedText.White fontWeight={500}>
+                <ThemedText.DeprecatedWhite fontWeight={500}>
                   <Trans>Claim UNI</Trans>
-                </ThemedText.White>
+                </ThemedText.DeprecatedWhite>
                 <CloseIcon onClick={toggleClaimModal} style={{ zIndex: 99 }} color="white" />
               </RowBetween>
-              <ThemedText.White fontWeight={700} fontSize={36}>
+              <ThemedText.DeprecatedWhite fontWeight={700} fontSize={36}>
                 <Trans>{unclaimedAmount?.toFixed(0, { groupSeparator: ',' } ?? '-')} UNI</Trans>
-              </ThemedText.White>
+              </ThemedText.DeprecatedWhite>
             </CardSection>
             <Break />
             <CardSection gap="sm">
               {userClaimData?.flags?.isSOCKS && (
                 <RowBetween>
-                  <ThemedText.SubHeader color="white">SOCKS</ThemedText.SubHeader>
-                  <ThemedText.SubHeader color="white">
+                  <ThemedText.DeprecatedSubHeader color="white">SOCKS</ThemedText.DeprecatedSubHeader>
+                  <ThemedText.DeprecatedSubHeader color="white">
                     <Trans>{SOCKS_AMOUNT} UNI</Trans>
-                  </ThemedText.SubHeader>
+                  </ThemedText.DeprecatedSubHeader>
                 </RowBetween>
               )}
               {userClaimData?.flags?.isLP &&
                 unclaimedAmount &&
                 JSBI.greaterThanOrEqual(unclaimedAmount.quotient, nonLPAmount) && (
                   <RowBetween>
-                    <ThemedText.SubHeader color="white">
+                    <ThemedText.DeprecatedSubHeader color="white">
                       <Trans>Liquidity</Trans>
-                    </ThemedText.SubHeader>
-                    <ThemedText.SubHeader color="white">
+                    </ThemedText.DeprecatedSubHeader>
+                    <ThemedText.DeprecatedSubHeader color="white">
                       <Trans>
                         {unclaimedAmount
                           .subtract(CurrencyAmount.fromRawAmount(unclaimedAmount.currency, nonLPAmount))
                           .toFixed(0, { groupSeparator: ',' })}{' '}
                         UNI
                       </Trans>
-                    </ThemedText.SubHeader>
+                    </ThemedText.DeprecatedSubHeader>
                   </RowBetween>
                 )}
               {userClaimData?.flags?.isUser && (
                 <RowBetween>
-                  <ThemedText.SubHeader color="white">
+                  <ThemedText.DeprecatedSubHeader color="white">
                     <Trans>User</Trans>
-                  </ThemedText.SubHeader>
-                  <ThemedText.SubHeader color="white">
+                  </ThemedText.DeprecatedSubHeader>
+                  <ThemedText.DeprecatedSubHeader color="white">
                     <Trans>{USER_AMOUNT} UNI</Trans>
-                  </ThemedText.SubHeader>
+                  </ThemedText.DeprecatedSubHeader>
                 </RowBetween>
               )}
             </CardSection>
           </ModalUpper>
           <AutoColumn gap="md" style={{ padding: '1rem', paddingTop: '0' }} justify="center">
-            <ThemedText.SubHeader fontWeight={500}>
+            <ThemedText.DeprecatedSubHeader fontWeight={500}>
               <Trans>
                 As a member of the Uniswap community you may claim UNI to be used for voting and governance.
                 <br />
                 <br />
                 <ExternalLink href="https://uniswap.org/blog/uni">Read more about UNI</ExternalLink>
               </Trans>
-            </ThemedText.SubHeader>
+            </ThemedText.DeprecatedSubHeader>
             <ButtonPrimary
               disabled={!isAddress(account ?? '')}
               padding="16px 16px"
@@ -187,9 +187,9 @@ export default function ClaimModal() {
           </ConfirmedIcon>
           <AutoColumn gap="100px" justify={'center'}>
             <AutoColumn gap="12px" justify={'center'}>
-              <ThemedText.LargeHeader fontWeight={600} color="black">
+              <ThemedText.DeprecatedLargeHeader fontWeight={600} color="black">
                 {claimConfirmed ? <Trans>Claimed!</Trans> : <Trans>Claiming</Trans>}
-              </ThemedText.LargeHeader>
+              </ThemedText.DeprecatedLargeHeader>
               {!claimConfirmed && (
                 <Text fontSize={36} color={'#ff007a'} fontWeight={800}>
                   <Trans>{unclaimedAmount?.toFixed(0, { groupSeparator: ',' } ?? '-')} UNI</Trans>
@@ -198,7 +198,7 @@ export default function ClaimModal() {
             </AutoColumn>
             {claimConfirmed && (
               <>
-                <ThemedText.SubHeader fontWeight={500} color="black">
+                <ThemedText.DeprecatedSubHeader fontWeight={500} color="black">
                   <Trans>
                     <span role="img" aria-label="party-hat">
                       🎉{' '}
@@ -208,13 +208,13 @@ export default function ClaimModal() {
                       🎉
                     </span>
                   </Trans>
-                </ThemedText.SubHeader>
+                </ThemedText.DeprecatedSubHeader>
               </>
             )}
             {attempting && !claimSubmitted && (
-              <ThemedText.SubHeader color="black">
+              <ThemedText.DeprecatedSubHeader color="black">
                 <Trans>Confirm this transaction in your wallet</Trans>
-              </ThemedText.SubHeader>
+              </ThemedText.DeprecatedSubHeader>
             )}
             {attempting && claimSubmitted && !claimConfirmed && chainId && claimTxn?.hash && (
               <ExternalLink

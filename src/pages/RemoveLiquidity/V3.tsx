@@ -4,6 +4,8 @@ import { Trans } from '@lingui/macro'
 import { PolywrapClient } from '@polywrap/client-js'
 import { usePolywrapClient } from '@polywrap/react'
 import { Percent } from '@uniswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
+import { sendEvent } from 'components/analytics'
 import RangeBadge from 'components/Badge/RangeBadge'
 import { ButtonConfirmed, ButtonPrimary } from 'components/Button'
 import { LightCard } from 'components/Card'
@@ -22,10 +24,9 @@ import useDebouncedChangeHandler from 'hooks/useDebouncedChangeHandler'
 import useTheme from 'hooks/useTheme'
 import useTransactionDeadline from 'hooks/useTransactionDeadline'
 import { useV3PositionFromTokenId } from 'hooks/useV3Positions'
-import { useActiveWeb3React } from 'hooks/web3'
+import useNativeCurrency from 'lib/hooks/useNativeCurrency'
 import { useCallback, useMemo, useState } from 'react'
-import ReactGA from 'react-ga'
-import { Redirect, RouteComponentProps } from 'react-router-dom'
+import { Navigate, useLocation, useParams } from 'react-router-dom'
 import { Text } from 'rebass'
 import { useBurnV3ActionHandlers, useBurnV3State, useDerivedV3BurnInfo } from 'state/burn/v3/hooks'
 import { useTransactionAdder } from 'state/transactions/hooks'
@@ -34,8 +35,8 @@ import { ThemedText } from 'theme'
 
 import TransactionConfirmationModal, { ConfirmationModalContent } from '../../components/TransactionConfirmationModal'
 import { WRAPPED_NATIVE_CURRENCY } from '../../constants/tokens'
-import { mapTokenAmount } from '../../polywrap-utils'
-import { TransactionType } from '../../state/transactions/actions'
+import { mapToken, mapTokenAmount } from '../../polywrap-utils'
+import { TransactionType } from '../../state/transactions/types'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { currencyId } from '../../utils/currencyId'
 import { Uni_MethodParameters, Uni_Module, Uni_TokenAmount as TokenAmount } from '../../wrap'
@@ -45,12 +46,9 @@ import { ResponsiveHeaderText, SmallMaxButton, Wrapper } from './styled'
 const DEFAULT_REMOVE_V3_LIQUIDITY_SLIPPAGE_TOLERANCE = new Percent(5, 100)
 
 // redirect invalid tokenIds
-export default function RemoveLiquidityV3({
-  location,
-  match: {
-    params: { tokenId },
-  },
-}: RouteComponentProps<{ tokenId: string }>) {
+export default function RemoveLiquidityV3() {
+  const { tokenId } = useParams<{ tokenId: string }>()
+  const location = useLocation()
   const parsedTokenId = useMemo(() => {
     try {
       return BigNumber.from(tokenId)
@@ -60,7 +58,7 @@ export default function RemoveLiquidityV3({
   }, [tokenId])
 
   if (parsedTokenId === null || parsedTokenId.eq(0)) {
-    return <Redirect to={{ ...location, pathname: '/pool' }} />
+    return <Navigate to={{ ...location, pathname: '/pool' }} replace />
   }
 
   return <Remove tokenId={parsedTokenId} />
@@ -68,12 +66,14 @@ export default function RemoveLiquidityV3({
 function Remove({ tokenId }: { tokenId: BigNumber }) {
   const { position } = useV3PositionFromTokenId(tokenId)
   const theme = useTheme()
-  const { account, chainId, library } = useActiveWeb3React()
+  const { account, chainId, provider } = useWeb3React()
 
   const client: PolywrapClient = usePolywrapClient()
 
   // flag for receiving WETH
   const [receiveWETH, setReceiveWETH] = useState(false)
+  const nativeCurrency = useNativeCurrency()
+  const nativeWrappedSymbol = nativeCurrency.wrapped.symbol
 
   // burn state
   const { percent } = useBurnV3State()
@@ -111,14 +111,25 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
       !deadline ||
       !account ||
       !chainId ||
-      !feeValue0 ||
-      !feeValue1 ||
       !positionSDK ||
       !liquidityPercentage ||
-      !library
+      !provider
     ) {
       return
     }
+
+    const expectedCurrencyOwed0: TokenAmount = feeValue0
+      ? mapTokenAmount(feeValue0)!
+      : {
+          token: mapToken(liquidityValue0.currency),
+          amount: '0',
+        }
+    const expectedCurrencyOwed1: TokenAmount = feeValue1
+      ? mapTokenAmount(feeValue1)!
+      : {
+          token: mapToken(liquidityValue1.currency),
+          amount: '0',
+        }
 
     const invoke = await Uni_Module.removeCallParameters(
       {
@@ -130,8 +141,8 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
           deadline: deadline.toString(),
           collectOptions: {
             tokenId: '',
-            expectedCurrencyOwed0: mapTokenAmount(feeValue0) as TokenAmount,
-            expectedCurrencyOwed1: mapTokenAmount(feeValue1) as TokenAmount,
+            expectedCurrencyOwed0,
+            expectedCurrencyOwed1,
             recipient: account,
           },
         },
@@ -147,7 +158,7 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
       value,
     }
 
-    library
+    provider
       .getSigner()
       .estimateGas(txn)
       .then((estimate) => {
@@ -156,11 +167,11 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
           gasLimit: calculateGasMargin(estimate),
         }
 
-        return library
+        return provider
           .getSigner()
           .sendTransaction(newTxn)
           .then((response: TransactionResponse) => {
-            ReactGA.event({
+            sendEvent({
               category: 'Liquidity',
               action: 'RemoveV3',
               label: [liquidityValue0.currency.symbol, liquidityValue1.currency.symbol].join('/'),
@@ -191,7 +202,7 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
     feeValue1,
     positionSDK,
     liquidityPercentage,
-    library,
+    provider,
     tokenId,
     allowedSlippage,
     addTransaction,
@@ -242,9 +253,14 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
         </RowBetween>
         {feeValue0?.greaterThan(0) || feeValue1?.greaterThan(0) ? (
           <>
-            <ThemedText.Italic fontSize={12} color={theme.text2} textAlign="left" padding={'8px 0 0 0'}>
+            <ThemedText.DeprecatedItalic
+              fontSize={12}
+              color={theme.deprecated_text2}
+              textAlign="left"
+              padding={'8px 0 0 0'}
+            >
               <Trans>You will also collect fees earned from this position.</Trans>
-            </ThemedText.Italic>
+            </ThemedText.DeprecatedItalic>
             <RowBetween>
               <Text fontSize={16} fontWeight={500}>
                 <Trans>{feeValue0?.currency?.symbol} Fees Earned:</Trans>
@@ -281,8 +297,8 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
       liquidityValue1?.currency &&
       (liquidityValue0.currency.isNative ||
         liquidityValue1.currency.isNative ||
-        liquidityValue0.currency.wrapped.equals(WRAPPED_NATIVE_CURRENCY[liquidityValue0.currency.chainId]) ||
-        liquidityValue1.currency.wrapped.equals(WRAPPED_NATIVE_CURRENCY[liquidityValue1.currency.chainId]))
+        WRAPPED_NATIVE_CURRENCY[liquidityValue0.currency.chainId]?.equals(liquidityValue0.currency.wrapped) ||
+        WRAPPED_NATIVE_CURRENCY[liquidityValue1.currency.chainId]?.equals(liquidityValue1.currency.wrapped))
   )
   return (
     <AutoColumn>
@@ -318,18 +334,18 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
                     size={20}
                     margin={true}
                   />
-                  <ThemedText.Label
+                  <ThemedText.DeprecatedLabel
                     ml="10px"
                     fontSize="20px"
-                  >{`${feeValue0?.currency?.symbol}/${feeValue1?.currency?.symbol}`}</ThemedText.Label>
+                  >{`${feeValue0?.currency?.symbol}/${feeValue1?.currency?.symbol}`}</ThemedText.DeprecatedLabel>
                 </RowFixed>
                 <RangeBadge removed={removed} inRange={!outOfRange} />
               </RowBetween>
               <LightCard>
                 <AutoColumn gap="md">
-                  <ThemedText.Main fontWeight={400}>
+                  <ThemedText.DeprecatedMain fontWeight={400}>
                     <Trans>Amount</Trans>
-                  </ThemedText.Main>
+                  </ThemedText.DeprecatedMain>
                   <RowBetween>
                     <ResponsiveHeaderText>
                       <Trans>{percentForSlider}%</Trans>
@@ -408,9 +424,9 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
 
               {showCollectAsWeth && (
                 <RowBetween>
-                  <ThemedText.Main>
-                    <Trans>Collect as WETH</Trans>
-                  </ThemedText.Main>
+                  <ThemedText.DeprecatedMain>
+                    <Trans>Collect as {nativeWrappedSymbol}</Trans>
+                  </ThemedText.DeprecatedMain>
                   <Toggle
                     id="receive-as-weth"
                     isActive={receiveWETH}

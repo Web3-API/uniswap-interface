@@ -1,8 +1,8 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
+import { useSingleCallResult } from 'lib/hooks/multicall'
+import useBlockNumber from 'lib/hooks/useBlockNumber'
 import { useEffect, useState } from 'react'
-import { useBlockNumber } from 'state/application/hooks'
-import { useSingleCallResult } from 'state/multicall/hooks'
 import { unwrappedToken } from 'utils/unwrappedToken'
 
 import { reverseMapToken } from '../polywrap-utils'
@@ -24,13 +24,11 @@ export function useV3PositionFees(
   const tokenIdHexString = tokenId?.toHexString()
   const latestBlockNumber = useBlockNumber()
 
-  // TODO find a way to get this into multicall
+  // we can't use multicall for this because we need to simulate the call from a specific address
   // latestBlockNumber is included to ensure data stays up-to-date every block
-  const [amounts, setAmounts] = useState<[BigNumber, BigNumber]>()
+  const [amounts, setAmounts] = useState<[BigNumber, BigNumber] | undefined>()
   useEffect(() => {
-    let stale = false
-
-    if (positionManager && tokenIdHexString && owner && typeof latestBlockNumber === 'number') {
+    if (positionManager && tokenIdHexString && owner) {
       positionManager.callStatic
         .collect(
           {
@@ -42,12 +40,8 @@ export function useV3PositionFees(
           { from: owner } // need to simulate the call as the owner
         )
         .then((results) => {
-          if (!stale) setAmounts([results.amount0, results.amount1])
+          setAmounts([results.amount0, results.amount1])
         })
-    }
-
-    return () => {
-      stale = true
     }
   }, [positionManager, tokenIdHexString, owner, latestBlockNumber])
 
@@ -55,8 +49,8 @@ export function useV3PositionFees(
     const token0 = reverseMapToken(pool.token0) as Currency
     const token1 = reverseMapToken(pool.token1) as Currency
     return [
-      CurrencyAmount.fromRawAmount(!asWETH ? unwrappedToken(token0) : token0, amounts[0].toString()),
-      CurrencyAmount.fromRawAmount(!asWETH ? unwrappedToken(token1) : token1, amounts[1].toString()),
+      CurrencyAmount.fromRawAmount(asWETH ? token0 : unwrappedToken(token0), amounts[0].toString()),
+      CurrencyAmount.fromRawAmount(asWETH ? token1 : unwrappedToken(token1), amounts[1].toString()),
     ]
   } else {
     return [undefined, undefined]

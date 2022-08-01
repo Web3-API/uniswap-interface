@@ -3,16 +3,16 @@ import { PolywrapClient } from '@polywrap/client-js'
 import { usePolywrapClient } from '@polywrap/react'
 import { Currency, Token } from '@uniswap/sdk-core'
 import { abi as IUniswapV3PoolStateABI } from '@uniswap/v3-core/artifacts/contracts/interfaces/pool/IUniswapV3PoolState.sol/IUniswapV3PoolState.json'
+import { useWeb3React } from '@web3-react/core'
 import JSBI from 'jsbi'
+import { useMultipleContractSingleData } from 'lib/hooks/multicall'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { V3_CORE_FACTORY_ADDRESSES } from '../constants/addresses'
 import { mapToken, tokenEquals } from '../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
-import { useMultipleContractSingleData } from '../state/multicall/hooks'
 import { IUniswapV3PoolStateInterface } from '../types/v3/IUniswapV3PoolState'
 import { Uni_FeeAmountEnum, Uni_Module, Uni_Pool, Uni_Token } from '../wrap'
-import { useActiveWeb3React } from './web3'
 
 const POOL_STATE_INTERFACE = new Interface(IUniswapV3PoolStateABI) as IUniswapV3PoolStateInterface
 
@@ -118,18 +118,21 @@ class PoolCache {
 export function usePools(
   poolKeys: [Currency | undefined, Currency | undefined, Uni_FeeAmountEnum | undefined][]
 ): [PoolState, Uni_Pool | null][] {
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
   const client: PolywrapClient = usePolywrapClient()
 
-  const transformed: ([Token, Token, Uni_FeeAmountEnum] | null)[] = useMemo(() => {
-    return poolKeys.map(([currencyA, currencyB, feeAmount]) => {
-      if (!chainId || !currencyA || !currencyB || feeAmount === undefined) return null
+  const poolTokens: ([Token, Token, Uni_FeeAmountEnum] | undefined)[] = useMemo(() => {
+    if (!chainId) return new Array(poolKeys.length)
 
-      const tokenA = currencyA?.wrapped
-      const tokenB = currencyB?.wrapped
-      if (!tokenA || !tokenB || tokenA.equals(tokenB)) return null
-      const [token0, token1] = tokenA.sortsBefore(tokenB) ? [tokenA, tokenB] : [tokenB, tokenA]
-      return [token0, token1, feeAmount]
+    return poolKeys.map(([currencyA, currencyB, feeAmount]) => {
+      if (currencyA && currencyB && feeAmount !== undefined) {
+        const tokenA = currencyA.wrapped
+        const tokenB = currencyB.wrapped
+        if (tokenA.equals(tokenB)) return undefined
+
+        return tokenA.sortsBefore(tokenB) ? [tokenA, tokenB, feeAmount] : [tokenB, tokenA, feeAmount]
+      }
+      return undefined
     })
   }, [chainId, poolKeys])
 
@@ -139,7 +142,7 @@ export function usePools(
   useEffect(() => {
     cancelableAddresses.current?.cancel()
     const v3CoreFactoryAddress = chainId && V3_CORE_FACTORY_ADDRESSES[chainId]
-    const mapped = transformed.map(async (value) => {
+    const mapped = poolTokens.map(async (value) => {
       if (!v3CoreFactoryAddress || !value) {
         return undefined
       }
@@ -157,7 +160,7 @@ export function usePools(
       setPoolAddresses(addresses)
     })
     return () => cancelableAddresses.current?.cancel()
-  }, [chainId, transformed, client])
+  }, [chainId, poolTokens, client])
 
   const slot0s = useMultipleContractSingleData(poolAddresses, POOL_STATE_INTERFACE, 'slot0')
   const liquidities = useMultipleContractSingleData(poolAddresses, POOL_STATE_INTERFACE, 'liquidity')
@@ -168,17 +171,19 @@ export function usePools(
   useEffect(() => {
     cancelablePools.current?.cancel()
     const mapped = poolKeys.map(async (_key, index): Promise<[PoolState, Uni_Pool | null]> => {
-      const [token0, token1, fee] = transformed[index] ?? []
-      if (!token0 || !token1 || fee === undefined || !slot0s[index]) return [PoolState.INVALID, null]
+      const tokens = poolTokens[index]
+      if (!tokens) return [PoolState.INVALID, null]
+      const [token0, token1, fee] = tokens
 
+      if (!slot0s[index]) return [PoolState.INVALID, null]
       const { result: slot0, loading: slot0Loading, valid: slot0Valid } = slot0s[index]
+
+      if (!liquidities[index]) return [PoolState.INVALID, null]
       const { result: liquidity, loading: liquidityLoading, valid: liquidityValid } = liquidities[index]
 
-      if (!slot0Valid || !liquidityValid) return [PoolState.INVALID, null]
+      if (!tokens || !slot0Valid || !liquidityValid) return [PoolState.INVALID, null]
       if (slot0Loading || liquidityLoading) return [PoolState.LOADING, null]
-
       if (!slot0 || !liquidity) return [PoolState.NOT_EXISTS, null]
-
       if (!slot0.sqrtPriceX96 || slot0.sqrtPriceX96.eq(0)) return [PoolState.NOT_EXISTS, null]
 
       try {
@@ -203,7 +208,7 @@ export function usePools(
       setPools(res)
     })
     return () => cancelablePools.current?.cancel()
-  }, [liquidities, poolKeys, slot0s, transformed, client])
+  }, [liquidities, poolKeys, slot0s, poolTokens, client])
 
   return pools
 }

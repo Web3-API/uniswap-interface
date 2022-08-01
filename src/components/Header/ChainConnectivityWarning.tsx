@@ -1,19 +1,20 @@
 import { Trans } from '@lingui/macro'
-import { CHAIN_INFO, L2ChainInfo, SupportedChainId } from 'constants/chains'
-import { useActiveWeb3React } from 'hooks/web3'
+import { useWeb3React } from '@web3-react/core'
+import { getChainInfoOrDefault, L2ChainInfo } from 'constants/chainInfo'
+import { SupportedChainId } from 'constants/chains'
 import { AlertOctagon } from 'react-feather'
 import styled from 'styled-components/macro'
 import { ExternalLink, MEDIA_WIDTHS } from 'theme'
 
 const BodyRow = styled.div`
-  color: ${({ theme }) => theme.black};
+  color: ${({ theme }) => theme.deprecated_black};
   font-size: 12px;
 `
 const CautionIcon = styled(AlertOctagon)`
-  color: ${({ theme }) => theme.black};
+  color: ${({ theme }) => theme.deprecated_black};
 `
 const Link = styled(ExternalLink)`
-  color: ${({ theme }) => theme.black};
+  color: ${({ theme }) => theme.deprecated_black};
   text-decoration: underline;
 `
 const TitleRow = styled.div`
@@ -30,7 +31,7 @@ const TitleText = styled.div`
   margin: 0px 12px;
 `
 const Wrapper = styled.div`
-  background-color: ${({ theme }) => theme.yellow3};
+  background-color: ${({ theme }) => theme.deprecated_yellow3};
   border-radius: 12px;
   bottom: 60px;
   display: none;
@@ -44,8 +45,8 @@ const Wrapper = styled.div`
 `
 
 export function ChainConnectivityWarning() {
-  const { chainId } = useActiveWeb3React()
-  const info = CHAIN_INFO[chainId ?? SupportedChainId.MAINNET]
+  const { chainId } = useWeb3React()
+  const info = getChainInfoOrDefault(chainId)
   const label = info?.label
 
   return (

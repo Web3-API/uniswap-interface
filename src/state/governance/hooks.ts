@@ -1,39 +1,62 @@
 import { defaultAbiCoder, Interface } from '@ethersproject/abi'
 import { isAddress } from '@ethersproject/address'
+import { BigNumber } from '@ethersproject/bignumber'
 import { Contract } from '@ethersproject/contracts'
 import { TransactionResponse } from '@ethersproject/providers'
 import { toUtf8String, Utf8ErrorFuncs, Utf8ErrorReason } from '@ethersproject/strings'
-import { formatUnits } from '@ethersproject/units'
 // eslint-disable-next-line no-restricted-imports
 import { t } from '@lingui/macro'
-import { abi as GOV_ABI } from '@uniswap/governance/build/GovernorAlpha.json'
+import { abi as GOVERNANCE_ABI } from '@uniswap/governance/build/GovernorAlpha.json'
+import { abi as UNI_ABI } from '@uniswap/governance/build/Uni.json'
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
+import GOVERNOR_BRAVO_ABI from 'abis/governor-bravo.json'
+import {
+  GOVERNANCE_ALPHA_V0_ADDRESSES,
+  GOVERNANCE_ALPHA_V1_ADDRESSES,
+  GOVERNANCE_BRAVO_ADDRESSES,
+} from 'constants/addresses'
+import { LATEST_GOVERNOR_INDEX } from 'constants/governance'
 import { POLYGON_PROPOSAL_TITLE } from 'constants/proposals/polygon_proposal_title'
 import { UNISWAP_GRANTS_PROPOSAL_DESCRIPTION } from 'constants/proposals/uniswap_grants_proposal_description'
-import {
-  useGovernanceBravoContract,
-  useGovernanceV0Contract,
-  useGovernanceV1Contract,
-  useLatestGovernanceContract,
-  useUniContract,
-} from 'hooks/useContract'
-import { useActiveWeb3React } from 'hooks/web3'
+import { useContract } from 'hooks/useContract'
+import { useSingleCallResult, useSingleContractMultipleData } from 'lib/hooks/multicall'
 import { useCallback, useMemo } from 'react'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
 
 import { SupportedChainId } from '../../constants/chains'
 import {
   BRAVO_START_BLOCK,
+  MOONBEAN_START_BLOCK,
   ONE_BIP_START_BLOCK,
   POLYGON_START_BLOCK,
   UNISWAP_GRANTS_START_BLOCK,
 } from '../../constants/proposals'
 import { UNI } from '../../constants/tokens'
 import { useLogs } from '../logs/hooks'
-import { useSingleCallResult, useSingleContractMultipleData } from '../multicall/hooks'
-import { TransactionType } from '../transactions/actions'
 import { useTransactionAdder } from '../transactions/hooks'
+import { TransactionType } from '../transactions/types'
 import { VoteOption } from './types'
+
+function useGovernanceV0Contract(): Contract | null {
+  return useContract(GOVERNANCE_ALPHA_V0_ADDRESSES, GOVERNANCE_ABI, false)
+}
+
+function useGovernanceV1Contract(): Contract | null {
+  return useContract(GOVERNANCE_ALPHA_V1_ADDRESSES, GOVERNANCE_ABI, false)
+}
+
+function useGovernanceBravoContract(): Contract | null {
+  return useContract(GOVERNANCE_BRAVO_ADDRESSES, GOVERNOR_BRAVO_ABI, true)
+}
+
+const useLatestGovernanceContract = useGovernanceBravoContract
+
+export function useUniContract() {
+  const { chainId } = useWeb3React()
+  const uniAddress = useMemo(() => (chainId ? UNI[chainId]?.address : undefined), [chainId])
+  return useContract(uniAddress, UNI_ABI, true)
+}
 
 interface ProposalDetail {
   target: string
@@ -47,10 +70,11 @@ export interface ProposalData {
   description: string
   proposer: string
   status: ProposalState
-  forCount: number
-  againstCount: number
+  forCount: CurrencyAmount<Token>
+  againstCount: CurrencyAmount<Token>
   startBlock: number
   endBlock: number
+  eta: BigNumber
   details: ProposalDetail[]
   governorIndex: number // index in the governance address array for which this proposal pertains
 }
@@ -75,7 +99,7 @@ export enum ProposalState {
   EXECUTED,
 }
 
-const GovernanceInterface = new Interface(GOV_ABI)
+const GovernanceInterface = new Interface(GOVERNANCE_ABI)
 
 // get count of all proposals made in the latest governor contract
 function useProposalCount(contract: Contract | null): number | undefined {
@@ -88,16 +112,33 @@ interface FormattedProposalLog {
   description: string
   details: { target: string; functionSig: string; callData: string }[]
 }
+
+const FOUR_BYTES_DIR: { [sig: string]: string } = {
+  '0x5ef2c7f0': 'setSubnodeRecord(bytes32,bytes32,address,address,uint64)',
+  '0x10f13a8c': 'setText(bytes32,string,string)',
+  '0xb4720477': 'sendMessageToChild(address,bytes)',
+}
+
 /**
  * Need proposal events to get description data emitted from
  * new proposal event.
  */
 function useFormattedProposalCreatedLogs(
   contract: Contract | null,
-  indices: number[][]
+  indices: number[][],
+  fromBlock?: number,
+  toBlock?: number
 ): FormattedProposalLog[] | undefined {
   // create filters for ProposalCreated events
-  const filter = useMemo(() => contract?.filters?.ProposalCreated(), [contract])
+  const filter = useMemo(() => {
+    const filter = contract?.filters?.ProposalCreated()
+    if (!filter) return undefined
+    return {
+      ...filter,
+      fromBlock,
+      toBlock,
+    }
+  }, [contract, fromBlock, toBlock])
 
   const useLogsResult = useLogs(filter)
 
@@ -140,8 +181,12 @@ function useFormattedProposalCreatedLogs(
           description = JSON.parse(toUtf8String(error.error.value, onError)) || ''
         }
 
-        // Bravo and one bip proposals omit newlines
-        if (startBlock === BRAVO_START_BLOCK || startBlock === ONE_BIP_START_BLOCK) {
+        // some proposals omit newlines
+        if (
+          startBlock === BRAVO_START_BLOCK ||
+          startBlock === ONE_BIP_START_BLOCK ||
+          startBlock === MOONBEAN_START_BLOCK
+        ) {
           description = description.replace(/ {2}/g, '\n').replace(/\d\. /g, '\n$&')
         }
 
@@ -149,8 +194,18 @@ function useFormattedProposalCreatedLogs(
           description,
           details: parsed.targets.map((target: string, i: number) => {
             const signature = parsed.signatures[i]
-            const [name, types] = signature.substr(0, signature.length - 1).split('(')
-            const calldata = parsed.calldatas[i]
+            let calldata = parsed.calldatas[i]
+            let name: string
+            let types: string
+            if (signature === '') {
+              const fourbyte = calldata.slice(0, 10)
+              const sig = FOUR_BYTES_DIR[fourbyte] ?? 'UNKNOWN()'
+              if (!sig) throw new Error('Missing four byte sig')
+              ;[name, types] = sig.substring(0, sig.length - 1).split('(')
+              calldata = `0x${calldata.slice(10)}`
+            } else {
+              ;[name, types] = signature.substring(0, signature.length - 1).split('(')
+            }
             const decoded = defaultAbiCoder.decode(types.split(','), calldata)
             return {
               target,
@@ -172,7 +227,7 @@ function countToIndices(count: number | undefined, skip = 0) {
 
 // get data for all past and active proposals
 export function useAllProposalData(): { data: ProposalData[]; loading: boolean } {
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
   const gov0 = useGovernanceV0Contract()
   const gov1 = useGovernanceV1Contract()
   const gov2 = useGovernanceBravoContract()
@@ -201,9 +256,11 @@ export function useAllProposalData(): { data: ProposalData[]; loading: boolean }
   const proposalStatesV2 = useSingleContractMultipleData(gov2, 'state', gov2ProposalIndexes)
 
   // get metadata from past events
-  const formattedLogsV0 = useFormattedProposalCreatedLogs(gov0, gov0ProposalIndexes)
-  const formattedLogsV1 = useFormattedProposalCreatedLogs(gov1, gov1ProposalIndexes)
-  const formattedLogsV2 = useFormattedProposalCreatedLogs(gov2, gov2ProposalIndexes)
+  const formattedLogsV0 = useFormattedProposalCreatedLogs(gov0, gov0ProposalIndexes, 11042287, 12563484)
+  const formattedLogsV1 = useFormattedProposalCreatedLogs(gov1, gov1ProposalIndexes, 12686656, 13059343)
+  const formattedLogsV2 = useFormattedProposalCreatedLogs(gov2, gov2ProposalIndexes, 13538153)
+
+  const uni = useMemo(() => (chainId ? UNI[chainId] : undefined), [chainId])
 
   // early return until events are fetched
   return useMemo(() => {
@@ -212,6 +269,7 @@ export function useAllProposalData(): { data: ProposalData[]; loading: boolean }
     const formattedLogs = [...(formattedLogsV0 ?? []), ...(formattedLogsV1 ?? []), ...(formattedLogsV2 ?? [])]
 
     if (
+      !uni ||
       proposalsCallData.some((p) => p.loading) ||
       proposalStatesCallData.some((p) => p.loading) ||
       (gov0 && !formattedLogsV0) ||
@@ -225,7 +283,7 @@ export function useAllProposalData(): { data: ProposalData[]; loading: boolean }
       data: proposalsCallData.map((proposal, i) => {
         const startBlock = parseInt(proposal?.result?.startBlock?.toString())
 
-        let description = formattedLogs[i]?.description
+        let description = formattedLogs[i]?.description ?? ''
         if (startBlock === UNISWAP_GRANTS_START_BLOCK) {
           description = UNISWAP_GRANTS_PROPOSAL_DESCRIPTION
         }
@@ -241,11 +299,11 @@ export function useAllProposalData(): { data: ProposalData[]; loading: boolean }
           description: description ?? t`No description.`,
           proposer: proposal?.result?.proposer,
           status: proposalStatesCallData[i]?.result?.[0] ?? ProposalState.UNDETERMINED,
-          forCount: parseFloat(formatUnits(proposal?.result?.forVotes?.toString() ?? 0, 18)),
-          againstCount: parseFloat(formatUnits(proposal?.result?.againstVotes?.toString() ?? 0, 18)),
-          abstainCount: parseFloat(formatUnits(proposal?.result?.abstainVotes?.toString() ?? 0, 18)),
+          forCount: CurrencyAmount.fromRawAmount(uni, proposal?.result?.forVotes),
+          againstCount: CurrencyAmount.fromRawAmount(uni, proposal?.result?.againstVotes),
           startBlock,
           endBlock: parseInt(proposal?.result?.endBlock?.toString()),
+          eta: proposal?.result?.eta,
           details: formattedLogs[i]?.details,
           governorIndex: i >= proposalsV0.length + proposalsV1.length ? 2 : i >= proposalsV0.length ? 1 : 0,
         }
@@ -265,6 +323,7 @@ export function useAllProposalData(): { data: ProposalData[]; loading: boolean }
     proposalsV0,
     proposalsV1,
     proposalsV2,
+    uni,
   ])
 }
 
@@ -273,9 +332,27 @@ export function useProposalData(governorIndex: number, id: string): ProposalData
   return data.filter((p) => p.governorIndex === governorIndex)?.find((p) => p.id === id)
 }
 
+export function useQuorum(governorIndex: number): CurrencyAmount<Token> | undefined {
+  const latestGovernanceContract = useLatestGovernanceContract()
+  const quorumVotes = useSingleCallResult(latestGovernanceContract, 'quorumVotes')?.result?.[0]
+  const { chainId } = useWeb3React()
+  const uni = useMemo(() => (chainId ? UNI[chainId] : undefined), [chainId])
+
+  if (
+    !latestGovernanceContract ||
+    !quorumVotes ||
+    chainId !== SupportedChainId.MAINNET ||
+    !uni ||
+    governorIndex !== LATEST_GOVERNOR_INDEX
+  )
+    return undefined
+
+  return CurrencyAmount.fromRawAmount(uni, quorumVotes)
+}
+
 // get the users delegatee if it exists
 export function useUserDelegatee(): string {
-  const { account } = useActiveWeb3React()
+  const { account } = useWeb3React()
   const uniContract = useUniContract()
   const { result } = useSingleCallResult(uniContract, 'delegates', [account ?? undefined])
   return result?.[0] ?? undefined
@@ -283,7 +360,7 @@ export function useUserDelegatee(): string {
 
 // gets the users current votes
 export function useUserVotes(): { loading: boolean; votes: CurrencyAmount<Token> | undefined } {
-  const { account, chainId } = useActiveWeb3React()
+  const { account, chainId } = useWeb3React()
   const uniContract = useUniContract()
 
   // check for available votes
@@ -296,25 +373,25 @@ export function useUserVotes(): { loading: boolean; votes: CurrencyAmount<Token>
 
 // fetch available votes as of block (usually proposal start block)
 export function useUserVotesAsOfBlock(block: number | undefined): CurrencyAmount<Token> | undefined {
-  const { account, chainId } = useActiveWeb3React()
+  const { account, chainId } = useWeb3React()
   const uniContract = useUniContract()
 
   // check for available votes
-  const uni = chainId ? UNI[chainId] : undefined
+  const uni = useMemo(() => (chainId ? UNI[chainId] : undefined), [chainId])
   const votes = useSingleCallResult(uniContract, 'getPriorVotes', [account ?? undefined, block ?? undefined])
     ?.result?.[0]
   return votes && uni ? CurrencyAmount.fromRawAmount(uni, votes) : undefined
 }
 
 export function useDelegateCallback(): (delegatee: string | undefined) => undefined | Promise<string> {
-  const { account, chainId, library } = useActiveWeb3React()
+  const { account, chainId, provider } = useWeb3React()
   const addTransaction = useTransactionAdder()
 
   const uniContract = useUniContract()
 
   return useCallback(
     (delegatee: string | undefined) => {
-      if (!library || !chainId || !account || !delegatee || !isAddress(delegatee ?? '')) return undefined
+      if (!provider || !chainId || !account || !delegatee || !isAddress(delegatee ?? '')) return undefined
       const args = [delegatee]
       if (!uniContract) throw new Error('No UNI Contract!')
       return uniContract.estimateGas.delegate(...args, {}).then((estimatedGasLimit) => {
@@ -329,20 +406,19 @@ export function useDelegateCallback(): (delegatee: string | undefined) => undefi
           })
       })
     },
-    [account, addTransaction, chainId, library, uniContract]
+    [account, addTransaction, chainId, provider, uniContract]
   )
 }
 
-export function useVoteCallback(): {
-  voteCallback: (proposalId: string | undefined, voteOption: VoteOption) => undefined | Promise<string>
-} {
-  const { account, chainId } = useActiveWeb3React()
-
+export function useVoteCallback(): (
+  proposalId: string | undefined,
+  voteOption: VoteOption
+) => undefined | Promise<string> {
+  const { account, chainId } = useWeb3React()
   const latestGovernanceContract = useLatestGovernanceContract()
-
   const addTransaction = useTransactionAdder()
 
-  const voteCallback = useCallback(
+  return useCallback(
     (proposalId: string | undefined, voteOption: VoteOption) => {
       if (!account || !latestGovernanceContract || !proposalId || !chainId) return
       const args = [proposalId, voteOption === VoteOption.Against ? 0 : voteOption === VoteOption.For ? 1 : 2]
@@ -363,14 +439,64 @@ export function useVoteCallback(): {
     },
     [account, addTransaction, latestGovernanceContract, chainId]
   )
-  return { voteCallback }
+}
+
+export function useQueueCallback(): (proposalId: string | undefined) => undefined | Promise<string> {
+  const { account, chainId } = useWeb3React()
+  const latestGovernanceContract = useLatestGovernanceContract()
+  const addTransaction = useTransactionAdder()
+
+  return useCallback(
+    (proposalId: string | undefined) => {
+      if (!account || !latestGovernanceContract || !proposalId || !chainId) return
+      const args = [proposalId]
+      return latestGovernanceContract.estimateGas.queue(...args, {}).then((estimatedGasLimit) => {
+        return latestGovernanceContract
+          .queue(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+          .then((response: TransactionResponse) => {
+            addTransaction(response, {
+              type: TransactionType.QUEUE,
+              governorAddress: latestGovernanceContract.address,
+              proposalId: parseInt(proposalId),
+            })
+            return response.hash
+          })
+      })
+    },
+    [account, addTransaction, latestGovernanceContract, chainId]
+  )
+}
+
+export function useExecuteCallback(): (proposalId: string | undefined) => undefined | Promise<string> {
+  const { account, chainId } = useWeb3React()
+  const latestGovernanceContract = useLatestGovernanceContract()
+  const addTransaction = useTransactionAdder()
+
+  return useCallback(
+    (proposalId: string | undefined) => {
+      if (!account || !latestGovernanceContract || !proposalId || !chainId) return
+      const args = [proposalId]
+      return latestGovernanceContract.estimateGas.execute(...args, {}).then((estimatedGasLimit) => {
+        return latestGovernanceContract
+          .execute(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+          .then((response: TransactionResponse) => {
+            addTransaction(response, {
+              type: TransactionType.EXECUTE,
+              governorAddress: latestGovernanceContract.address,
+              proposalId: parseInt(proposalId),
+            })
+            return response.hash
+          })
+      })
+    },
+    [account, addTransaction, latestGovernanceContract, chainId]
+  )
 }
 
 export function useCreateProposalCallback(): (
   createProposalData: CreateProposalData | undefined
 ) => undefined | Promise<string> {
-  const { account, chainId } = useActiveWeb3React()
-
+  const { account, chainId } = useWeb3React()
   const latestGovernanceContract = useLatestGovernanceContract()
   const addTransaction = useTransactionAdder()
 
@@ -408,11 +534,11 @@ export function useLatestProposalId(address: string | undefined): string | undef
 }
 
 export function useProposalThreshold(): CurrencyAmount<Token> | undefined {
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
 
   const latestGovernanceContract = useLatestGovernanceContract()
   const res = useSingleCallResult(latestGovernanceContract, 'proposalThreshold')
-  const uni = chainId ? UNI[chainId] : undefined
+  const uni = useMemo(() => (chainId ? UNI[chainId] : undefined), [chainId])
 
   if (res?.result?.[0] && uni) {
     return CurrencyAmount.fromRawAmount(uni, res.result[0])

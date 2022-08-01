@@ -1,31 +1,16 @@
 import { Trans } from '@lingui/macro'
 import { Percent } from '@uniswap/sdk-core'
-import JSBI from 'jsbi'
 import { ReactNode, useCallback, useMemo } from 'react'
 
-import { reverseMapTokenAmount, tokenEquals, toSignificant } from '../../polywrap-utils'
-import { Uni_Trade as Trade } from '../../wrap'
+import { reverseMapTokenAmount, toSignificant } from '../../polywrap-utils'
+import { tradeMeaningfullyDiffers } from '../../utils/tradeMeaningFullyDiffer'
+import { Uni_Trade } from '../../wrap'
 import TransactionConfirmationModal, {
   ConfirmationModalContent,
   TransactionErrorContent,
 } from '../TransactionConfirmationModal'
 import SwapModalFooter from './SwapModalFooter'
 import SwapModalHeader from './SwapModalHeader'
-
-/**
- * Returns true if the trade requires a confirmation of details before we can submit it
- * @param args either a pair of V2 trades or a pair of V3 trades
- */
-function tradeMeaningfullyDiffers(...args: [Trade, Trade]): boolean {
-  const [tradeA, tradeB] = args
-  return (
-    tradeA.tradeType !== tradeB.tradeType ||
-    !tokenEquals(tradeA.inputAmount.token, tradeB.inputAmount.token) ||
-    !JSBI.equal(JSBI.BigInt(tradeA.inputAmount.amount), JSBI.BigInt(tradeB.inputAmount.amount)) ||
-    !tokenEquals(tradeA.outputAmount.token, tradeB.outputAmount.token) ||
-    !JSBI.equal(JSBI.BigInt(tradeA.outputAmount.amount), JSBI.BigInt(tradeB.outputAmount.amount))
-  )
-}
 
 export default function ConfirmSwapModal({
   trade,
@@ -39,10 +24,11 @@ export default function ConfirmSwapModal({
   isOpen,
   attemptingTxn,
   txHash,
+  swapQuoteReceivedDate,
 }: {
   isOpen: boolean
-  trade: Trade | undefined
-  originalTrade: Trade | undefined
+  trade: Uni_Trade | undefined
+  originalTrade: Uni_Trade | undefined
   attemptingTxn: boolean
   txHash: string | undefined
   recipient: string | null
@@ -51,11 +37,19 @@ export default function ConfirmSwapModal({
   onConfirm: () => void
   swapErrorMessage: ReactNode | undefined
   onDismiss: () => void
+  swapQuoteReceivedDate: Date | undefined
 }) {
+  // shouldLogModalCloseEvent lets the child SwapModalHeader component know when modal has been closed
+  // and an event triggered by modal closing should be logged.
+
   const showAcceptChanges = useMemo(
     () => Boolean(trade && originalTrade && tradeMeaningfullyDiffers(trade, originalTrade)),
     [originalTrade, trade]
   )
+
+  const onModalDismiss = useCallback(() => {
+    onDismiss()
+  }, [onDismiss])
 
   const modalHeader = useCallback(() => {
     return trade ? (
@@ -71,14 +65,9 @@ export default function ConfirmSwapModal({
 
   const modalBottom = useCallback(() => {
     return trade ? (
-      <SwapModalFooter
-        onConfirm={onConfirm}
-        trade={trade}
-        disabledConfirm={showAcceptChanges}
-        swapErrorMessage={swapErrorMessage}
-      />
+      <SwapModalFooter onConfirm={onConfirm} disabledConfirm={showAcceptChanges} swapErrorMessage={swapErrorMessage} />
     ) : null
-  }, [onConfirm, showAcceptChanges, swapErrorMessage, trade])
+  }, [onConfirm, showAcceptChanges, swapErrorMessage])
 
   // text to show while loading
   const pendingText = (
@@ -91,22 +80,22 @@ export default function ConfirmSwapModal({
   const confirmationContent = useCallback(
     () =>
       swapErrorMessage ? (
-        <TransactionErrorContent onDismiss={onDismiss} message={swapErrorMessage} />
+        <TransactionErrorContent onDismiss={onModalDismiss} message={swapErrorMessage} />
       ) : (
         <ConfirmationModalContent
           title={<Trans>Confirm Swap</Trans>}
-          onDismiss={onDismiss}
+          onDismiss={onModalDismiss}
           topContent={modalHeader}
           bottomContent={modalBottom}
         />
       ),
-    [onDismiss, modalBottom, modalHeader, swapErrorMessage]
+    [onModalDismiss, modalBottom, modalHeader, swapErrorMessage]
   )
 
   return (
     <TransactionConfirmationModal
       isOpen={isOpen}
-      onDismiss={onDismiss}
+      onDismiss={onModalDismiss}
       attemptingTxn={attemptingTxn}
       hash={txHash}
       content={confirmationContent}

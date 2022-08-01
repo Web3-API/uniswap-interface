@@ -13,22 +13,23 @@ interface TagInfo extends TagDetails {
 export class WrappedTokenInfo implements Token {
   public readonly isNative: false = false
   public readonly isToken: true = true
-  public readonly list: TokenList
-
+  public readonly list?: TokenList
   public readonly tokenInfo: TokenInfo
 
-  constructor(tokenInfo: TokenInfo, list: TokenList) {
+  private _checksummedAddress: string
+
+  constructor(tokenInfo: TokenInfo, list?: TokenList) {
     this.tokenInfo = tokenInfo
     this.list = list
+    const checksummedAddress = isAddress(this.tokenInfo.address)
+    if (!checksummedAddress) {
+      throw new Error(`Invalid token address: ${this.tokenInfo.address}`)
+    }
+    this._checksummedAddress = checksummedAddress
   }
 
-  private _checksummedAddress: string | null = null
-
   public get address(): string {
-    if (this._checksummedAddress) return this._checksummedAddress
-    const checksummedAddress = isAddress(this.tokenInfo.address)
-    if (!checksummedAddress) throw new Error(`Invalid token address: ${this.tokenInfo.address}`)
-    return (this._checksummedAddress = checksummedAddress)
+    return this._checksummedAddress
   }
 
   public get chainId(): number {
@@ -55,7 +56,7 @@ export class WrappedTokenInfo implements Token {
   public get tags(): TagInfo[] {
     if (this._tags !== null) return this._tags
     if (!this.tokenInfo.tags) return (this._tags = [])
-    const listTags = this.list.tags
+    const listTags = this.list?.tags
     if (!listTags) return (this._tags = [])
 
     return (this._tags = this.tokenInfo.tags.map((tagId) => {

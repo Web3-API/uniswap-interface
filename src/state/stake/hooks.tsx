@@ -3,14 +3,15 @@ import { Trans } from '@lingui/macro'
 import { abi as STAKING_REWARDS_ABI } from '@uniswap/liquidity-staker/build/StakingRewards.json'
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
+import { useWeb3React } from '@web3-react/core'
+import { SupportedChainId } from 'constants/chains'
 import useCurrentBlockTimestamp from 'hooks/useCurrentBlockTimestamp'
 import JSBI from 'jsbi'
+import { NEVER_RELOAD, useMultipleContractSingleData } from 'lib/hooks/multicall'
+import tryParseCurrencyAmount from 'lib/utils/tryParseCurrencyAmount'
 import { ReactNode, useMemo } from 'react'
 
-import { DAI, UNI, USDC, USDT, WBTC, WRAPPED_NATIVE_CURRENCY } from '../../constants/tokens'
-import { useActiveWeb3React } from '../../hooks/web3'
-import { NEVER_RELOAD, useMultipleContractSingleData } from '../multicall/hooks'
-import { tryParseAmount } from '../swap/hooks'
+import { DAI, UNI, USDC_MAINNET, USDT, WBTC, WRAPPED_NATIVE_CURRENCY } from '../../constants/tokens'
 
 const STAKING_REWARDS_INTERFACE = new Interface(STAKING_REWARDS_ABI)
 
@@ -26,19 +27,19 @@ export const STAKING_REWARDS_INFO: {
 } = {
   1: [
     {
-      tokens: [WRAPPED_NATIVE_CURRENCY[1], DAI],
+      tokens: [WRAPPED_NATIVE_CURRENCY[SupportedChainId.MAINNET] as Token, DAI],
       stakingRewardAddress: '0xa1484C3aa22a66C62b77E0AE78E15258bd0cB711',
     },
     {
-      tokens: [WRAPPED_NATIVE_CURRENCY[1], USDC],
+      tokens: [WRAPPED_NATIVE_CURRENCY[SupportedChainId.MAINNET] as Token, USDC_MAINNET],
       stakingRewardAddress: '0x7FBa4B8Dc5E7616e59622806932DBea72537A56b',
     },
     {
-      tokens: [WRAPPED_NATIVE_CURRENCY[1], USDT],
+      tokens: [WRAPPED_NATIVE_CURRENCY[SupportedChainId.MAINNET] as Token, USDT],
       stakingRewardAddress: '0x6C3e4cb2E96B01F4b866965A91ed4437839A121a',
     },
     {
-      tokens: [WRAPPED_NATIVE_CURRENCY[1], WBTC],
+      tokens: [WRAPPED_NATIVE_CURRENCY[SupportedChainId.MAINNET] as Token, WBTC],
       stakingRewardAddress: '0xCA35e32e7926b96A9988f61d510E038108d8068e',
     },
   ],
@@ -74,7 +75,7 @@ export interface StakingInfo {
 
 // gets the staking info from the network for the active chain id
 export function useStakingInfo(pairToFilterBy?: Pair | null): StakingInfo[] {
-  const { chainId, account } = useActiveWeb3React()
+  const { chainId, account } = useWeb3React()
 
   // detect if staking is ended
   const currentBlockTimestamp = useCurrentBlockTimestamp()
@@ -228,7 +229,7 @@ export function useStakingInfo(pairToFilterBy?: Pair | null): StakingInfo[] {
 }
 
 export function useTotalUniEarned(): CurrencyAmount<Token> | undefined {
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
   const uni = chainId ? UNI[chainId] : undefined
   const stakingInfos = useStakingInfo()
 
@@ -252,9 +253,9 @@ export function useDerivedStakeInfo(
   parsedAmount?: CurrencyAmount<Token>
   error?: ReactNode
 } {
-  const { account } = useActiveWeb3React()
+  const { account } = useWeb3React()
 
-  const parsedInput: CurrencyAmount<Token> | undefined = tryParseAmount(typedValue, stakingToken)
+  const parsedInput: CurrencyAmount<Token> | undefined = tryParseCurrencyAmount(typedValue, stakingToken)
 
   const parsedAmount =
     parsedInput && userLiquidityUnstaked && JSBI.lessThanOrEqual(parsedInput.quotient, userLiquidityUnstaked.quotient)

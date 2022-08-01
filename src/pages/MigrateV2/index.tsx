@@ -3,6 +3,7 @@ import { keccak256, pack } from '@ethersproject/solidity'
 import { Trans } from '@lingui/macro'
 import { Token } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
+import { useWeb3React } from '@web3-react/core'
 import MigrateSushiPositionCard from 'components/PositionCard/Sushi'
 import MigrateV2PositionCard from 'components/PositionCard/V2'
 import { SwitchLocaleLink } from 'components/SwitchLocaleLink'
@@ -17,16 +18,15 @@ import QuestionHelper from '../../components/QuestionHelper'
 import { AutoRow } from '../../components/Row'
 import { Dots } from '../../components/swap/styleds'
 import { V2_FACTORY_ADDRESSES } from '../../constants/addresses'
-import { useActiveWeb3React } from '../../hooks/web3'
+import { useTokenBalancesWithLoadingIndicator } from '../../state/connection/hooks'
 import { toV2LiquidityToken, useTrackedTokenPairs } from '../../state/user/hooks'
-import { useTokenBalancesWithLoadingIndicator } from '../../state/wallet/hooks'
 import { BackArrow, StyledInternalLink, ThemedText } from '../../theme'
 import { BodyWrapper } from '../AppBody'
 
 function EmptyState({ message }: { message: ReactNode }) {
   return (
     <AutoColumn style={{ minHeight: 200, justifyContent: 'center', alignItems: 'center' }}>
-      <ThemedText.Body>{message}</ThemedText.Body>
+      <ThemedText.DeprecatedBody>{message}</ThemedText.DeprecatedBody>
     </AutoColumn>
   )
 }
@@ -52,7 +52,7 @@ function toSushiLiquidityToken([tokenA, tokenB]: [Token, Token]): Token {
 
 export default function MigrateV2() {
   const theme = useContext(ThemeContext)
-  const { account, chainId } = useActiveWeb3React()
+  const { account, chainId } = useWeb3React()
 
   const v2FactoryAddress = chainId ? V2_FACTORY_ADDRESSES[chainId] : undefined
 
@@ -117,34 +117,34 @@ export default function MigrateV2() {
         <AutoColumn gap="16px">
           <AutoRow style={{ alignItems: 'center', justifyContent: 'space-between' }} gap="8px">
             <BackArrow to="/pool/v2" />
-            <ThemedText.MediumHeader>
+            <ThemedText.DeprecatedMediumHeader>
               <Trans>Migrate V2 Liquidity</Trans>
-            </ThemedText.MediumHeader>
+            </ThemedText.DeprecatedMediumHeader>
             <div>
               <QuestionHelper text={<Trans>Migrate your liquidity tokens from Uniswap V2 to Uniswap V3.</Trans>} />
             </div>
           </AutoRow>
 
-          <ThemedText.Body style={{ marginBottom: 8, fontWeight: 400 }}>
+          <ThemedText.DeprecatedBody style={{ marginBottom: 8, fontWeight: 400 }}>
             <Trans>
               For each pool shown below, click migrate to remove your liquidity from Uniswap V2 and deposit it into
               Uniswap V3.
             </Trans>
-          </ThemedText.Body>
+          </ThemedText.DeprecatedBody>
 
           {!account ? (
             <LightCard padding="40px">
-              <ThemedText.Body color={theme.text3} textAlign="center">
+              <ThemedText.DeprecatedBody color={theme.deprecated_text3} textAlign="center">
                 <Trans>Connect to a wallet to view your V2 liquidity.</Trans>
-              </ThemedText.Body>
+              </ThemedText.DeprecatedBody>
             </LightCard>
           ) : v2IsLoading ? (
             <LightCard padding="40px">
-              <ThemedText.Body color={theme.text3} textAlign="center">
+              <ThemedText.DeprecatedBody color={theme.deprecated_text3} textAlign="center">
                 <Dots>
                   <Trans>Loading</Trans>
                 </Dots>
-              </ThemedText.Body>
+              </ThemedText.DeprecatedBody>
             </LightCard>
           ) : v2Pairs.filter(([, pair]) => !!pair).length > 0 ? (
             <>

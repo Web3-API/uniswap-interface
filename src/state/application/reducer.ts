@@ -14,30 +14,31 @@ export type PopupContent =
     }
 
 export enum ApplicationModal {
-  WALLET,
-  SETTINGS,
-  SELF_CLAIM,
   ADDRESS_CLAIM,
+  BLOCKED_ACCOUNT,
+  DELEGATE,
   CLAIM_POPUP,
   MENU,
-  DELEGATE,
-  VOTE,
-  POOL_OVERVIEW_OPTIONS,
   NETWORK_SELECTOR,
+  POOL_OVERVIEW_OPTIONS,
   PRIVACY_POLICY,
+  SELF_CLAIM,
+  SETTINGS,
+  VOTE,
+  WALLET,
+  QUEUE,
+  EXECUTE,
 }
 
 type PopupList = Array<{ key: string; show: boolean; content: PopupContent; removeAfterMs: number | null }>
 
 export interface ApplicationState {
-  readonly blockNumber: { readonly [chainId: number]: number }
   readonly chainId: number | null
   readonly openModal: ApplicationModal | null
   readonly popupList: PopupList
 }
 
 const initialState: ApplicationState = {
-  blockNumber: {},
   chainId: null,
   openModal: null,
   popupList: [],
@@ -50,14 +51,6 @@ const applicationSlice = createSlice({
     updateChainId(state, action) {
       const { chainId } = action.payload
       state.chainId = chainId
-    },
-    updateBlockNumber(state, action) {
-      const { chainId, blockNumber } = action.payload
-      if (typeof state.blockNumber[chainId] !== 'number') {
-        state.blockNumber[chainId] = blockNumber
-      } else {
-        state.blockNumber[chainId] = Math.max(blockNumber, state.blockNumber[chainId])
-      }
     },
     setOpenModal(state, action) {
       state.openModal = action.payload
@@ -82,5 +75,5 @@ const applicationSlice = createSlice({
   },
 })
 
-export const { updateChainId, updateBlockNumber, setOpenModal, addPopup, removePopup } = applicationSlice.actions
+export const { updateChainId, setOpenModal, addPopup, removePopup } = applicationSlice.actions
 export default applicationSlice.reducer

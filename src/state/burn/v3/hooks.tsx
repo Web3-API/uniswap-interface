@@ -2,10 +2,10 @@ import { Trans } from '@lingui/macro'
 import { InvokeResult, PolywrapClient } from '@polywrap/client-js'
 import { usePolywrapClient } from '@polywrap/react'
 import { Currency, CurrencyAmount, Percent } from '@uniswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
 import { useToken } from 'hooks/Tokens'
 import { usePool } from 'hooks/usePools'
 import { useV3PositionFees } from 'hooks/useV3PositionFees'
-import { useActiveWeb3React } from 'hooks/web3'
 import { ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 import { PositionDetails } from 'types/position'
@@ -34,7 +34,7 @@ export function useDerivedV3BurnInfo(
   error?: ReactNode
 } {
   const client: PolywrapClient = usePolywrapClient()
-  const { account } = useActiveWeb3React()
+  const { account } = useWeb3React()
   const { percent } = useBurnV3State()
 
   const token0 = useToken(position?.token0)

@@ -2,22 +2,26 @@ import { PolywrapClient } from '@polywrap/client-js'
 import { InvokeResult } from '@polywrap/client-js'
 import { usePolywrapClient } from '@polywrap/react'
 import { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
 import { SupportedChainId } from 'constants/chains'
 import JSBI from 'jsbi'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSingleContractWithCallData } from 'lib/hooks/multicall'
+import { useEffect, useRef, useState } from 'react'
 import { TradeState } from 'state/routing/types'
 
-import { currencyDepsSDK, mapTokenAmount, mapTradeType, reverseMapToken } from '../polywrap-utils'
+import { mapTokenAmount, mapTradeType, reverseMapToken } from '../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
-import { useSingleContractWithCallData } from '../state/multicall/hooks'
-import { Uni_Module, Uni_Route as Route, Uni_TokenAmount as TokenAmount, Uni_Trade as Trade } from '../wrap'
+import { Uni_Module, Uni_Route, Uni_TokenAmount, Uni_Trade } from '../wrap'
 import { useAllV3Routes } from './useAllV3Routes'
-import { useV3Quoter } from './useContract'
-import { useActiveWeb3React } from './web3'
+import { useQuoter } from './useContract'
 
 const QUOTE_GAS_OVERRIDES: { [chainId: number]: number } = {
   [SupportedChainId.ARBITRUM_ONE]: 25_000_000,
   [SupportedChainId.ARBITRUM_RINKEBY]: 25_000_000,
+  [SupportedChainId.CELO]: 50_000_000,
+  [SupportedChainId.CELO_ALFAJORES]: 50_000_000,
+  [SupportedChainId.POLYGON]: 40_000_000,
+  [SupportedChainId.POLYGON_MUMBAI]: 40_000_000,
 }
 
 const DEFAULT_GAS_QUOTE = 2_000_000
@@ -32,22 +36,20 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
   tradeType: TTradeType,
   amountSpecified?: CurrencyAmount<Currency>,
   otherCurrency?: Currency
-): { state: TradeState; trade: Trade | undefined } {
+): { state: TradeState; trade: Uni_Trade | undefined } {
   const client: PolywrapClient = usePolywrapClient()
 
-  const [currencyIn, currencyOut] = useMemo(
-    () =>
-      tradeType === TradeType.EXACT_INPUT
-        ? [amountSpecified?.currency, otherCurrency]
-        : [otherCurrency, amountSpecified?.currency],
-    [tradeType, amountSpecified, ...currencyDepsSDK(otherCurrency)]
-  )
-
+  const [currencyIn, currencyOut] =
+    tradeType === TradeType.EXACT_INPUT
+      ? [amountSpecified?.currency, otherCurrency]
+      : [otherCurrency, amountSpecified?.currency]
   const { routes, loading: routesLoading } = useAllV3Routes(currencyIn, currencyOut)
 
-  const quoter = useV3Quoter()
-  const { chainId } = useActiveWeb3React()
-
+  const { chainId } = useWeb3React()
+  // TODO: must update wrapper if we want to support Celo
+  // Chains deployed using the deploy-v3 script only deploy QuoterV2.
+  // const useQuoterV2 = useMemo(() => Boolean(chainId && isCelo(chainId)), [chainId])
+  const quoter = useQuoter(false)
   const [callParams, setCallParams] = useState<string[]>([])
   const cancelableCalldata = useRef<CancelablePromise<(string | undefined)[] | undefined>>()
 
@@ -61,7 +63,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       const invoke = await Uni_Module.quoteCallParameters(
         {
           route,
-          amount: mapTokenAmount(amountSpecified) as TokenAmount,
+          amount: mapTokenAmount(amountSpecified) as Uni_TokenAmount,
           tradeType: mapTradeType(tradeType),
         },
         client
@@ -82,11 +84,11 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
     gasRequired: chainId ? QUOTE_GAS_OVERRIDES[chainId] ?? DEFAULT_GAS_QUOTE : undefined,
   })
 
-  const [result, setResult] = useState<{ state: TradeState; trade: Trade | undefined }>({
+  const [result, setResult] = useState<{ state: TradeState; trade: Uni_Trade | undefined }>({
     state: TradeState.LOADING,
     trade: undefined,
   })
-  const cancelableTrade = useRef<CancelablePromise<InvokeResult<Trade> | undefined>>()
+  const cancelableTrade = useRef<CancelablePromise<InvokeResult<Uni_Trade> | undefined>>()
 
   useEffect(() => {
     cancelableTrade.current?.cancel()
@@ -118,7 +120,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
     const { bestRoute, amountIn, amountOut } = quotesResults.reduce(
       (
         currentBest: {
-          bestRoute: Route | null
+          bestRoute: Uni_Route | null
           amountIn: CurrencyAmount<Currency> | null
           amountOut: CurrencyAmount<Currency> | null
         },
@@ -181,8 +183,8 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       {
         swap: {
           route: bestRoute,
-          inputAmount: mapTokenAmount(amountIn) as TokenAmount,
-          outputAmount: mapTokenAmount(amountOut) as TokenAmount,
+          inputAmount: mapTokenAmount(amountIn) as Uni_TokenAmount,
+          outputAmount: mapTokenAmount(amountOut) as Uni_TokenAmount,
         },
         tradeType: mapTradeType(tradeType),
       },
@@ -196,7 +198,7 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
       } else {
         setResult({
           state: TradeState.VALID,
-          trade: invoke.data as Trade,
+          trade: invoke.data as Uni_Trade,
         })
       }
     })

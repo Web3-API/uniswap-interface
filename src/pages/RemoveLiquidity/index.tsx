@@ -3,10 +3,14 @@ import { Contract } from '@ethersproject/contracts'
 import { TransactionResponse } from '@ethersproject/providers'
 import { Trans } from '@lingui/macro'
 import { Currency, Percent } from '@uniswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
+import { ElementName, Event, EventName } from 'components/AmplitudeAnalytics/constants'
+import { TraceEvent } from 'components/AmplitudeAnalytics/TraceEvent'
+import { sendEvent } from 'components/analytics'
+import { useV2LiquidityTokenPermit } from 'hooks/useV2LiquidityTokenPermit'
 import { useCallback, useContext, useMemo, useState } from 'react'
 import { ArrowDown, Plus } from 'react-feather'
-import ReactGA from 'react-ga'
-import { RouteComponentProps } from 'react-router'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Text } from 'rebass'
 import { ThemeContext } from 'styled-components/macro'
 
@@ -27,14 +31,12 @@ import { useCurrency } from '../../hooks/Tokens'
 import { ApprovalState, useApproveCallback } from '../../hooks/useApproveCallback'
 import { usePairContract, useV2RouterContract } from '../../hooks/useContract'
 import useDebouncedChangeHandler from '../../hooks/useDebouncedChangeHandler'
-import { useV2LiquidityTokenPermit } from '../../hooks/useERC20Permit'
 import useTransactionDeadline from '../../hooks/useTransactionDeadline'
-import { useActiveWeb3React } from '../../hooks/web3'
-import { useWalletModalToggle } from '../../state/application/hooks'
+import { useToggleWalletModal } from '../../state/application/hooks'
 import { Field } from '../../state/burn/actions'
 import { useBurnActionHandlers, useBurnState, useDerivedBurnInfo } from '../../state/burn/hooks'
-import { TransactionType } from '../../state/transactions/actions'
 import { useTransactionAdder } from '../../state/transactions/hooks'
+import { TransactionType } from '../../state/transactions/types'
 import { useUserSlippageToleranceWithDefault } from '../../state/user/hooks'
 import { StyledInternalLink, ThemedText } from '../../theme'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
@@ -45,20 +47,17 @@ import { ClickableText, MaxButton, Wrapper } from '../Pool/styleds'
 
 const DEFAULT_REMOVE_LIQUIDITY_SLIPPAGE_TOLERANCE = new Percent(5, 100)
 
-export default function RemoveLiquidity({
-  history,
-  match: {
-    params: { currencyIdA, currencyIdB },
-  },
-}: RouteComponentProps<{ currencyIdA: string; currencyIdB: string }>) {
+export default function RemoveLiquidity() {
+  const navigate = useNavigate()
+  const { currencyIdA, currencyIdB } = useParams<{ currencyIdA: string; currencyIdB: string }>()
   const [currencyA, currencyB] = [useCurrency(currencyIdA) ?? undefined, useCurrency(currencyIdB) ?? undefined]
-  const { account, chainId, library } = useActiveWeb3React()
+  const { account, chainId, provider } = useWeb3React()
   const [tokenA, tokenB] = useMemo(() => [currencyA?.wrapped, currencyB?.wrapped], [currencyA, currencyB])
 
   const theme = useContext(ThemeContext)
 
   // toggle wallet when disconnected
-  const toggleWalletModal = useWalletModalToggle()
+  const toggleWalletModal = useToggleWalletModal()
 
   // burn state
   const { independentField, typedValue } = useBurnState()
@@ -105,7 +104,7 @@ export default function RemoveLiquidity({
   const [approval, approveCallback] = useApproveCallback(parsedAmounts[Field.LIQUIDITY], router?.address)
 
   async function onAttemptToApprove() {
-    if (!pairContract || !pair || !library || !deadline) throw new Error('missing dependencies')
+    if (!pairContract || !pair || !provider || !deadline) throw new Error('missing dependencies')
     const liquidityAmount = parsedAmounts[Field.LIQUIDITY]
     if (!liquidityAmount) throw new Error('missing liquidity amount')
 
@@ -148,7 +147,7 @@ export default function RemoveLiquidity({
   const addTransaction = useTransactionAdder()
 
   async function onRemove() {
-    if (!chainId || !library || !account || !deadline || !router) throw new Error('missing dependencies')
+    if (!chainId || !provider || !account || !deadline || !router) throw new Error('missing dependencies')
     const { [Field.CURRENCY_A]: currencyAmountA, [Field.CURRENCY_B]: currencyAmountB } = parsedAmounts
     if (!currencyAmountA || !currencyAmountB) {
       throw new Error('missing currency amounts')
@@ -275,7 +274,7 @@ export default function RemoveLiquidity({
 
           setTxHash(response.hash)
 
-          ReactGA.event({
+          sendEvent({
             category: 'Liquidity',
             action: 'Remove',
             label: [currencyA.symbol, currencyB.symbol].join('/'),
@@ -304,7 +303,7 @@ export default function RemoveLiquidity({
           </RowFixed>
         </RowBetween>
         <RowFixed>
-          <Plus size="16" color={theme.text2} />
+          <Plus size="16" color={theme.deprecated_text2} />
         </RowFixed>
         <RowBetween align="flex-end">
           <Text fontSize={24} fontWeight={500}>
@@ -318,12 +317,17 @@ export default function RemoveLiquidity({
           </RowFixed>
         </RowBetween>
 
-        <ThemedText.Italic fontSize={12} color={theme.text2} textAlign="left" padding={'12px 0 0 0'}>
+        <ThemedText.DeprecatedItalic
+          fontSize={12}
+          color={theme.deprecated_text2}
+          textAlign="left"
+          padding={'12px 0 0 0'}
+        >
           <Trans>
             Output is estimated. If the price changes by more than {allowedSlippage.toSignificant(4)}% your transaction
             will revert.
           </Trans>
-        </ThemedText.Italic>
+        </ThemedText.DeprecatedItalic>
       </AutoColumn>
     )
   }
@@ -332,7 +336,7 @@ export default function RemoveLiquidity({
     return (
       <>
         <RowBetween>
-          <Text color={theme.text2} fontWeight={500} fontSize={16}>
+          <Text color={theme.deprecated_text2} fontWeight={500} fontSize={16}>
             <Trans>
               UNI {currencyA?.symbol}/{currencyB?.symbol} Burned
             </Trans>
@@ -347,16 +351,16 @@ export default function RemoveLiquidity({
         {pair && (
           <>
             <RowBetween>
-              <Text color={theme.text2} fontWeight={500} fontSize={16}>
+              <Text color={theme.deprecated_text2} fontWeight={500} fontSize={16}>
                 <Trans>Price</Trans>
               </Text>
-              <Text fontWeight={500} fontSize={16} color={theme.text1}>
+              <Text fontWeight={500} fontSize={16} color={theme.deprecated_text1}>
                 1 {currencyA?.symbol} = {tokenA ? pair.priceOf(tokenA).toSignificant(6) : '-'} {currencyB?.symbol}
               </Text>
             </RowBetween>
             <RowBetween>
               <div />
-              <Text fontWeight={500} fontSize={16} color={theme.text1}>
+              <Text fontWeight={500} fontSize={16} color={theme.deprecated_text1}>
                 1 {currencyB?.symbol} = {tokenB ? pair.priceOf(tokenB).toSignificant(6) : '-'} {currencyA?.symbol}
               </Text>
             </RowBetween>
@@ -386,31 +390,33 @@ export default function RemoveLiquidity({
   )
 
   const oneCurrencyIsETH = currencyA?.isNative || currencyB?.isNative
+
   const oneCurrencyIsWETH = Boolean(
     chainId &&
       WRAPPED_NATIVE_CURRENCY[chainId] &&
-      (currencyA?.equals(WRAPPED_NATIVE_CURRENCY[chainId]) || currencyB?.equals(WRAPPED_NATIVE_CURRENCY[chainId]))
+      ((currencyA && WRAPPED_NATIVE_CURRENCY[chainId]?.equals(currencyA)) ||
+        (currencyB && WRAPPED_NATIVE_CURRENCY[chainId]?.equals(currencyB)))
   )
 
   const handleSelectCurrencyA = useCallback(
     (currency: Currency) => {
       if (currencyIdB && currencyId(currency) === currencyIdB) {
-        history.push(`/remove/v2/${currencyId(currency)}/${currencyIdA}`)
+        navigate(`/remove/v2/${currencyId(currency)}/${currencyIdA}`)
       } else {
-        history.push(`/remove/v2/${currencyId(currency)}/${currencyIdB}`)
+        navigate(`/remove/v2/${currencyId(currency)}/${currencyIdB}`)
       }
     },
-    [currencyIdA, currencyIdB, history]
+    [currencyIdA, currencyIdB, navigate]
   )
   const handleSelectCurrencyB = useCallback(
     (currency: Currency) => {
       if (currencyIdA && currencyId(currency) === currencyIdA) {
-        history.push(`/remove/v2/${currencyIdB}/${currencyId(currency)}`)
+        navigate(`/remove/v2/${currencyIdB}/${currencyId(currency)}`)
       } else {
-        history.push(`/remove/v2/${currencyIdA}/${currencyId(currency)}`)
+        navigate(`/remove/v2/${currencyIdA}/${currencyId(currency)}`)
       }
     },
-    [currencyIdA, currencyIdB, history]
+    [currencyIdA, currencyIdB, navigate]
   )
 
   const handleDismissConfirmation = useCallback(() => {
@@ -450,12 +456,12 @@ export default function RemoveLiquidity({
           <AutoColumn gap="md">
             <BlueCard>
               <AutoColumn gap="10px">
-                <ThemedText.Link fontWeight={400} color={'primaryText1'}>
+                <ThemedText.DeprecatedLink fontWeight={400} color={'deprecated_primaryText1'}>
                   <Trans>
                     <b>Tip:</b> Removing pool tokens converts your position back into underlying tokens at the current
                     rate, proportional to your share of the pool. Accrued fees are included in the amounts you receive.
                   </Trans>
-                </ThemedText.Link>
+                </ThemedText.DeprecatedLink>
               </AutoColumn>
             </BlueCard>
             <LightCard>
@@ -502,7 +508,7 @@ export default function RemoveLiquidity({
             {!showDetailed && (
               <>
                 <ColumnCenter>
-                  <ArrowDown size="16" color={theme.text2} />
+                  <ArrowDown size="16" color={theme.deprecated_text2} />
                 </ColumnCenter>
                 <LightCard>
                   <AutoColumn gap="10px">
@@ -533,16 +539,24 @@ export default function RemoveLiquidity({
                         {oneCurrencyIsETH ? (
                           <StyledInternalLink
                             to={`/remove/v2/${
-                              currencyA?.isNative ? WRAPPED_NATIVE_CURRENCY[chainId].address : currencyIdA
-                            }/${currencyB?.isNative ? WRAPPED_NATIVE_CURRENCY[chainId].address : currencyIdB}`}
+                              currencyA?.isNative && chainId && WRAPPED_NATIVE_CURRENCY[chainId]
+                                ? WRAPPED_NATIVE_CURRENCY[chainId]?.address
+                                : currencyIdA
+                            }/${
+                              currencyB?.isNative && chainId && WRAPPED_NATIVE_CURRENCY[chainId]
+                                ? WRAPPED_NATIVE_CURRENCY[chainId]?.address
+                                : currencyIdB
+                            }`}
                           >
                             Receive WETH
                           </StyledInternalLink>
                         ) : oneCurrencyIsWETH ? (
                           <StyledInternalLink
                             to={`/remove/v2/${
-                              currencyA?.equals(WRAPPED_NATIVE_CURRENCY[chainId]) ? 'ETH' : currencyIdA
-                            }/${currencyB?.equals(WRAPPED_NATIVE_CURRENCY[chainId]) ? 'ETH' : currencyIdB}`}
+                              currencyA && WRAPPED_NATIVE_CURRENCY[chainId]?.equals(currencyA) ? 'ETH' : currencyIdA
+                            }/${
+                              currencyB && WRAPPED_NATIVE_CURRENCY[chainId]?.equals(currencyB) ? 'ETH' : currencyIdB
+                            }`}
                           >
                             Receive ETH
                           </StyledInternalLink>
@@ -568,7 +582,7 @@ export default function RemoveLiquidity({
                   id="liquidity-amount"
                 />
                 <ColumnCenter>
-                  <ArrowDown size="16" color={theme.text2} />
+                  <ArrowDown size="16" color={theme.deprecated_text2} />
                 </ColumnCenter>
                 <CurrencyInputPanel
                   hideBalance={true}
@@ -582,7 +596,7 @@ export default function RemoveLiquidity({
                   id="remove-liquidity-tokena"
                 />
                 <ColumnCenter>
-                  <Plus size="16" color={theme.text2} />
+                  <Plus size="16" color={theme.deprecated_text2} />
                 </ColumnCenter>
                 <CurrencyInputPanel
                   hideBalance={true}
@@ -615,9 +629,16 @@ export default function RemoveLiquidity({
             )}
             <div style={{ position: 'relative' }}>
               {!account ? (
-                <ButtonLight onClick={toggleWalletModal}>
-                  <Trans>Connect Wallet</Trans>
-                </ButtonLight>
+                <TraceEvent
+                  events={[Event.onClick]}
+                  name={EventName.CONNECT_WALLET_BUTTON_CLICKED}
+                  properties={{ received_swap_quote: false }}
+                  element={ElementName.CONNECT_WALLET_BUTTON}
+                >
+                  <ButtonLight onClick={toggleWalletModal}>
+                    <Trans>Connect Wallet</Trans>
+                  </ButtonLight>
+                </TraceEvent>
               ) : (
                 <RowBetween>
                   <ButtonConfirmed

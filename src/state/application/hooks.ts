@@ -2,28 +2,31 @@ import { DEFAULT_TXN_DISMISS_MS } from 'constants/misc'
 import { useCallback, useMemo } from 'react'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 
-import { useActiveWeb3React } from '../../hooks/web3'
 import { AppState } from '../index'
 import { addPopup, ApplicationModal, PopupContent, removePopup, setOpenModal } from './reducer'
 
-export function useBlockNumber(): number | undefined {
-  const { chainId } = useActiveWeb3React()
-
-  return useAppSelector((state: AppState) => state.application.blockNumber[chainId ?? -1])
-}
-
-export function useModalOpen(modal: ApplicationModal): boolean {
+export function useModalIsOpen(modal: ApplicationModal): boolean {
   const openModal = useAppSelector((state: AppState) => state.application.openModal)
   return openModal === modal
 }
 
 export function useToggleModal(modal: ApplicationModal): () => void {
-  const open = useModalOpen(modal)
+  const isOpen = useModalIsOpen(modal)
   const dispatch = useAppDispatch()
-  return useCallback(() => dispatch(setOpenModal(open ? null : modal)), [dispatch, modal, open])
+  return useCallback(() => dispatch(setOpenModal(isOpen ? null : modal)), [dispatch, modal, isOpen])
 }
 
-export function useWalletModalToggle(): () => void {
+export function useOpenModal(modal: ApplicationModal): () => void {
+  const dispatch = useAppDispatch()
+  return useCallback(() => dispatch(setOpenModal(modal)), [dispatch, modal])
+}
+
+export function useCloseModal(_modal: ApplicationModal): () => void {
+  const dispatch = useAppDispatch()
+  return useCallback(() => dispatch(setOpenModal(null)), [dispatch])
+}
+
+export function useToggleWalletModal(): () => void {
   return useToggleModal(ApplicationModal.WALLET)
 }
 
@@ -32,7 +35,7 @@ export function useToggleSettingsMenu(): () => void {
 }
 
 export function useShowClaimPopup(): boolean {
-  return useModalOpen(ApplicationModal.CLAIM_POPUP)
+  return useModalIsOpen(ApplicationModal.CLAIM_POPUP)
 }
 
 export function useToggleShowClaimPopup(): () => void {
@@ -49,6 +52,14 @@ export function useToggleDelegateModal(): () => void {
 
 export function useToggleVoteModal(): () => void {
   return useToggleModal(ApplicationModal.VOTE)
+}
+
+export function useToggleQueueModal(): () => void {
+  return useToggleModal(ApplicationModal.QUEUE)
+}
+
+export function useToggleExecuteModal(): () => void {
+  return useToggleModal(ApplicationModal.EXECUTE)
 }
 
 export function useTogglePrivacyPolicy(): () => void {

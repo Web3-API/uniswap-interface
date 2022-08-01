@@ -1,8 +1,8 @@
+import { useWeb3React } from '@web3-react/core'
 import { useContext } from 'react'
 import { AlertCircle, CheckCircle } from 'react-feather'
 import styled, { ThemeContext } from 'styled-components/macro'
 
-import { useActiveWeb3React } from '../../hooks/web3'
 import { useTransaction } from '../../state/transactions/hooks'
 import { ThemedText } from '../../theme'
 import { ExternalLink } from '../../theme'
@@ -16,7 +16,7 @@ const RowNoFlex = styled(AutoRow)`
 `
 
 export default function TransactionPopup({ hash }: { hash: string }) {
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
 
   const tx = useTransaction(hash)
   const theme = useContext(ThemeContext)
@@ -27,12 +27,16 @@ export default function TransactionPopup({ hash }: { hash: string }) {
   return (
     <RowNoFlex>
       <div style={{ paddingRight: 16 }}>
-        {success ? <CheckCircle color={theme.green1} size={24} /> : <AlertCircle color={theme.red1} size={24} />}
+        {success ? (
+          <CheckCircle color={theme.deprecated_green1} size={24} />
+        ) : (
+          <AlertCircle color={theme.deprecated_red1} size={24} />
+        )}
       </div>
       <AutoColumn gap="8px">
-        <ThemedText.Body fontWeight={500}>
+        <ThemedText.DeprecatedBody fontWeight={500}>
           <TransactionSummary info={tx.info} />
-        </ThemedText.Body>
+        </ThemedText.DeprecatedBody>
         {chainId && (
           <ExternalLink href={getExplorerLink(chainId, hash, ExplorerDataType.TRANSACTION)}>
             View on Explorer

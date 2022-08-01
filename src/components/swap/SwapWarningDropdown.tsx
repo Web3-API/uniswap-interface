@@ -10,7 +10,7 @@ import { ThemedText } from 'theme'
 import { ResponsiveTooltipContainer } from './styleds'
 
 const Wrapper = styled.div`
-  background-color: ${({ theme }) => theme.bg1};
+  background-color: ${({ theme }) => theme.deprecated_bg1};
   border-bottom-left-radius: 20px;
   border-bottom-right-radius: 20px;
   padding: 14px;
@@ -19,7 +19,7 @@ const Wrapper = styled.div`
 `
 
 const StyledInfoIcon = styled(Info)`
-  stroke: ${({ theme }) => theme.text3};
+  stroke: ${({ theme }) => theme.deprecated_text3};
 `
 
 /**
@@ -47,21 +47,21 @@ export default function SwapWarningDropdown({
     <Wrapper>
       {showNetworkFeeWarning ? (
         <RowBetween>
-          <ThemedText.Main fontSize="14px" color="text3">
+          <ThemedText.DeprecatedMain fontSize="14px" color="text3">
             <Trans>Network fees exceed 50% of the swap amount!</Trans>
-          </ThemedText.Main>
+          </ThemedText.DeprecatedMain>
           <MouseoverTooltipContent
             wrap={false}
             content={
               <ResponsiveTooltipContainer origin="top right" style={{ padding: '12px' }}>
-                <ThemedText.Main fontSize="12px" color="text3" maxWidth="200px">
+                <ThemedText.DeprecatedMain fontSize="12px" color="text3" maxWidth="200px">
                   <Trans>
                     The cost of sending this transaction is more than half of the value of the input amount.
                   </Trans>
-                </ThemedText.Main>
-                <ThemedText.Main fontSize="12px" color="text3" maxWidth="200px" mt="8px">
+                </ThemedText.DeprecatedMain>
+                <ThemedText.DeprecatedMain fontSize="12px" color="text3" maxWidth="200px" mt="8px">
                   <Trans>You might consider waiting until the network fees go down to complete this transaction.</Trans>
-                </ThemedText.Main>
+                </ThemedText.DeprecatedMain>
               </ResponsiveTooltipContainer>
             }
             placement="bottom"

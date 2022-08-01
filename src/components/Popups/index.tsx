@@ -1,5 +1,5 @@
+import { useWeb3React } from '@web3-react/core'
 import { SupportedChainId } from 'constants/chains'
-import { useActiveWeb3React } from 'hooks/web3'
 import styled from 'styled-components/macro'
 import { MEDIA_WIDTHS } from 'theme'
 
@@ -14,11 +14,12 @@ const MobilePopupWrapper = styled.div<{ height: string | number }>`
   max-width: 100%;
   height: ${({ height }) => height};
   margin: ${({ height }) => (height ? '0 auto;' : 0)};
-  margin-bottom: ${({ height }) => (height ? '20px' : 0)}};
+  margin-bottom: ${({ height }) => (height ? '20px' : 0)};
 
   display: none;
   ${({ theme }) => theme.mediaWidth.upToSmall`
     display: block;
+    padding-top: 20px;
   `};
 `
 
@@ -62,7 +63,7 @@ export default function Popups() {
   const urlWarningActive = useURLWarningVisible()
 
   // need extra padding if network is not L1 Ethereum
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
   const isNotOnMainnet = Boolean(chainId && chainId !== SupportedChainId.MAINNET)
 
   return (

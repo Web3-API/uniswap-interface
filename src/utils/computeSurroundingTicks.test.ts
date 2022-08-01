@@ -1,16 +1,15 @@
 import { PolywrapClient } from '@polywrap/client-js'
 import { Token } from '@uniswap/sdk-core'
+import { TickData } from 'hooks/usePoolTickData'
 import JSBI from 'jsbi'
-import { AllV3TicksQuery } from 'state/data/generated'
 
 import { Uni_FeeAmountEnum, Uni_Module } from '../wrap'
 import computeSurroundingTicks from './computeSurroundingTicks'
 
-const getV3Tick = (tickIdx: number, liquidityNet: number) => ({
-  tickIdx,
+const getV3Tick = (tick: number, liquidityNet: number): TickData => ({
+  tick,
   liquidityNet: JSBI.BigInt(liquidityNet),
-  price0: '1',
-  price1: '2',
+  liquidityGross: JSBI.BigInt(liquidityNet),
 })
 
 describe('#computeSurroundingTicks', () => {
@@ -32,14 +31,14 @@ describe('#computeSurroundingTicks', () => {
     }
     const pivot = 3
     const ascending = true
-    const sortedTickData: AllV3TicksQuery['ticks'] = [
-      getV3Tick(activeTickProcessed.tickIdx - 4 * spacing, 10),
-      getV3Tick(activeTickProcessed.tickIdx - 2 * spacing, 20),
-      getV3Tick(activeTickProcessed.tickIdx - 1 * spacing, 30),
-      getV3Tick(activeTickProcessed.tickIdx * spacing, 100),
-      getV3Tick(activeTickProcessed.tickIdx + 1 * spacing, 40),
-      getV3Tick(activeTickProcessed.tickIdx + 2 * spacing, 20),
-      getV3Tick(activeTickProcessed.tickIdx + 5 * spacing, 20),
+    const sortedTickData: TickData[] = [
+      getV3Tick(activeTickProcessed.tick - 4 * spacing, 10),
+      getV3Tick(activeTickProcessed.tick - 2 * spacing, 20),
+      getV3Tick(activeTickProcessed.tick - 1 * spacing, 30),
+      getV3Tick(activeTickProcessed.tick * spacing, 100),
+      getV3Tick(activeTickProcessed.tick + 1 * spacing, 40),
+      getV3Tick(activeTickProcessed.tick + 2 * spacing, 20),
+      getV3Tick(activeTickProcessed.tick + 5 * spacing, 20),
     ]
 
     const previous = await computeSurroundingTicks(
@@ -63,17 +62,17 @@ describe('#computeSurroundingTicks', () => {
     )
 
     expect(previous.length).toEqual(3)
-    expect(previous.map((t) => [t.tickIdx, parseFloat(t.liquidityActive.toString())])).toEqual([
-      [activeTickProcessed.tickIdx - 4 * spacing, 150],
-      [activeTickProcessed.tickIdx - 2 * spacing, 170],
-      [activeTickProcessed.tickIdx - 1 * spacing, 200],
+    expect(previous.map((t) => [t.tick, parseFloat(t.liquidityActive.toString())])).toEqual([
+      [activeTickProcessed.tick - 4 * spacing, 150],
+      [activeTickProcessed.tick - 2 * spacing, 170],
+      [activeTickProcessed.tick - 1 * spacing, 200],
     ])
 
     expect(subsequent.length).toEqual(3)
-    expect(subsequent.map((t) => [t.tickIdx, parseFloat(t.liquidityActive.toString())])).toEqual([
-      [activeTickProcessed.tickIdx + 1 * spacing, 340],
-      [activeTickProcessed.tickIdx + 2 * spacing, 360],
-      [activeTickProcessed.tickIdx + 5 * spacing, 380],
+    expect(subsequent.map((t) => [t.tick, parseFloat(t.liquidityActive.toString())])).toEqual([
+      [activeTickProcessed.tick + 1 * spacing, 340],
+      [activeTickProcessed.tick + 2 * spacing, 360],
+      [activeTickProcessed.tick + 5 * spacing, 380],
     ])
   })
 })

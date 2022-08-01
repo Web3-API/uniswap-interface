@@ -1,8 +1,8 @@
 import { Trans } from '@lingui/macro'
+import { sendEvent } from 'components/analytics'
 import { ButtonOutlined } from 'components/Button'
 import { AutoRow } from 'components/Row'
 import React from 'react'
-import ReactGA from 'react-ga'
 import styled from 'styled-components/macro'
 import { ThemedText } from 'theme'
 
@@ -10,7 +10,7 @@ const Button = styled(ButtonOutlined).attrs(() => ({
   padding: '8px',
   $borderRadius: '8px',
 }))`
-  color: ${({ theme }) => theme.text1};
+  color: ${({ theme }) => theme.deprecated_text1};
   flex: 1;
 `
 
@@ -20,15 +20,15 @@ export default function PresetsButtons({ setFullRange }: { setFullRange: () => v
       <Button
         onClick={() => {
           setFullRange()
-          ReactGA.event({
+          sendEvent({
             category: 'Liquidity',
             action: 'Full Range Clicked',
           })
         }}
       >
-        <ThemedText.Body fontSize={12}>
+        <ThemedText.DeprecatedBody fontSize={12}>
           <Trans>Full Range</Trans>
-        </ThemedText.Body>
+        </ThemedText.DeprecatedBody>
       </Button>
     </AutoRow>
   )

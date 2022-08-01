@@ -26,9 +26,9 @@ export const ProposalSubmissionModal = ({
       {!hash ? (
         <LoadingView onDismiss={onDismiss}>
           <AutoColumn gap="12px" justify={'center'}>
-            <ThemedText.LargeHeader>
+            <ThemedText.DeprecatedLargeHeader>
               <Trans>Submitting Proposal</Trans>
-            </ThemedText.LargeHeader>
+            </ThemedText.DeprecatedLargeHeader>
           </AutoColumn>
         </LoadingView>
       ) : (
@@ -39,7 +39,7 @@ export const ProposalSubmissionModal = ({
             </Text>
             {hash && (
               <ExternalLink href={getExplorerLink(1, hash, ExplorerDataType.TRANSACTION)}>
-                <Text fontWeight={500} fontSize={14} color={theme.primary1}>
+                <Text fontWeight={500} fontSize={14} color={theme.deprecated_primary1}>
                   <Trans>View on Etherscan</Trans>
                 </Text>
               </ExternalLink>

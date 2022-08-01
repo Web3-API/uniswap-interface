@@ -1,10 +1,28 @@
+import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers'
 import { createApi, fetchBaseQuery, FetchBaseQueryError } from '@reduxjs/toolkit/query/react'
 import { Protocol } from '@uniswap/router-sdk'
 import { ChainId } from '@uniswap/smart-order-router'
+import { RPC_URLS } from 'constants/networks'
+import { getClientSideQuote, toSupportedChainId } from 'lib/hooks/routing/clientSideSmartOrderRouter'
 import ms from 'ms.macro'
 import qs from 'qs'
 
 import { GetQuoteResult } from './types'
+
+const routerProviders = new Map<ChainId, BaseProvider>()
+function getRouterProvider(chainId: ChainId): BaseProvider {
+  const provider = routerProviders.get(chainId)
+  if (provider) return provider
+
+  const supportedChainId = toSupportedChainId(chainId)
+  if (supportedChainId) {
+    const provider = new JsonRpcProvider(RPC_URLS[supportedChainId])
+    routerProviders.set(chainId, provider)
+    return provider
+  }
+
+  throw new Error(`Router does not support this chain (chainId: ${chainId}).`)
+}
 
 const protocols: Protocol[] = [Protocol.V2, Protocol.V3]
 
@@ -13,51 +31,6 @@ const DEFAULT_QUERY_PARAMS = {
   // example other params
   // forceCrossProtocol: 'true',
   // minSplits: '5',
-}
-
-async function getClientSideQuote({
-  tokenInAddress,
-  tokenInChainId,
-  tokenInDecimals,
-  tokenInSymbol,
-  tokenOutAddress,
-  tokenOutChainId,
-  tokenOutDecimals,
-  tokenOutSymbol,
-  amount,
-  type,
-}: {
-  tokenInAddress: string
-  tokenInChainId: ChainId
-  tokenInDecimals: number
-  tokenInSymbol?: string
-  tokenOutAddress: string
-  tokenOutChainId: ChainId
-  tokenOutDecimals: number
-  tokenOutSymbol?: string
-  amount: string
-  type: 'exactIn' | 'exactOut'
-}) {
-  return (await import('./clientSideSmartOrderRouter')).getQuote(
-    {
-      type,
-      chainId: tokenInChainId,
-      tokenIn: {
-        address: tokenInAddress,
-        chainId: tokenInChainId,
-        decimals: tokenInDecimals,
-        symbol: tokenInSymbol,
-      },
-      tokenOut: {
-        address: tokenOutAddress,
-        chainId: tokenOutChainId,
-        decimals: tokenOutDecimals,
-        symbol: tokenOutSymbol,
-      },
-      amount,
-    },
-    { protocols }
-  )
 }
 
 export const routingApi = createApi({
@@ -90,7 +63,9 @@ export const routingApi = createApi({
 
         try {
           if (useClientSideRouter) {
-            result = await getClientSideQuote(args)
+            const chainId = args.tokenInChainId
+            const params = { chainId, provider: getRouterProvider(chainId) }
+            result = await getClientSideQuote(args, params, { protocols })
           } else {
             const query = qs.stringify({
               ...DEFAULT_QUERY_PARAMS,

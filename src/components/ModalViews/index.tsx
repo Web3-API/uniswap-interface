@@ -1,10 +1,10 @@
 import { Trans } from '@lingui/macro'
+import { useWeb3React } from '@web3-react/core'
 import { useContext } from 'react'
 import { ArrowUpCircle } from 'react-feather'
 import styled, { ThemeContext } from 'styled-components/macro'
 
 import Circle from '../../assets/images/blue-loader.svg'
-import { useActiveWeb3React } from '../../hooks/web3'
 import { CloseIcon, CustomLightSpinner, ThemedText } from '../../theme'
 import { ExternalLink } from '../../theme/components'
 import { ExplorerDataType, getExplorerLink } from '../../utils/getExplorerLink'
@@ -32,9 +32,9 @@ export function LoadingView({ children, onDismiss }: { children: any; onDismiss:
       </ConfirmedIcon>
       <AutoColumn gap="100px" justify={'center'}>
         {children}
-        <ThemedText.SubHeader>
+        <ThemedText.DeprecatedSubHeader>
           <Trans>Confirm this transaction in your wallet</Trans>
-        </ThemedText.SubHeader>
+        </ThemedText.DeprecatedSubHeader>
       </AutoColumn>
     </ConfirmOrLoadingWrapper>
   )
@@ -50,7 +50,7 @@ export function SubmittedView({
   hash: string | undefined
 }) {
   const theme = useContext(ThemeContext)
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
 
   return (
     <ConfirmOrLoadingWrapper>
@@ -59,7 +59,7 @@ export function SubmittedView({
         <CloseIcon onClick={onDismiss} />
       </RowBetween>
       <ConfirmedIcon>
-        <ArrowUpCircle strokeWidth={0.5} size={90} color={theme.primary1} />
+        <ArrowUpCircle strokeWidth={0.5} size={90} color={theme.deprecated_primary1} />
       </ConfirmedIcon>
       <AutoColumn gap="100px" justify={'center'}>
         {children}
@@ -68,9 +68,9 @@ export function SubmittedView({
             href={getExplorerLink(chainId, hash, ExplorerDataType.TRANSACTION)}
             style={{ marginLeft: '4px' }}
           >
-            <ThemedText.SubHeader>
+            <ThemedText.DeprecatedSubHeader>
               <Trans>View transaction on Explorer</Trans>
-            </ThemedText.SubHeader>
+            </ThemedText.DeprecatedSubHeader>
           </ExternalLink>
         )}
       </AutoColumn>

@@ -1,10 +1,10 @@
 import { Token } from '@uniswap/sdk-core'
 import { SupportedChainId } from 'constants/chains'
-import Vibrant from 'node-vibrant/lib/bundle'
+import uriToHttp from 'lib/utils/uriToHttp'
+import Vibrant from 'node-vibrant/lib/bundle.js'
 import { shade } from 'polished'
-import { useLayoutEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { WrappedTokenInfo } from 'state/lists/wrappedTokenInfo'
-import uriToHttp from 'utils/uriToHttp'
 import { hex } from 'wcag-contrast'
 
 function URIForEthToken(address: string) {
@@ -46,7 +46,13 @@ async function getColorFromToken(token: Token): Promise<string | null> {
 async function getColorFromUriPath(uri: string): Promise<string | null> {
   const formattedPath = uriToHttp(uri)[0]
 
-  const palette = await Vibrant.from(formattedPath).getPalette()
+  let palette
+
+  try {
+    palette = await Vibrant.from(formattedPath).getPalette()
+  } catch (err) {
+    return null
+  }
   if (!palette?.Vibrant) {
     return null
   }
@@ -64,7 +70,7 @@ async function getColorFromUriPath(uri: string): Promise<string | null> {
 export function useColor(token?: Token) {
   const [color, setColor] = useState('#2172E5')
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     let stale = false
 
     if (token) {
@@ -87,7 +93,7 @@ export function useColor(token?: Token) {
 export function useListColor(listImageUri?: string) {
   const [color, setColor] = useState('#2172E5')
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     let stale = false
 
     if (listImageUri) {

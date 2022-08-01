@@ -1,35 +1,33 @@
 // eslint-disable-next-line no-restricted-imports
 import { t, Trans } from '@lingui/macro'
 import { Currency, Token } from '@uniswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
+import { EventName, ModalName } from 'components/AmplitudeAnalytics/constants'
+import { Trace } from 'components/AmplitudeAnalytics/Trace'
+import { sendEvent } from 'components/analytics'
 import useDebounce from 'hooks/useDebounce'
 import { useOnClickOutside } from 'hooks/useOnClickOutside'
 import useTheme from 'hooks/useTheme'
 import useToggle from 'hooks/useToggle'
-import { KeyboardEvent, RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import useNativeCurrency from 'lib/hooks/useNativeCurrency'
+import { getTokenFilter } from 'lib/hooks/useTokenList/filtering'
+import { tokenComparator, useSortTokensByQuery } from 'lib/hooks/useTokenList/sorting'
+import { ChangeEvent, KeyboardEvent, RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Edit } from 'react-feather'
-import ReactGA from 'react-ga'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { FixedSizeList } from 'react-window'
 import { Text } from 'rebass'
+import { useAllTokenBalances } from 'state/connection/hooks'
 import styled from 'styled-components/macro'
 
-import {
-  useAllTokens,
-  useIsUserAddedToken,
-  useNativeCurrency,
-  useSearchInactiveTokenLists,
-  useToken,
-} from '../../hooks/Tokens'
-import { useActiveWeb3React } from '../../hooks/web3'
+import { useAllTokens, useIsUserAddedToken, useSearchInactiveTokenLists, useToken } from '../../hooks/Tokens'
 import { ButtonText, CloseIcon, IconWrapper, ThemedText } from '../../theme'
 import { isAddress } from '../../utils'
 import Column from '../Column'
 import Row, { RowBetween, RowFixed } from '../Row'
 import CommonBases from './CommonBases'
 import CurrencyList from './CurrencyList'
-import { filterTokens, useSortedTokensByQuery } from './filtering'
 import ImportRow from './ImportRow'
-import { useTokenComparator } from './sorting'
 import { PaddedColumn, SearchInput, Separator } from './styleds'
 
 const ContentWrapper = styled(Column)`
@@ -44,8 +42,8 @@ const Footer = styled.div`
   padding: 20px;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-  background-color: ${({ theme }) => theme.bg1};
-  border-top: 1px solid ${({ theme }) => theme.bg2};
+  background-color: ${({ theme }) => theme.deprecated_bg1};
+  border-top: 1px solid ${({ theme }) => theme.deprecated_bg2};
 `
 
 interface CurrencySearchProps {
@@ -75,16 +73,16 @@ export function CurrencySearch({
   showImportView,
   setImportToken,
 }: CurrencySearchProps) {
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
   const theme = useTheme()
+
+  const [tokenLoaderTimerElapsed, setTokenLoaderTimerElapsed] = useState(false)
 
   // refs for fixed size lists
   const fixedList = useRef<FixedSizeList>()
 
   const [searchQuery, setSearchQuery] = useState<string>('')
   const debouncedQuery = useDebounce(searchQuery, 200)
-
-  const [invertSearchOrder] = useState<boolean>(false)
 
   const allTokens = useAllTokens()
 
@@ -97,7 +95,7 @@ export function CurrencySearch({
 
   useEffect(() => {
     if (isAddressSearch) {
-      ReactGA.event({
+      sendEvent({
         category: 'Currency Select',
         action: 'Search by address',
         label: isAddressSearch,
@@ -105,26 +103,30 @@ export function CurrencySearch({
     }
   }, [isAddressSearch])
 
-  const tokenComparator = useTokenComparator(invertSearchOrder)
-
   const filteredTokens: Token[] = useMemo(() => {
-    return filterTokens(Object.values(allTokens), debouncedQuery)
+    return Object.values(allTokens).filter(getTokenFilter(debouncedQuery))
   }, [allTokens, debouncedQuery])
 
+  const [balances, balancesIsLoading] = useAllTokenBalances()
   const sortedTokens: Token[] = useMemo(() => {
-    return filteredTokens.sort(tokenComparator)
-  }, [filteredTokens, tokenComparator])
+    void balancesIsLoading // creates a new array once balances load to update hooks
+    return [...filteredTokens].sort(tokenComparator.bind(null, balances))
+  }, [balances, filteredTokens, balancesIsLoading])
 
-  const filteredSortedTokens = useSortedTokensByQuery(sortedTokens, debouncedQuery)
+  const filteredSortedTokens = useSortTokensByQuery(debouncedQuery, sortedTokens)
 
   const native = useNativeCurrency()
 
   const filteredSortedTokensWithETH: Currency[] = useMemo(() => {
-    if (!native) return filteredSortedTokens
+    // Use Celo ERC20 Implementation and exclude the native asset
+    if (!native) {
+      return filteredSortedTokens
+    }
 
     const s = debouncedQuery.toLowerCase().trim()
     if (native.symbol?.toLowerCase()?.indexOf(s) !== -1) {
-      return native ? [native, ...filteredSortedTokens] : filteredSortedTokens
+      // Always bump the native token to the top of the list.
+      return native ? [native, ...filteredSortedTokens.filter((t) => !t.equals(native))] : filteredSortedTokens
     }
     return filteredSortedTokens
   }, [debouncedQuery, native, filteredSortedTokens])
@@ -144,7 +146,7 @@ export function CurrencySearch({
 
   // manage focus on modal show
   const inputRef = useRef<HTMLInputElement>()
-  const handleInput = useCallback((event) => {
+  const handleInput = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const input = event.target.value
     const checksummedInput = isAddress(input)
     setSearchQuery(checksummedInput || input)
@@ -180,76 +182,95 @@ export function CurrencySearch({
     filteredTokens.length === 0 || (debouncedQuery.length > 2 && !isAddressSearch) ? debouncedQuery : undefined
   )
 
+  // Timeout token loader after 3 seconds to avoid hanging in a loading state.
+  useEffect(() => {
+    const tokenLoaderTimer = setTimeout(() => {
+      setTokenLoaderTimerElapsed(true)
+    }, 3000)
+    return () => clearTimeout(tokenLoaderTimer)
+  }, [])
+
   return (
     <ContentWrapper>
-      <PaddedColumn gap="16px">
-        <RowBetween>
-          <Text fontWeight={500} fontSize={16}>
-            <Trans>Select a token</Trans>
-          </Text>
-          <CloseIcon onClick={onDismiss} />
-        </RowBetween>
-        <Row>
-          <SearchInput
-            type="text"
-            id="token-search-input"
-            placeholder={t`Search name or paste address`}
-            autoComplete="off"
-            value={searchQuery}
-            ref={inputRef as RefObject<HTMLInputElement>}
-            onChange={handleInput}
-            onKeyDown={handleEnter}
-          />
-        </Row>
-        {showCommonBases && (
-          <CommonBases chainId={chainId} onSelect={handleCurrencySelect} selectedCurrency={selectedCurrency} />
+      <Trace name={EventName.TOKEN_SELECTOR_OPENED} modal={ModalName.TOKEN_SELECTOR} shouldLogImpression>
+        <PaddedColumn gap="16px">
+          <RowBetween>
+            <Text fontWeight={500} fontSize={16}>
+              <Trans>Select a token</Trans>
+            </Text>
+            <CloseIcon onClick={onDismiss} />
+          </RowBetween>
+          <Row>
+            <SearchInput
+              type="text"
+              id="token-search-input"
+              placeholder={t`Search name or paste address`}
+              autoComplete="off"
+              value={searchQuery}
+              ref={inputRef as RefObject<HTMLInputElement>}
+              onChange={handleInput}
+              onKeyDown={handleEnter}
+            />
+          </Row>
+          {showCommonBases && (
+            <CommonBases
+              chainId={chainId}
+              onSelect={handleCurrencySelect}
+              selectedCurrency={selectedCurrency}
+              searchQuery={searchQuery}
+              isAddressSearch={isAddressSearch}
+            />
+          )}
+        </PaddedColumn>
+        <Separator />
+        {searchToken && !searchTokenIsAdded ? (
+          <Column style={{ padding: '20px 0', height: '100%' }}>
+            <ImportRow token={searchToken} showImportView={showImportView} setImportToken={setImportToken} />
+          </Column>
+        ) : filteredSortedTokens?.length > 0 || filteredInactiveTokens?.length > 0 ? (
+          <div style={{ flex: '1' }}>
+            <AutoSizer disableWidth>
+              {({ height }) => (
+                <CurrencyList
+                  height={height}
+                  currencies={disableNonToken ? filteredSortedTokens : filteredSortedTokensWithETH}
+                  otherListTokens={filteredInactiveTokens}
+                  onCurrencySelect={handleCurrencySelect}
+                  otherCurrency={otherSelectedCurrency}
+                  selectedCurrency={selectedCurrency}
+                  fixedListRef={fixedList}
+                  showImportView={showImportView}
+                  setImportToken={setImportToken}
+                  showCurrencyAmount={showCurrencyAmount}
+                  isLoading={balancesIsLoading && !tokenLoaderTimerElapsed}
+                  searchQuery={searchQuery}
+                  isAddressSearch={isAddressSearch}
+                />
+              )}
+            </AutoSizer>
+          </div>
+        ) : (
+          <Column style={{ padding: '20px', height: '100%' }}>
+            <ThemedText.DeprecatedMain color={theme.deprecated_text3} textAlign="center" mb="20px">
+              <Trans>No results found.</Trans>
+            </ThemedText.DeprecatedMain>
+          </Column>
         )}
-      </PaddedColumn>
-      <Separator />
-      {searchToken && !searchTokenIsAdded ? (
-        <Column style={{ padding: '20px 0', height: '100%' }}>
-          <ImportRow token={searchToken} showImportView={showImportView} setImportToken={setImportToken} />
-        </Column>
-      ) : filteredSortedTokens?.length > 0 || filteredInactiveTokens?.length > 0 ? (
-        <div style={{ flex: '1' }}>
-          <AutoSizer disableWidth>
-            {({ height }) => (
-              <CurrencyList
-                height={height}
-                currencies={disableNonToken ? filteredSortedTokens : filteredSortedTokensWithETH}
-                otherListTokens={filteredInactiveTokens}
-                onCurrencySelect={handleCurrencySelect}
-                otherCurrency={otherSelectedCurrency}
-                selectedCurrency={selectedCurrency}
-                fixedListRef={fixedList}
-                showImportView={showImportView}
-                setImportToken={setImportToken}
-                showCurrencyAmount={showCurrencyAmount}
-              />
-            )}
-          </AutoSizer>
-        </div>
-      ) : (
-        <Column style={{ padding: '20px', height: '100%' }}>
-          <ThemedText.Main color={theme.text3} textAlign="center" mb="20px">
-            <Trans>No results found.</Trans>
-          </ThemedText.Main>
-        </Column>
-      )}
-      <Footer>
-        <Row justify="center">
-          <ButtonText onClick={showManageView} color={theme.primary1} className="list-token-manage-button">
-            <RowFixed>
-              <IconWrapper size="16px" marginRight="6px" stroke={theme.primaryText1}>
-                <Edit />
-              </IconWrapper>
-              <ThemedText.Main color={theme.primaryText1}>
-                <Trans>Manage Token Lists</Trans>
-              </ThemedText.Main>
-            </RowFixed>
-          </ButtonText>
-        </Row>
-      </Footer>
+        <Footer>
+          <Row justify="center">
+            <ButtonText onClick={showManageView} color={theme.deprecated_primary1} className="list-token-manage-button">
+              <RowFixed>
+                <IconWrapper size="16px" marginRight="6px" stroke={theme.deprecated_primaryText1}>
+                  <Edit />
+                </IconWrapper>
+                <ThemedText.DeprecatedMain color={theme.deprecated_primaryText1}>
+                  <Trans>Manage Token Lists</Trans>
+                </ThemedText.DeprecatedMain>
+              </RowFixed>
+            </ButtonText>
+          </Row>
+        </Footer>
+      </Trace>
     </ContentWrapper>
   )
 }

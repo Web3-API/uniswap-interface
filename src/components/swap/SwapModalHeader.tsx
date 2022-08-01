@@ -7,7 +7,7 @@ import { AlertTriangle, ArrowDown } from 'react-feather'
 import { Text } from 'rebass'
 import styled, { ThemeContext } from 'styled-components/macro'
 
-import { useUSDCValue } from '../../hooks/useUSDCPrice'
+import { useStablecoinValue } from '../../hooks/useStablecoinPrice'
 import { reverseMapPrice, reverseMapToken, reverseMapTokenAmount, toSignificant } from '../../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
 import { ThemedText } from '../../theme'
@@ -42,9 +42,9 @@ const ArrowWrapper = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: ${({ theme }) => theme.bg1};
+  background-color: ${({ theme }) => theme.deprecated_bg1};
   border: 4px solid;
-  border-color: ${({ theme }) => theme.bg0};
+  border-color: ${({ theme }) => theme.deprecated_bg0};
   z-index: 2;
 `
 
@@ -109,8 +109,8 @@ export default function SwapModalHeader({
 
   const [showInverted, setShowInverted] = useState<boolean>(false)
 
-  const fiatValueInput = useUSDCValue(reverseMapTokenAmount(trade.inputAmount))
-  const fiatValueOutput = useUSDCValue(reverseMapTokenAmount(trade.outputAmount))
+  const fiatValueInput = useStablecoinValue(reverseMapTokenAmount(trade.inputAmount))
+  const fiatValueOutput = useStablecoinValue(reverseMapTokenAmount(trade.outputAmount))
 
   return (
     <AutoColumn gap={'4px'} style={{ marginTop: '1rem' }}>
@@ -121,7 +121,9 @@ export default function SwapModalHeader({
               <TruncatedText
                 fontSize={24}
                 fontWeight={500}
-                color={showAcceptChanges && trade.tradeType === TradeTypeEnum.EXACT_OUTPUT ? theme.primary1 : ''}
+                color={
+                  showAcceptChanges && trade.tradeType === TradeTypeEnum.EXACT_OUTPUT ? theme.deprecated_primary1 : ''
+                }
               >
                 {toSignificant(trade.inputAmount, 6)}
               </TruncatedText>
@@ -143,7 +145,7 @@ export default function SwapModalHeader({
         </AutoColumn>
       </LightCard>
       <ArrowWrapper>
-        <ArrowDown size="16" color={theme.text2} />
+        <ArrowDown size="16" color={theme.deprecated_text2} />
       </ArrowWrapper>
       <LightCard padding="0.75rem 1rem" style={{ marginBottom: '0.25rem' }}>
         <AutoColumn gap={'8px'}>
@@ -165,12 +167,12 @@ export default function SwapModalHeader({
             </RowFixed>
           </RowBetween>
           <RowBetween>
-            <ThemedText.Body fontSize={14} color={theme.text3}>
+            <ThemedText.DeprecatedBody fontSize={14} color={theme.deprecated_text3}>
               <FiatValue
                 fiatValue={fiatValueOutput}
                 priceImpact={computeFiatValuePriceImpact(fiatValueInput, fiatValueOutput)}
               />
-            </ThemedText.Body>
+            </ThemedText.DeprecatedBody>
           </RowBetween>
         </AutoColumn>
       </LightCard>
@@ -189,9 +191,9 @@ export default function SwapModalHeader({
           <RowBetween>
             <RowFixed>
               <AlertTriangle size={20} style={{ marginRight: '8px', minWidth: 24 }} />
-              <ThemedText.Main color={theme.primary1}>
+              <ThemedText.DeprecatedMain color={theme.deprecated_primary1}>
                 <Trans>Price Updated</Trans>
-              </ThemedText.Main>
+              </ThemedText.DeprecatedMain>
             </RowFixed>
             <ButtonPrimary
               style={{ padding: '.5rem', width: 'fit-content', fontSize: '0.825rem', borderRadius: '12px' }}
@@ -205,7 +207,7 @@ export default function SwapModalHeader({
 
       <AutoColumn justify="flex-start" gap="sm" style={{ padding: '.75rem 1rem' }}>
         {trade.tradeType === TradeTypeEnum.EXACT_INPUT ? (
-          <ThemedText.Italic fontWeight={400} textAlign="left" style={{ width: '100%' }}>
+          <ThemedText.DeprecatedItalic fontWeight={400} textAlign="left" style={{ width: '100%' }}>
             <Trans>
               Output is estimated. You will receive at least{' '}
               <b>
@@ -213,9 +215,9 @@ export default function SwapModalHeader({
               </b>{' '}
               or the transaction will revert.
             </Trans>
-          </ThemedText.Italic>
+          </ThemedText.DeprecatedItalic>
         ) : (
-          <ThemedText.Italic fontWeight={400} textAlign="left" style={{ width: '100%' }}>
+          <ThemedText.DeprecatedItalic fontWeight={400} textAlign="left" style={{ width: '100%' }}>
             <Trans>
               Input is estimated. You will sell at most{' '}
               <b>
@@ -223,17 +225,17 @@ export default function SwapModalHeader({
               </b>{' '}
               or the transaction will revert.
             </Trans>
-          </ThemedText.Italic>
+          </ThemedText.DeprecatedItalic>
         )}
       </AutoColumn>
       {recipient !== null ? (
         <AutoColumn justify="flex-start" gap="sm" style={{ padding: '12px 0 0 0px' }}>
-          <ThemedText.Main>
+          <ThemedText.DeprecatedMain>
             <Trans>
               Output will be sent to{' '}
               <b title={recipient}>{isAddress(recipient) ? shortenAddress(recipient) : recipient}</b>
             </Trans>
-          </ThemedText.Main>
+          </ThemedText.DeprecatedMain>
         </AutoColumn>
       ) : null}
     </AutoColumn>

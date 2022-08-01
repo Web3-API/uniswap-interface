@@ -1,16 +1,16 @@
 // eslint-disable-next-line no-restricted-imports
 import { t, Trans } from '@lingui/macro'
 import { Percent } from '@uniswap/sdk-core'
-import { useActiveWeb3React } from 'hooks/web3'
+import { useWeb3React } from '@web3-react/core'
+import { sendEvent } from 'components/analytics'
+import { isSupportedChainId } from 'lib/hooks/routing/clientSideSmartOrderRouter'
 import { useContext, useRef, useState } from 'react'
 import { Settings, X } from 'react-feather'
-import ReactGA from 'react-ga'
 import { Text } from 'rebass'
-import { AUTO_ROUTER_SUPPORTED_CHAINS } from 'state/routing/clientSideSmartOrderRouter/constants'
 import styled, { ThemeContext } from 'styled-components/macro'
 
 import { useOnClickOutside } from '../../hooks/useOnClickOutside'
-import { useModalOpen, useToggleSettingsMenu } from '../../state/application/hooks'
+import { useModalIsOpen, useToggleSettingsMenu } from '../../state/application/hooks'
 import { ApplicationModal } from '../../state/application/reducer'
 import { useClientSideRouter, useExpertModeManager } from '../../state/user/hooks'
 import { ThemedText } from '../../theme'
@@ -27,11 +27,7 @@ const StyledMenuIcon = styled(Settings)`
   width: 20px;
 
   > * {
-    stroke: ${({ theme }) => theme.text1};
-  }
-
-  :hover {
-    opacity: 0.7;
+    stroke: ${({ theme }) => theme.deprecated_text1};
   }
 `
 
@@ -43,11 +39,11 @@ const StyledCloseIcon = styled(X)`
   }
 
   > * {
-    stroke: ${({ theme }) => theme.text1};
+    stroke: ${({ theme }) => theme.deprecated_text1};
   }
 `
 
-const StyledMenuButton = styled.button`
+const StyledMenuButton = styled.button<{ disabled: boolean }>`
   position: relative;
   width: 100%;
   height: 100%;
@@ -58,11 +54,16 @@ const StyledMenuButton = styled.button`
   border-radius: 0.5rem;
   height: 20px;
 
-  :hover,
-  :focus {
-    cursor: pointer;
-    outline: none;
-  }
+  ${({ disabled }) =>
+    !disabled &&
+    `
+    :hover,
+    :focus {
+      cursor: pointer;
+      outline: none;
+      opacity: 0.7;
+    }
+  `}
 `
 const EmojiWrapper = styled.div`
   position: absolute;
@@ -83,8 +84,8 @@ const StyledMenu = styled.div`
 
 const MenuFlyout = styled.span`
   min-width: 20.125rem;
-  background-color: ${({ theme }) => theme.bg2};
-  border: 1px solid ${({ theme }) => theme.bg3};
+  background-color: ${({ theme }) => theme.deprecated_bg2};
+  border: 1px solid ${({ theme }) => theme.deprecated_bg3};
   box-shadow: 0px 0px 1px rgba(0, 0, 0, 0.01), 0px 4px 8px rgba(0, 0, 0, 0.04), 0px 16px 24px rgba(0, 0, 0, 0.04),
     0px 24px 32px rgba(0, 0, 0, 0.01);
   border-radius: 12px;
@@ -106,7 +107,7 @@ const MenuFlyout = styled.span`
 const Break = styled.div`
   width: 100%;
   height: 1px;
-  background-color: ${({ theme }) => theme.bg3};
+  background-color: ${({ theme }) => theme.deprecated_bg3};
 `
 
 const ModalContentWrapper = styled.div`
@@ -114,15 +115,15 @@ const ModalContentWrapper = styled.div`
   align-items: center;
   justify-content: center;
   padding: 2rem 0;
-  background-color: ${({ theme }) => theme.bg2};
+  background-color: ${({ theme }) => theme.deprecated_bg2};
   border-radius: 20px;
 `
 
 export default function SettingsTab({ placeholderSlippage }: { placeholderSlippage: Percent }) {
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
 
   const node = useRef<HTMLDivElement>()
-  const open = useModalOpen(ApplicationModal.SETTINGS)
+  const open = useModalIsOpen(ApplicationModal.SETTINGS)
   const toggle = useToggleSettingsMenu()
 
   const theme = useContext(ThemeContext)
@@ -179,7 +180,12 @@ export default function SettingsTab({ placeholderSlippage }: { placeholderSlippa
           </AutoColumn>
         </ModalContentWrapper>
       </Modal>
-      <StyledMenuButton onClick={toggle} id="open-settings-dialog-button" aria-label={t`Transaction Settings`}>
+      <StyledMenuButton
+        disabled={!isSupportedChainId(chainId)}
+        onClick={toggle}
+        id="open-settings-dialog-button"
+        aria-label={t`Transaction Settings`}
+      >
         <StyledMenuIcon />
         {expertMode ? (
           <EmojiWrapper>
@@ -199,19 +205,19 @@ export default function SettingsTab({ placeholderSlippage }: { placeholderSlippa
             <Text fontWeight={600} fontSize={14}>
               <Trans>Interface Settings</Trans>
             </Text>
-            {chainId && AUTO_ROUTER_SUPPORTED_CHAINS.includes(chainId) && (
+            {isSupportedChainId(chainId) && (
               <RowBetween>
                 <RowFixed>
-                  <ThemedText.Black fontWeight={400} fontSize={14} color={theme.text2}>
+                  <ThemedText.DeprecatedBlack fontWeight={400} fontSize={14} color={theme.deprecated_text2}>
                     <Trans>Auto Router API</Trans>
-                  </ThemedText.Black>
+                  </ThemedText.DeprecatedBlack>
                   <QuestionHelper text={<Trans>Use the Uniswap Labs API to get faster quotes.</Trans>} />
                 </RowFixed>
                 <Toggle
                   id="toggle-optimized-router-button"
                   isActive={!clientSideRouter}
                   toggle={() => {
-                    ReactGA.event({
+                    sendEvent({
                       category: 'Routing',
                       action: clientSideRouter ? 'enable routing API' : 'disable routing API',
                     })
@@ -222,9 +228,9 @@ export default function SettingsTab({ placeholderSlippage }: { placeholderSlippa
             )}
             <RowBetween>
               <RowFixed>
-                <ThemedText.Black fontWeight={400} fontSize={14} color={theme.text2}>
+                <ThemedText.DeprecatedBlack fontWeight={400} fontSize={14} color={theme.deprecated_text2}>
                   <Trans>Expert Mode</Trans>
-                </ThemedText.Black>
+                </ThemedText.DeprecatedBlack>
                 <QuestionHelper
                   text={
                     <Trans>Allow high price impact trades and skip the confirm screen. Use at your own risk.</Trans>

@@ -1,12 +1,12 @@
 import { Trans } from '@lingui/macro'
 import { Currency } from '@uniswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
 import { ButtonEmpty } from 'components/Button'
 import Card, { OutlineCard } from 'components/Card'
 import { AutoColumn } from 'components/Column'
 import CurrencyLogo from 'components/CurrencyLogo'
 import Modal from 'components/Modal'
 import { AutoRow, RowBetween } from 'components/Row'
-import { useActiveWeb3React } from 'hooks/web3'
 import { useState } from 'react'
 import styled from 'styled-components/macro'
 import { CloseIcon, ExternalLink, ThemedText, Z_INDEX } from 'theme'
@@ -24,8 +24,8 @@ const DetailsFooter = styled.div<{ show: boolean }>`
   max-width: 400px;
   border-bottom-left-radius: 20px;
   border-bottom-right-radius: 20px;
-  color: ${({ theme }) => theme.text2};
-  background-color: ${({ theme }) => theme.advancedBG};
+  color: ${({ theme }) => theme.deprecated_text2};
+  background-color: ${({ theme }) => theme.deprecated_advancedBG};
   z-index: ${Z_INDEX.deprecated_zero};
 
   transform: ${({ show }) => (show ? 'translateY(0%)' : 'translateY(-100%)')};
@@ -37,7 +37,7 @@ const StyledButtonEmpty = styled(ButtonEmpty)`
   text-decoration: none;
 `
 
-const AddressText = styled(ThemedText.Blue)`
+const AddressText = styled(ThemedText.DeprecatedBlue)`
   font-size: 12px;
 
   ${({ theme }) => theme.mediaWidth.upToSmall`
@@ -52,7 +52,7 @@ export default function UnsupportedCurrencyFooter({
   show: boolean
   currencies: (Currency | undefined | null)[]
 }) {
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
   const [showDetails, setShowDetails] = useState(false)
 
   const tokens =
@@ -70,9 +70,9 @@ export default function UnsupportedCurrencyFooter({
         <Card padding="2rem">
           <AutoColumn gap="lg">
             <RowBetween>
-              <ThemedText.MediumHeader>
+              <ThemedText.DeprecatedMediumHeader>
                 <Trans>Unsupported Assets</Trans>
-              </ThemedText.MediumHeader>
+              </ThemedText.DeprecatedMediumHeader>
               <CloseIcon onClick={() => setShowDetails(false)} />
             </RowBetween>
             {tokens.map((token) => {
@@ -84,7 +84,7 @@ export default function UnsupportedCurrencyFooter({
                     <AutoColumn gap="10px">
                       <AutoRow gap="5px" align="center">
                         <CurrencyLogo currency={token} size={'24px'} />
-                        <ThemedText.Body fontWeight={500}>{token.symbol}</ThemedText.Body>
+                        <ThemedText.DeprecatedBody fontWeight={500}>{token.symbol}</ThemedText.DeprecatedBody>
                       </AutoRow>
                       {chainId && (
                         <ExternalLink href={getExplorerLink(chainId, token.address, ExplorerDataType.ADDRESS)}>
@@ -97,20 +97,20 @@ export default function UnsupportedCurrencyFooter({
               )
             })}
             <AutoColumn gap="lg">
-              <ThemedText.Body fontWeight={500}>
+              <ThemedText.DeprecatedBody fontWeight={500}>
                 <Trans>
                   Some assets are not available through this interface because they may not work well with the smart
                   contracts or we are unable to allow trading for legal reasons.
                 </Trans>
-              </ThemedText.Body>
+              </ThemedText.DeprecatedBody>
             </AutoColumn>
           </AutoColumn>
         </Card>
       </Modal>
       <StyledButtonEmpty padding={'0'} onClick={() => setShowDetails(true)}>
-        <ThemedText.Blue>
+        <ThemedText.DeprecatedBlue>
           <Trans>Read more about unsupported assets</Trans>
-        </ThemedText.Blue>
+        </ThemedText.DeprecatedBlue>
       </StyledButtonEmpty>
     </DetailsFooter>
   )

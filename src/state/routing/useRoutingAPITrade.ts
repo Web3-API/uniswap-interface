@@ -2,66 +2,19 @@ import { PolywrapClient } from '@polywrap/client-js'
 import { usePolywrapClient } from '@polywrap/react'
 import { skipToken } from '@reduxjs/toolkit/query/react'
 import { Currency, CurrencyAmount, Token, TradeType } from '@uniswap/sdk-core'
-import { useStablecoinAmountFromFiatValue } from 'hooks/useUSDCPrice'
+import { IMetric, MetricLoggerUnit, setGlobalMetric } from '@uniswap/smart-order-router'
+import { sendTiming } from 'components/analytics'
+import { useStablecoinAmountFromFiatValue } from 'hooks/useStablecoinPrice'
+import { useRoutingAPIArguments } from 'lib/hooks/routing/useRoutingAPIArguments'
+import useIsValidBlock from 'lib/hooks/useIsValidBlock'
 import ms from 'ms.macro'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useBlockNumber } from 'state/application/hooks'
 import { useGetQuoteQuery } from 'state/routing/slice'
-import { useClientSideRouter } from 'state/user/hooks'
 
 import { ExtendedTrade } from '../../polywrap-utils/interfaces'
 import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
 import { GetQuoteResult, TradeState } from './types'
 import { computeRoutes, transformRoutesToTrade } from './utils'
-
-function useFreshData<T>(data: T, dataBlockNumber: number, maxBlockAge = 10): T | undefined {
-  const localBlockNumber = useBlockNumber()
-
-  if (!localBlockNumber) return undefined
-  if (localBlockNumber - dataBlockNumber > maxBlockAge) {
-    return undefined
-  }
-
-  return data
-}
-
-/**
- * Returns query arguments for the Routing API query or undefined if the
- * query should be skipped.
- */
-function useRoutingAPIArguments({
-  tokenIn,
-  tokenOut,
-  amount,
-  tradeType,
-}: {
-  tokenIn: Currency | undefined
-  tokenOut: Currency | undefined
-  amount: CurrencyAmount<Currency> | undefined
-  tradeType: TradeType
-}) {
-  const [clientSideRouter] = useClientSideRouter()
-
-  return useMemo(
-    () =>
-      !tokenIn || !tokenOut || !amount || tokenIn.equals(tokenOut)
-        ? undefined
-        : {
-            amount: amount.quotient.toString(),
-            tokenInAddress: tokenIn.wrapped.address,
-            tokenInChainId: tokenIn.wrapped.chainId,
-            tokenInDecimals: tokenIn.wrapped.decimals,
-            tokenInSymbol: tokenIn.wrapped.symbol,
-            tokenOutAddress: tokenOut.wrapped.address,
-            tokenOutChainId: tokenOut.wrapped.chainId,
-            tokenOutDecimals: tokenOut.wrapped.decimals,
-            tokenOutSymbol: tokenOut.wrapped.symbol,
-            useClientSideRouter: clientSideRouter,
-            type: (tradeType === TradeType.EXACT_INPUT ? 'exactIn' : 'exactOut') as 'exactIn' | 'exactOut',
-          },
-    [amount, clientSideRouter, tokenIn, tokenOut, tradeType]
-  )
-}
 
 /**
  * Returns the best trade by invoking the routing api or the smart order router on the client
@@ -91,19 +44,21 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
     tokenOut: currencyOut,
     amount: amountSpecified,
     tradeType,
+    useClientSideRouter: true,
   })
 
-  const { isLoading, isError, data } = useGetQuoteQuery(queryArgs ?? skipToken, {
+  const { isLoading, isError, data, currentData } = useGetQuoteQuery(queryArgs ?? skipToken, {
     pollingInterval: ms`15s`,
     refetchOnFocus: true,
   })
 
-  const quoteResult: GetQuoteResult | undefined = useFreshData(data, Number(data?.blockNumber) || 0)
+  const quoteResult: GetQuoteResult | undefined = useIsValidBlock(Number(data?.blockNumber) || 0) ? data : undefined
 
   const client: PolywrapClient = usePolywrapClient()
 
   // get USD gas cost of trade in active chains stablecoin amount
   const gasUseEstimateUSD = useStablecoinAmountFromFiatValue(quoteResult?.gasUseEstimateUSD) ?? null
+  const isSyncing = currentData !== data
 
   const [tradeResult, setTradeResult] = useState<{
     state: TradeState
@@ -138,14 +93,16 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
       return
     }
 
-    const otherAmount =
-      tradeType === TradeType.EXACT_INPUT
-        ? currencyOut && quoteResult
-          ? CurrencyAmount.fromRawAmount(currencyOut, quoteResult.quote)
-          : undefined
-        : currencyIn && quoteResult
-        ? CurrencyAmount.fromRawAmount(currencyIn, quoteResult.quote)
-        : undefined
+    let otherAmount = undefined
+    if (quoteResult) {
+      if (tradeType === TradeType.EXACT_INPUT && currencyOut) {
+        otherAmount = CurrencyAmount.fromRawAmount(currencyOut, quoteResult.quote)
+      }
+
+      if (tradeType === TradeType.EXACT_OUTPUT && currencyIn) {
+        otherAmount = CurrencyAmount.fromRawAmount(currencyIn, quoteResult.quote)
+      }
+    }
 
     if (isError || !otherAmount || !queryArgs) {
       setTradeResult({
@@ -155,7 +112,15 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
       return
     }
 
-    const tradePromise = loadTrade(client, currencyIn, currencyOut, tradeType, quoteResult, gasUseEstimateUSD)
+    const tradePromise = loadTrade(
+      client,
+      currencyIn,
+      currencyOut,
+      tradeType,
+      quoteResult,
+      gasUseEstimateUSD,
+      isSyncing
+    )
     cancelable.current = makeCancelable(tradePromise)
     cancelable.current?.promise.then((res) => {
       if (!res) return
@@ -171,6 +136,7 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
     isError,
     queryArgs,
     gasUseEstimateUSD?.toFixed(),
+    isSyncing,
     client,
   ])
 
@@ -183,7 +149,8 @@ const loadTrade = async (
   currencyOut: Currency,
   tradeType: TradeType,
   quoteResult: GetQuoteResult | undefined,
-  gasUseEstimateUSD: CurrencyAmount<Token> | null
+  gasUseEstimateUSD: CurrencyAmount<Token> | null,
+  isSyncing?: boolean
 ): Promise<{ state: TradeState; trade?: ExtendedTrade; gasUseEstimateUSD?: CurrencyAmount<Token> | null }> => {
   const route = await computeRoutes(client, currencyIn, currencyOut, tradeType, quoteResult)
 
@@ -202,7 +169,7 @@ const loadTrade = async (
     }
     return {
       // always return VALID regardless of isFetching status
-      state: TradeState.VALID,
+      state: isSyncing ? TradeState.SYNCING : TradeState.VALID,
       trade,
     }
   } catch (e) {
@@ -210,3 +177,16 @@ const loadTrade = async (
     return { state: TradeState.INVALID, trade: undefined, gasUseEstimateUSD }
   }
 }
+
+// only want to enable this when app hook called
+class GAMetric extends IMetric {
+  putDimensions() {
+    return
+  }
+
+  putMetric(key: string, value: number, unit?: MetricLoggerUnit) {
+    sendTiming('Routing API', `${key} | ${unit}`, value, 'client')
+  }
+}
+
+setGlobalMetric(new GAMetric())

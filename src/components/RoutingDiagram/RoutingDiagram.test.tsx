@@ -1,25 +1,26 @@
 import { Protocol } from '@uniswap/router-sdk'
 import { Currency, Percent } from '@uniswap/sdk-core'
-import { DAI, USDC, WBTC } from 'constants/tokens'
+import { RoutingDiagramEntry } from 'components/swap/SwapRoute'
+import { DAI, USDC_MAINNET, WBTC } from 'constants/tokens'
 import { render } from 'test-utils'
 
 import { Uni_FeeAmountEnum as FeeAmountEnum } from '../../wrap'
-import RoutingDiagram, { RoutingDiagramEntry } from './RoutingDiagram'
+import RoutingDiagram from './RoutingDiagram'
 
 const percent = (strings: TemplateStringsArray) => new Percent(parseInt(strings[0]), 100)
 
 const singleRoute: RoutingDiagramEntry = {
   percent: percent`100`,
-  path: [[USDC, DAI, FeeAmountEnum.LOW]],
+  path: [[USDC_MAINNET, DAI, FeeAmountEnum.LOW]],
   protocol: Protocol.V3,
 }
 
 const multiRoute: RoutingDiagramEntry[] = [
-  { percent: percent`75`, path: [[USDC, DAI, FeeAmountEnum.LOWEST]], protocol: Protocol.V2 },
+  { percent: percent`75`, path: [[USDC_MAINNET, DAI, FeeAmountEnum.LOWEST]], protocol: Protocol.V2 },
   {
     percent: percent`25`,
     path: [
-      [USDC, WBTC, FeeAmountEnum.MEDIUM],
+      [USDC_MAINNET, WBTC, FeeAmountEnum.MEDIUM],
       [WBTC, DAI, FeeAmountEnum.HIGH],
     ],
     protocol: Protocol.V3,
@@ -47,16 +48,16 @@ jest.mock('hooks/useTokenInfoFromActiveList', () => ({
 }))
 
 it('renders when no routes are provided', () => {
-  const { asFragment } = render(<RoutingDiagram currencyIn={DAI} currencyOut={USDC} routes={[]} />)
+  const { asFragment } = render(<RoutingDiagram currencyIn={DAI} currencyOut={USDC_MAINNET} routes={[]} />)
   expect(asFragment()).toMatchSnapshot()
 })
 
 it('renders single route', () => {
-  const { asFragment } = render(<RoutingDiagram currencyIn={USDC} currencyOut={DAI} routes={[singleRoute]} />)
+  const { asFragment } = render(<RoutingDiagram currencyIn={USDC_MAINNET} currencyOut={DAI} routes={[singleRoute]} />)
   expect(asFragment()).toMatchSnapshot()
 })
 
 it('renders multi route', () => {
-  const { asFragment } = render(<RoutingDiagram currencyIn={USDC} currencyOut={DAI} routes={multiRoute} />)
+  const { asFragment } = render(<RoutingDiagram currencyIn={USDC_MAINNET} currencyOut={DAI} routes={multiRoute} />)
   expect(asFragment()).toMatchSnapshot()
 })

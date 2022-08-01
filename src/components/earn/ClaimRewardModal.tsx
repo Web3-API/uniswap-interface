@@ -1,19 +1,26 @@
 import { TransactionResponse } from '@ethersproject/providers'
 import { Trans } from '@lingui/macro'
+import StakingRewardsJson from '@uniswap/liquidity-staker/build/StakingRewards.json'
+import { useWeb3React } from '@web3-react/core'
 import { ReactNode, useState } from 'react'
 import styled from 'styled-components/macro'
 
-import { useStakingContract } from '../../hooks/useContract'
-import { useActiveWeb3React } from '../../hooks/web3'
+import { useContract } from '../../hooks/useContract'
 import { StakingInfo } from '../../state/stake/hooks'
-import { TransactionType } from '../../state/transactions/actions'
 import { useTransactionAdder } from '../../state/transactions/hooks'
+import { TransactionType } from '../../state/transactions/types'
 import { CloseIcon, ThemedText } from '../../theme'
 import { ButtonError } from '../Button'
 import { AutoColumn } from '../Column'
 import Modal from '../Modal'
 import { LoadingView, SubmittedView } from '../ModalViews'
 import { RowBetween } from '../Row'
+
+const { abi: STAKING_REWARDS_ABI } = StakingRewardsJson
+
+function useStakingContract(stakingAddress?: string, withSignerIfPossible?: boolean) {
+  return useContract(stakingAddress, STAKING_REWARDS_ABI, withSignerIfPossible)
+}
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -27,7 +34,7 @@ interface StakingModalProps {
 }
 
 export default function ClaimRewardModal({ isOpen, onDismiss, stakingInfo }: StakingModalProps) {
-  const { account } = useActiveWeb3React()
+  const { account } = useWeb3React()
 
   // monitor call to help UI loading state
   const addTransaction = useTransactionAdder()
@@ -74,24 +81,24 @@ export default function ClaimRewardModal({ isOpen, onDismiss, stakingInfo }: Sta
       {!attempting && !hash && (
         <ContentWrapper gap="lg">
           <RowBetween>
-            <ThemedText.MediumHeader>
+            <ThemedText.DeprecatedMediumHeader>
               <Trans>Claim</Trans>
-            </ThemedText.MediumHeader>
+            </ThemedText.DeprecatedMediumHeader>
             <CloseIcon onClick={wrappedOnDismiss} />
           </RowBetween>
           {stakingInfo?.earnedAmount && (
             <AutoColumn justify="center" gap="md">
-              <ThemedText.Body fontWeight={600} fontSize={36}>
+              <ThemedText.DeprecatedBody fontWeight={600} fontSize={36}>
                 {stakingInfo?.earnedAmount?.toSignificant(6)}
-              </ThemedText.Body>
-              <ThemedText.Body>
+              </ThemedText.DeprecatedBody>
+              <ThemedText.DeprecatedBody>
                 <Trans>Unclaimed UNI</Trans>
-              </ThemedText.Body>
+              </ThemedText.DeprecatedBody>
             </AutoColumn>
           )}
-          <ThemedText.SubHeader style={{ textAlign: 'center' }}>
+          <ThemedText.DeprecatedSubHeader style={{ textAlign: 'center' }}>
             <Trans>When you claim without withdrawing your liquidity remains in the mining pool.</Trans>
-          </ThemedText.SubHeader>
+          </ThemedText.DeprecatedSubHeader>
           <ButtonError disabled={!!error} error={!!error && !!stakingInfo?.stakedAmount} onClick={onClaimReward}>
             {error ?? <Trans>Claim</Trans>}
           </ButtonError>
@@ -100,21 +107,21 @@ export default function ClaimRewardModal({ isOpen, onDismiss, stakingInfo }: Sta
       {attempting && !hash && (
         <LoadingView onDismiss={wrappedOnDismiss}>
           <AutoColumn gap="12px" justify={'center'}>
-            <ThemedText.Body fontSize={20}>
+            <ThemedText.DeprecatedBody fontSize={20}>
               <Trans>Claiming {stakingInfo?.earnedAmount?.toSignificant(6)} UNI</Trans>
-            </ThemedText.Body>
+            </ThemedText.DeprecatedBody>
           </AutoColumn>
         </LoadingView>
       )}
       {hash && (
         <SubmittedView onDismiss={wrappedOnDismiss} hash={hash}>
           <AutoColumn gap="12px" justify={'center'}>
-            <ThemedText.LargeHeader>
+            <ThemedText.DeprecatedLargeHeader>
               <Trans>Transaction Submitted</Trans>
-            </ThemedText.LargeHeader>
-            <ThemedText.Body fontSize={20}>
+            </ThemedText.DeprecatedLargeHeader>
+            <ThemedText.DeprecatedBody fontSize={20}>
               <Trans>Claimed UNI!</Trans>
-            </ThemedText.Body>
+            </ThemedText.DeprecatedBody>
           </AutoColumn>
         </SubmittedView>
       )}

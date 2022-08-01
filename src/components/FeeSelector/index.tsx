@@ -1,5 +1,7 @@
 import { Trans } from '@lingui/macro'
 import { Currency } from '@uniswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
+import { sendEvent } from 'components/analytics'
 import { ButtonGray } from 'components/Button'
 import Card from 'components/Card'
 import { AutoColumn } from 'components/Column'
@@ -7,10 +9,8 @@ import { RowBetween } from 'components/Row'
 import { useFeeTierDistribution } from 'hooks/useFeeTierDistribution'
 import { PoolState, usePools } from 'hooks/usePools'
 import usePrevious from 'hooks/usePrevious'
-import { useActiveWeb3React } from 'hooks/web3'
 import { DynamicSection } from 'pages/AddLiquidity/styled'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import ReactGA from 'react-ga'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Box } from 'rebass'
 import styled, { keyframes } from 'styled-components/macro'
 import { ThemedText } from 'theme'
@@ -34,8 +34,8 @@ const pulse = (color: string) => keyframes`
   }
 `
 const FocusedOutlineCard = styled(Card)<{ pulsing: boolean }>`
-  border: 1px solid ${({ theme }) => theme.bg2};
-  animation: ${({ pulsing, theme }) => pulsing && pulse(theme.primary1)} 0.6s linear;
+  border: 1px solid ${({ theme }) => theme.deprecated_bg2};
+  animation: ${({ pulsing, theme }) => pulsing && pulse(theme.deprecated_primary1)} 0.6s linear;
   align-self: center;
 `
 
@@ -59,7 +59,7 @@ export default function FeeSelector({
   currencyA?: Currency | undefined
   currencyB?: Currency | undefined
 }) {
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
 
   const { isLoading, isError, largestUsageFeeTier, distributions } = useFeeTierDistribution(currencyA, currencyB)
 
@@ -108,7 +108,7 @@ export default function FeeSelector({
 
   const handleFeePoolSelectWithEvent = useCallback(
     (fee: FeeAmountEnum) => {
-      ReactGA.event({
+      sendEvent({
         category: 'FeePoolSelect',
         action: 'Manual',
       })
@@ -129,7 +129,7 @@ export default function FeeSelector({
       setShowOptions(false)
 
       recommended.current = true
-      ReactGA.event({
+      sendEvent({
         category: 'FeePoolSelect',
         action: ' Recommended',
       })
@@ -156,18 +156,18 @@ export default function FeeSelector({
             <AutoColumn id="add-liquidity-selected-fee">
               {feeAmount === undefined ? (
                 <>
-                  <ThemedText.Label>
+                  <ThemedText.DeprecatedLabel>
                     <Trans>Fee tier</Trans>
-                  </ThemedText.Label>
-                  <ThemedText.Main fontWeight={400} fontSize="12px" textAlign="left">
+                  </ThemedText.DeprecatedLabel>
+                  <ThemedText.DeprecatedMain fontWeight={400} fontSize="12px" textAlign="left">
                     <Trans>The % you will earn in fees.</Trans>
-                  </ThemedText.Main>
+                  </ThemedText.DeprecatedMain>
                 </>
               ) : (
                 <>
-                  <ThemedText.Label className="selected-fee-label">
+                  <ThemedText.DeprecatedLabel className="selected-fee-label">
                     <Trans>{FEE_AMOUNT_DETAIL[feeAmount].label}% fee tier</Trans>
-                  </ThemedText.Label>
+                  </ThemedText.DeprecatedLabel>
                   <Box style={{ width: 'fit-content', marginTop: '8px' }} className="selected-fee-percentage">
                     {distributions && (
                       <FeeTierPercentageBadge

@@ -1,4 +1,5 @@
-import { INFURA_NETWORK_URLS, SupportedChainId } from '../constants/chains'
+import { SupportedChainId } from '../constants/chains'
+import { RPC_URLS } from '../constants/networks'
 import { Uni_ChainIdEnum, Uni_Currency } from '../wrap'
 import { reverseMapChainId } from './reverseMapping'
 
@@ -32,7 +33,7 @@ function getDefaultProviders(): Record<string, any> {
   const result: Record<string, any> = {}
   for (let i = 0; i < Object.keys(Uni_ChainIdEnum).length / 2; i++) {
     result[Uni_ChainIdEnum[i]] = {
-      provider: INFURA_NETWORK_URLS[reverseMapChainId(i) as SupportedChainId],
+      provider: RPC_URLS[reverseMapChainId(i) as SupportedChainId],
     }
   }
   return result

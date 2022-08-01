@@ -1,7 +1,7 @@
+import { useWeb3React } from '@web3-react/core'
 import { CheckCircle, Triangle } from 'react-feather'
 import styled from 'styled-components/macro'
 
-import { useActiveWeb3React } from '../../hooks/web3'
 import { useAllTransactions } from '../../state/transactions/hooks'
 import { ExternalLink } from '../../theme'
 import { ExplorerDataType, getExplorerLink } from '../../utils/getExplorerLink'
@@ -27,15 +27,16 @@ const TransactionState = styled(ExternalLink)<{ pending: boolean; success?: bool
   padding: 0.25rem 0rem;
   font-weight: 500;
   font-size: 0.825rem;
-  color: ${({ theme }) => theme.primary1};
+  color: ${({ theme }) => theme.deprecated_primary1};
 `
 
 const IconWrapper = styled.div<{ pending: boolean; success?: boolean }>`
-  color: ${({ pending, success, theme }) => (pending ? theme.primary1 : success ? theme.green1 : theme.red1)};
+  color: ${({ pending, success, theme }) =>
+    pending ? theme.deprecated_primary1 : success ? theme.deprecated_green1 : theme.deprecated_red1};
 `
 
 export default function Transaction({ hash }: { hash: string }) {
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
   const allTransactions = useAllTransactions()
 
   const tx = allTransactions?.[hash]

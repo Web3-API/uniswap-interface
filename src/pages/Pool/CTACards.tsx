@@ -1,7 +1,7 @@
 import { Trans } from '@lingui/macro'
+import { useWeb3React } from '@web3-react/core'
 import { AutoColumn } from 'components/Column'
-import { CHAIN_INFO, SupportedChainId } from 'constants/chains'
-import { useActiveWeb3React } from 'hooks/web3'
+import { getChainInfoOrDefault } from 'constants/chainInfo'
 import styled from 'styled-components/macro'
 import { ThemedText } from 'theme'
 
@@ -28,15 +28,15 @@ const CTA1 = styled(ExternalLink)`
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  border: 1px solid ${({ theme }) => theme.bg3};
+  border: 1px solid ${({ theme }) => theme.deprecated_bg3};
 
   * {
-    color: ${({ theme }) => theme.text1};
+    color: ${({ theme }) => theme.deprecated_text1};
     text-decoration: none !important;
   }
 
   :hover {
-    border: 1px solid ${({ theme }) => theme.bg4};
+    border: 1px solid ${({ theme }) => theme.deprecated_bg4};
 
     text-decoration: none;
     * {
@@ -53,15 +53,15 @@ const CTA2 = styled(ExternalLink)`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border: 1px solid ${({ theme }) => theme.bg3};
+  border: 1px solid ${({ theme }) => theme.deprecated_bg3};
 
   * {
-    color: ${({ theme }) => theme.text1};
+    color: ${({ theme }) => theme.deprecated_text1};
     text-decoration: none !important;
   }
 
   :hover {
-    border: 1px solid ${({ theme }) => theme.bg4};
+    border: 1px solid ${({ theme }) => theme.deprecated_bg4};
     text-decoration: none !important;
     * {
       text-decoration: none !important;
@@ -69,7 +69,7 @@ const CTA2 = styled(ExternalLink)`
   }
 `
 
-const HeaderText = styled(ThemedText.Label)`
+const HeaderText = styled(ThemedText.DeprecatedLabel)`
   align-items: center;
   display: flex;
 
@@ -92,8 +92,9 @@ const ResponsiveColumn = styled(AutoColumn)`
 `
 
 export default function CTACards() {
-  const { chainId } = useActiveWeb3React()
-  const { infoLink } = CHAIN_INFO[chainId ? chainId : SupportedChainId.MAINNET]
+  const { chainId } = useWeb3React()
+  const { infoLink } = getChainInfoOrDefault(chainId)
+
   return (
     <CTASection>
       <CTA1 href={'https://help.uniswap.org/en/articles/5391541-providing-liquidity-on-uniswap-v3'}>
@@ -101,19 +102,19 @@ export default function CTACards() {
           <HeaderText>
             <Trans>Learn about providing liquidity</Trans> ↗
           </HeaderText>
-          <ThemedText.Body fontWeight={400} style={{ alignItems: 'center', display: 'flex' }}>
+          <ThemedText.DeprecatedBody fontWeight={400} style={{ alignItems: 'center', display: 'flex' }}>
             <Trans>Check out our v3 LP walkthrough and migration guides.</Trans>
-          </ThemedText.Body>
+          </ThemedText.DeprecatedBody>
         </ResponsiveColumn>
       </CTA1>
-      <CTA2 href={infoLink + 'pools'}>
+      <CTA2 data-testid="cta-infolink" href={infoLink + 'pools'}>
         <ResponsiveColumn>
           <HeaderText style={{ alignSelf: 'flex-start' }}>
             <Trans>Top pools</Trans> ↗
           </HeaderText>
-          <ThemedText.Body fontWeight={400} style={{ alignSelf: 'flex-start' }}>
+          <ThemedText.DeprecatedBody fontWeight={400} style={{ alignSelf: 'flex-start' }}>
             <Trans>Explore Uniswap Analytics.</Trans>
-          </ThemedText.Body>
+          </ThemedText.DeprecatedBody>
         </ResponsiveColumn>
       </CTA2>
     </CTASection>

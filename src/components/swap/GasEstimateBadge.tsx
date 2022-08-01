@@ -1,14 +1,13 @@
 import { Trans } from '@lingui/macro'
+import { sendEvent } from 'components/analytics'
 import { AutoColumn } from 'components/Column'
 import { LoadingOpacityContainer } from 'components/Loader/styled'
 import { RowFixed } from 'components/Row'
 import { MouseoverTooltipContent } from 'components/Tooltip'
-import ReactGA from 'react-ga'
 import styled from 'styled-components/macro'
 import { ThemedText } from 'theme'
 
 import { ReactComponent as GasIcon } from '../../assets/images/gas-icon.svg'
-import { SupportedChainId } from '../../constants/chains'
 import { ExtendedTrade } from '../../polywrap-utils/interfaces'
 import { ResponsiveTooltipContainer } from './styleds'
 import SwapRoute from './SwapRoute'
@@ -17,8 +16,8 @@ const GasWrapper = styled(RowFixed)`
   border-radius: 8px;
   padding: 4px 6px;
   height: 24px;
-  color: ${({ theme }) => theme.text3};
-  background-color: ${({ theme }) => theme.bg1};
+  color: ${({ theme }) => theme.deprecated_text3};
+  background-color: ${({ theme }) => theme.deprecated_bg1};
   font-size: 14px;
   font-weight: 500;
   user-select: none;
@@ -27,11 +26,9 @@ const StyledGasIcon = styled(GasIcon)`
   margin-right: 4px;
   height: 14px;
   & > * {
-    stroke: ${({ theme }) => theme.text3};
+    stroke: ${({ theme }) => theme.deprecated_text3};
   }
 `
-
-export const SUPPORTED_GAS_ESTIMATE_CHAIN_IDS = [SupportedChainId.MAINNET, SupportedChainId.POLYGON]
 
 export default function GasEstimateBadge({
   trade,
@@ -71,15 +68,15 @@ export default function GasEstimateBadge({
               ) : null
             ) : (
               <AutoColumn gap="4px" justify="center">
-                <ThemedText.Main fontSize="12px" textAlign="center">
+                <ThemedText.DeprecatedMain fontSize="12px" textAlign="center">
                   <Trans>Estimated network fee</Trans>
-                </ThemedText.Main>
-                <ThemedText.Body textAlign="center" fontWeight={500} style={{ userSelect: 'none' }}>
+                </ThemedText.DeprecatedMain>
+                <ThemedText.DeprecatedBody textAlign="center" fontWeight={500} style={{ userSelect: 'none' }}>
                   <Trans>${trade?.gasUseEstimateUSD?.toFixed(2)}</Trans>
-                </ThemedText.Body>
-                <ThemedText.Main fontSize="10px" textAlign="center" maxWidth="140px" color="text3">
+                </ThemedText.DeprecatedBody>
+                <ThemedText.DeprecatedMain fontSize="10px" textAlign="center" maxWidth="140px" color="text3">
                   <Trans>Estimate may differ due to your wallet gas settings</Trans>
-                </ThemedText.Main>
+                </ThemedText.DeprecatedMain>
               </AutoColumn>
             )}
           </ResponsiveTooltipContainer>
@@ -87,7 +84,7 @@ export default function GasEstimateBadge({
       }
       placement="bottom"
       onOpen={() =>
-        ReactGA.event({
+        sendEvent({
           category: 'Gas',
           action: 'Gas Details Tooltip Open',
         })

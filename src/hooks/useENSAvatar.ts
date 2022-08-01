@@ -1,15 +1,17 @@
+import { BigNumber } from '@ethersproject/bignumber'
+import { hexZeroPad } from '@ethersproject/bytes'
 import { namehash } from '@ethersproject/hash'
+import { useWeb3React } from '@web3-react/core'
+import { useSingleCallResult } from 'lib/hooks/multicall'
+import uriToHttp from 'lib/utils/uriToHttp'
 import { useEffect, useMemo, useState } from 'react'
 import { safeNamehash } from 'utils/safeNamehash'
-import uriToHttp from 'utils/uriToHttp'
 
-import { useSingleCallResult } from '../state/multicall/hooks'
 import { isAddress } from '../utils'
 import isZero from '../utils/isZero'
 import { useENSRegistrarContract, useENSResolverContract, useERC721Contract, useERC1155Contract } from './useContract'
 import useDebounce from './useDebounce'
 import useENSName from './useENSName'
-import { useActiveWeb3React } from './web3'
 
 /**
  * Returns the ENS avatar URI, if available.
@@ -110,7 +112,7 @@ function useERC721Uri(
   enforceOwnership: boolean
 ): { uri?: string; loading: boolean } {
   const idArgument = useMemo(() => [id], [id])
-  const { account } = useActiveWeb3React()
+  const { account } = useWeb3React()
   const contract = useERC721Contract(contractAddress)
   const owner = useSingleCallResult(contract, 'ownerOf', idArgument)
   const uri = useSingleCallResult(contract, 'tokenURI', idArgument)
@@ -128,17 +130,20 @@ function useERC1155Uri(
   id: string | undefined,
   enforceOwnership: boolean
 ): { uri?: string; loading: boolean } {
-  const { account } = useActiveWeb3React()
+  const { account } = useWeb3React()
   const idArgument = useMemo(() => [id], [id])
   const accountArgument = useMemo(() => [account || '', id], [account, id])
   const contract = useERC1155Contract(contractAddress)
   const balance = useSingleCallResult(contract, 'balanceOf', accountArgument)
   const uri = useSingleCallResult(contract, 'uri', idArgument)
+  // ERC-1155 allows a generic {id} in the URL, so prepare to replace if relevant,
+  //   in lowercase hexadecimal (with no 0x prefix) and leading zero padded to 64 hex characters.
+  const idHex = id ? hexZeroPad(BigNumber.from(id).toHexString(), 32).substring(2) : id
   return useMemo(
     () => ({
-      uri: !enforceOwnership || balance.result?.[0] > 0 ? uri.result?.[0] : undefined,
+      uri: !enforceOwnership || balance.result?.[0] > 0 ? uri.result?.[0]?.replaceAll('{id}', idHex) : undefined,
       loading: balance.loading || uri.loading,
     }),
-    [balance.loading, balance.result, enforceOwnership, uri.loading, uri.result]
+    [balance.loading, balance.result, enforceOwnership, uri.loading, uri.result, idHex]
   )
 }

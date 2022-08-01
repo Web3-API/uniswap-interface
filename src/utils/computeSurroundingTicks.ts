@@ -1,8 +1,7 @@
 import { PolywrapClient } from '@polywrap/client-js'
 import { Token } from '@uniswap/sdk-core'
-import { TickProcessed } from 'hooks/usePoolTickData'
+import { TickData, TickProcessed } from 'hooks/usePoolTickData'
 import JSBI from 'jsbi'
-import { AllV3TicksQuery } from 'state/data/generated'
 
 import { mapToken, reverseMapPrice } from '../polywrap-utils'
 import { Uni_Module, Uni_Price } from '../wrap'
@@ -15,7 +14,7 @@ export default async function computeSurroundingTicks(
   token0: Token,
   token1: Token,
   activeTickProcessed: TickProcessed,
-  sortedTickData: AllV3TicksQuery['ticks'],
+  sortedTickData: TickData[],
   pivot: number,
   ascending: boolean
 ): Promise<TickProcessed[]> {
@@ -26,13 +25,13 @@ export default async function computeSurroundingTicks(
   // building active liquidity for every tick.
   let processedTicks: TickProcessed[] = []
   for (let i = pivot + (ascending ? 1 : -1); ascending ? i < sortedTickData.length : i >= 0; ascending ? i++ : i--) {
-    const tickIdx = Number(sortedTickData[i].tickIdx)
+    const tick = Number(sortedTickData[i].tick)
 
     const price = await Uni_Module.tickToPrice(
       {
         baseToken: mapToken(token0),
         quoteToken: mapToken(token1),
-        tick: tickIdx,
+        tick,
       },
       client
     ).then((res) => {
@@ -42,7 +41,7 @@ export default async function computeSurroundingTicks(
 
     const currentTickProcessed: TickProcessed = {
       liquidityActive: previousTickProcessed.liquidityActive,
-      tickIdx,
+      tick,
       liquidityNet: JSBI.BigInt(sortedTickData[i].liquidityNet),
       price0: price.toFixed(PRICE_FIXED_DIGITS),
     }

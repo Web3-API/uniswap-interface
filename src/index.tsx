@@ -3,15 +3,16 @@ import 'inter-ui'
 import 'polyfills'
 import 'components/analytics'
 
-import { createWeb3ReactRoot, Web3ReactProvider } from '@web3-react/core'
+import { BlockNumberProvider } from 'lib/hooks/useBlockNumber'
+import { MulticallUpdater } from 'lib/state/multicall'
 import { StrictMode } from 'react'
-import ReactDOM from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'
 import { HashRouter } from 'react-router-dom'
 
 import Blocklist from './components/Blocklist'
-import Web3ReactManager from './components/Web3ReactManager'
-import { NetworkContextName } from './constants/misc'
+import PolywrapReactManager from './components/PolywrapReactManager'
+import Web3Provider from './components/Web3Provider'
 import { LanguageProvider } from './i18n'
 import App from './pages/App'
 import * as serviceWorkerRegistration from './serviceWorkerRegistration'
@@ -19,14 +20,10 @@ import store from './state'
 import ApplicationUpdater from './state/application/updater'
 import ListsUpdater from './state/lists/updater'
 import LogsUpdater from './state/logs/updater'
-import MulticallUpdater from './state/multicall/updater'
 import TransactionUpdater from './state/transactions/updater'
 import UserUpdater from './state/user/updater'
 import ThemeProvider, { ThemedGlobalStyle } from './theme'
 import RadialGradientByChainUpdater from './theme/RadialGradientByChainUpdater'
-import getLibrary from './utils/getLibrary'
-
-const Web3ProviderNetwork = createWeb3ReactRoot(NetworkContextName)
 
 if (!!window.ethereum) {
   window.ethereum.autoRefreshOnNetworkChange = false
@@ -46,32 +43,32 @@ function Updaters() {
   )
 }
 
-ReactDOM.render(
+const container = document.getElementById('root') as HTMLElement
+
+createRoot(container).render(
   <StrictMode>
     <Provider store={store}>
       <HashRouter>
         <LanguageProvider>
-          <Web3ReactProvider getLibrary={getLibrary}>
-            <Web3ProviderNetwork getLibrary={getLibrary}>
-              <Web3ReactManager>
-                <Blocklist>
+          <Web3Provider>
+            <PolywrapReactManager>
+              <Blocklist>
+                <BlockNumberProvider>
                   <Updaters />
                   <ThemeProvider>
                     <ThemedGlobalStyle />
                     <App />
                   </ThemeProvider>
-                </Blocklist>
-              </Web3ReactManager>
-            </Web3ProviderNetwork>
-          </Web3ReactProvider>
+                </BlockNumberProvider>
+              </Blocklist>
+            </PolywrapReactManager>
+          </Web3Provider>
         </LanguageProvider>
       </HashRouter>
     </Provider>
-  </StrictMode>,
-  document.getElementById('root')
+  </StrictMode>
 )
 
 if (process.env.REACT_APP_SERVICE_WORKER !== 'false') {
   serviceWorkerRegistration.register()
 }
-export { INFURA_NETWORK_URLS } from './constants/chains'

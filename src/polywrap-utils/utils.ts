@@ -16,7 +16,8 @@ import {
 } from '../wrap'
 import { ETHER, MATIC, mMATIC } from './constants'
 
-export function isNative(token: Uni_Token | undefined): boolean {
+// todo: should this accept undefined?
+export function isNative(token: Uni_Token): boolean {
   if (!token) return false
   if (token.chainId === Uni_ChainIdEnum.POLYGON) {
     return (

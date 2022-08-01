@@ -1,27 +1,28 @@
-import { parseUnits } from '@ethersproject/units'
 import { Trans } from '@lingui/macro'
 import { InvokeResult, PolywrapClient } from '@polywrap/client-js'
 import { usePolywrapClient } from '@polywrap/react'
 import { Currency, CurrencyAmount, Percent, TradeType } from '@uniswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
+import useAutoSlippageTolerance from 'hooks/useAutoSlippageTolerance'
 import { useBestTrade } from 'hooks/useBestTrade'
-import JSBI from 'jsbi'
+import tryParseCurrencyAmount from 'lib/utils/tryParseCurrencyAmount'
 import { ParsedQs } from 'qs'
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 import { TradeState } from 'state/routing/types'
+import { useUserSlippageToleranceWithDefault } from 'state/user/hooks'
 
+import { TOKEN_SHORTHANDS } from '../../constants/tokens'
 import { useCurrency } from '../../hooks/Tokens'
 import useENS from '../../hooks/useENS'
 import useParsedQueryString from '../../hooks/useParsedQueryString'
-import useSwapSlippageTolerance from '../../hooks/useSwapSlippageTolerance'
-import { useActiveWeb3React } from '../../hooks/web3'
 import { reverseMapTokenAmount } from '../../polywrap-utils'
 import { ExtendedTrade } from '../../polywrap-utils/interfaces'
 import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
 import { isAddress } from '../../utils'
 import { Uni_Module, Uni_TokenAmount } from '../../wrap'
+import { useCurrencyBalances } from '../connection/hooks'
 import { AppState } from '../index'
-import { useCurrencyBalances } from '../wallet/hooks'
 import { Field, replaceSwapState, selectCurrency, setRecipient, switchCurrencies, typeInput } from './actions'
 import { SwapState } from './reducer'
 
@@ -74,24 +75,6 @@ export function useSwapActionHandlers(): {
   }
 }
 
-// try to parse a user entered amount for a given token
-export function tryParseAmount<T extends Currency>(value?: string, currency?: T): CurrencyAmount<T> | undefined {
-  if (!value || !currency) {
-    return undefined
-  }
-  try {
-    const typedValueParsed = parseUnits(value, currency.decimals).toString()
-    if (typedValueParsed !== '0') {
-      return CurrencyAmount.fromRawAmount(currency, JSBI.BigInt(typedValueParsed))
-    }
-  } catch (error) {
-    // should fail if the user specifies too many decimal places of precision (or maybe exceed max uint?)
-    console.debug(`Failed to parse input amount: "${value}"`, error)
-  }
-  // necessary for all paths to return a value
-  return undefined
-}
-
 const BAD_RECIPIENT_ADDRESSES: { [address: string]: true } = {
   '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f': true, // v2 factory
   '0xf164fC0Ec4E93095b804a4795bBe1e041497b92a': true, // v2 router 01
@@ -110,7 +93,7 @@ export function useDerivedSwapInfo(): {
   }
   allowedSlippage: Percent
 } {
-  const { account } = useActiveWeb3React()
+  const { account } = useWeb3React()
   const client: PolywrapClient = usePolywrapClient()
 
   const {
@@ -133,7 +116,7 @@ export function useDerivedSwapInfo(): {
 
   const isExactIn: boolean = independentField === Field.INPUT
   const parsedAmount = useMemo(
-    () => tryParseAmount(typedValue, (isExactIn ? inputCurrency : outputCurrency) ?? undefined),
+    () => tryParseCurrencyAmount(typedValue, (isExactIn ? inputCurrency : outputCurrency) ?? undefined),
     [inputCurrency, isExactIn, outputCurrency, typedValue]
   )
 
@@ -143,17 +126,28 @@ export function useDerivedSwapInfo(): {
     (isExactIn ? outputCurrency : inputCurrency) ?? undefined
   )
 
-  const currencyBalances = {
-    [Field.INPUT]: relevantTokenBalances[0],
-    [Field.OUTPUT]: relevantTokenBalances[1],
-  }
+  const currencyBalances = useMemo(
+    () => ({
+      [Field.INPUT]: relevantTokenBalances[0],
+      [Field.OUTPUT]: relevantTokenBalances[1],
+    }),
+    [relevantTokenBalances]
+  )
 
-  const currencies: { [field in Field]?: Currency | null } = {
-    [Field.INPUT]: inputCurrency,
-    [Field.OUTPUT]: outputCurrency,
-  }
+  const currencies: { [field in Field]?: Currency | null } = useMemo(
+    () => ({
+      [Field.INPUT]: inputCurrency,
+      [Field.OUTPUT]: outputCurrency,
+    }),
+    [inputCurrency, outputCurrency]
+  )
+
+  // allowed slippage is either auto slippage, or custom user defined slippage if auto slippage disabled
+  const autoSlippageTolerance = useAutoSlippageTolerance(trade.trade, trade.trade?.gasUseEstimateUSD ?? undefined)
+  const allowedSlippage = useUserSlippageToleranceWithDefault(autoSlippageTolerance)
 
   let inputError: ReactNode | undefined
+
   if (!account) {
     inputError = <Trans>Connect Wallet</Trans>
   }
@@ -174,8 +168,6 @@ export function useDerivedSwapInfo(): {
       inputError = inputError ?? <Trans>Invalid recipient</Trans>
     }
   }
-
-  const allowedSlippage = useSwapSlippageTolerance(trade.trade, trade.trade?.gasUseEstimateUSD ?? undefined)
 
   const [maximumAmountIn, setMaximumAmountIn] = useState<Uni_TokenAmount | undefined>(undefined)
   const cancelable = useRef<CancelablePromise<InvokeResult<Uni_TokenAmount> | undefined>>()
@@ -210,21 +202,26 @@ export function useDerivedSwapInfo(): {
     inputError = <Trans>Insufficient {amountIn.currency.symbol} balance</Trans>
   }
 
-  return {
-    currencies,
-    currencyBalances,
-    parsedAmount,
-    inputError,
-    trade,
-    allowedSlippage,
-  }
+  return useMemo(
+    () => ({
+      currencies,
+      currencyBalances,
+      parsedAmount,
+      inputError,
+      trade,
+      allowedSlippage,
+    }),
+    [allowedSlippage, currencies, currencyBalances, inputError, parsedAmount, trade]
+  )
 }
 
-function parseCurrencyFromURLParameter(urlParam: any): string {
+function parseCurrencyFromURLParameter(urlParam: ParsedQs[string]): string {
   if (typeof urlParam === 'string') {
     const valid = isAddress(urlParam)
     if (valid) return valid
-    if (urlParam.toUpperCase() === 'ETH') return 'ETH'
+    const upper = urlParam.toUpperCase()
+    if (upper === 'ETH') return 'ETH'
+    if (upper in TOKEN_SHORTHANDS) return upper
   }
   return ''
 }
@@ -251,8 +248,11 @@ function validatedRecipient(recipient: any): string | null {
 export function queryParametersToSwapState(parsedQs: ParsedQs): SwapState {
   let inputCurrency = parseCurrencyFromURLParameter(parsedQs.inputCurrency)
   let outputCurrency = parseCurrencyFromURLParameter(parsedQs.outputCurrency)
-  if (inputCurrency === '' && outputCurrency === '') {
-    // default to ETH input
+  const typedValue = parseTokenAmountURLParameter(parsedQs.exactAmount)
+  const independentField = parseIndependentFieldURLParameter(parsedQs.exactField)
+
+  if (inputCurrency === '' && outputCurrency === '' && typedValue === '' && independentField === Field.INPUT) {
+    // Defaults to having the native currency selected
     inputCurrency = 'ETH'
   } else if (inputCurrency === outputCurrency) {
     // clear output if identical
@@ -268,42 +268,39 @@ export function queryParametersToSwapState(parsedQs: ParsedQs): SwapState {
     [Field.OUTPUT]: {
       currencyId: outputCurrency === '' ? null : outputCurrency ?? null,
     },
-    typedValue: parseTokenAmountURLParameter(parsedQs.exactAmount),
-    independentField: parseIndependentFieldURLParameter(parsedQs.exactField),
+    typedValue,
+    independentField,
     recipient,
   }
 }
 
 // updates the swap state to use the defaults for a given network
-export function useDefaultsFromURLSearch():
-  | { inputCurrencyId: string | undefined; outputCurrencyId: string | undefined }
-  | undefined {
-  const { chainId } = useActiveWeb3React()
+export function useDefaultsFromURLSearch(): SwapState {
+  const { chainId } = useWeb3React()
   const dispatch = useAppDispatch()
   const parsedQs = useParsedQueryString()
-  const [result, setResult] = useState<
-    { inputCurrencyId: string | undefined; outputCurrencyId: string | undefined } | undefined
-  >()
+
+  const parsedSwapState = useMemo(() => {
+    return queryParametersToSwapState(parsedQs)
+  }, [parsedQs])
 
   useEffect(() => {
     if (!chainId) return
-    const parsed = queryParametersToSwapState(parsedQs)
-    const inputCurrencyId = parsed[Field.INPUT].currencyId ?? undefined
-    const outputCurrencyId = parsed[Field.OUTPUT].currencyId ?? undefined
+    const inputCurrencyId = parsedSwapState[Field.INPUT].currencyId ?? undefined
+    const outputCurrencyId = parsedSwapState[Field.OUTPUT].currencyId ?? undefined
 
     dispatch(
       replaceSwapState({
-        typedValue: parsed.typedValue,
-        field: parsed.independentField,
+        typedValue: parsedSwapState.typedValue,
+        field: parsedSwapState.independentField,
         inputCurrencyId,
         outputCurrencyId,
-        recipient: parsed.recipient,
+        recipient: parsedSwapState.recipient,
       })
     )
 
-    setResult({ inputCurrencyId, outputCurrencyId })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, chainId])
 
-  return result
+  return parsedSwapState
 }

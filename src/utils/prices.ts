@@ -9,13 +9,24 @@ import {
   ZERO_PERCENT,
 } from '../constants/misc'
 import { reverseMapFeeAmount, reverseMapToken, reverseMapTokenAmount } from '../polywrap-utils'
-import { Uni_Trade as Trade } from '../wrap'
+import { Uni_Trade } from '../wrap'
 
 // const THIRTY_BIPS_FEE = new Percent(JSBI.BigInt(30), JSBI.BigInt(10000))
 // const INPUT_FRACTION_AFTER_FEE = ONE_HUNDRED_PERCENT.subtract(THIRTY_BIPS_FEE)
 
+export function computeRealizedPriceImpact(trade: Uni_Trade): Percent {
+  const realizedLpFeePercent = computeRealizedLPFeePercent(trade)
+  return new Percent(trade.priceImpact.numerator, trade.priceImpact.denominator).subtract(realizedLpFeePercent)
+}
+
+export function getPriceImpactWarning(priceImpact?: Percent): 'warning' | 'error' | undefined {
+  if (priceImpact?.greaterThan(ALLOWED_PRICE_IMPACT_HIGH)) return 'error'
+  if (priceImpact?.greaterThan(ALLOWED_PRICE_IMPACT_MEDIUM)) return 'warning'
+  return
+}
+
 // computes realized lp fee as a percent
-export function computeRealizedLPFeePercent(trade: Trade): Percent {
+export function computeRealizedLPFeePercent(trade: Uni_Trade): Percent {
   let percent: Percent = ZERO_PERCENT
   const tradeInputAmount = reverseMapTokenAmount(trade.inputAmount) as CurrencyAmount<Currency>
   for (const swap of trade.swaps) {
@@ -39,7 +50,7 @@ export function computeRealizedLPFeePercent(trade: Trade): Percent {
 }
 
 // computes price breakdown for the trade
-export function computeRealizedLPFeeAmount(trade?: Trade | null): CurrencyAmount<Currency> | undefined {
+export function computeRealizedLPFeeAmount(trade?: Uni_Trade | null): CurrencyAmount<Currency> | undefined {
   if (trade) {
     const realizedLPFee = computeRealizedLPFeePercent(trade)
 

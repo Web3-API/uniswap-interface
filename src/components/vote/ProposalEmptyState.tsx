@@ -1,11 +1,11 @@
 import { Trans } from '@lingui/macro'
-import { L2_CHAIN_IDS } from 'constants/chains'
-import { useActiveWeb3React } from 'hooks/web3'
+import { useWeb3React } from '@web3-react/core'
+import { SupportedChainId } from 'constants/chains'
 import styled from 'styled-components/macro'
 import { ThemedText } from 'theme'
 
 const EmptyProposals = styled.div`
-  border: 1px solid ${({ theme }) => theme.text4};
+  border: 1px solid ${({ theme }) => theme.deprecated_text4};
   padding: 16px 12px;
   border-radius: 12px;
   display: flex;
@@ -25,20 +25,20 @@ interface EmptyStateProps {
 }
 const EmptyState = ({ HeaderContent, SubHeaderContent }: EmptyStateProps) => (
   <EmptyProposals>
-    <ThemedText.Body style={{ marginBottom: '8px' }}>
+    <ThemedText.DeprecatedBody style={{ marginBottom: '8px' }}>
       <HeaderContent />
-    </ThemedText.Body>
-    <ThemedText.SubHeader>
+    </ThemedText.DeprecatedBody>
+    <ThemedText.DeprecatedSubHeader>
       <Sub>
         <SubHeaderContent />
       </Sub>
-    </ThemedText.SubHeader>
+    </ThemedText.DeprecatedSubHeader>
   </EmptyProposals>
 )
 
 export default function ProposalEmptyState() {
-  const { chainId } = useActiveWeb3React()
-  if (chainId && L2_CHAIN_IDS.includes(chainId)) {
+  const { chainId } = useWeb3React()
+  if (chainId && chainId !== SupportedChainId.MAINNET) {
     return (
       <EmptyState
         HeaderContent={() => <Trans>Please connect to Layer 1 Ethereum</Trans>}

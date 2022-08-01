@@ -1,4 +1,6 @@
 import { Trans } from '@lingui/macro'
+import { useWeb3React } from '@web3-react/core'
+import useTheme from 'hooks/useTheme'
 import JSBI from 'jsbi'
 import styled from 'styled-components/macro'
 
@@ -9,7 +11,6 @@ import { CardBGImage, CardNoise, CardSection, DataCard } from '../../components/
 import Loader from '../../components/Loader'
 import { RowBetween } from '../../components/Row'
 import { BIG_INT_ZERO } from '../../constants/misc'
-import { useActiveWeb3React } from '../../hooks/web3'
 import { STAKING_REWARDS_INFO, useStakingInfo } from '../../state/stake/hooks'
 import { ExternalLink, ThemedText } from '../../theme'
 import { Countdown } from './Countdown'
@@ -40,7 +41,8 @@ flex-direction: column;
 `
 
 export default function Earn() {
-  const { chainId } = useActiveWeb3React()
+  const theme = useTheme()
+  const { chainId } = useWeb3React()
 
   // staking info for connected account
   const stakingInfos = useStakingInfo()
@@ -63,25 +65,25 @@ export default function Earn() {
           <CardSection>
             <AutoColumn gap="md">
               <RowBetween>
-                <ThemedText.White fontWeight={600}>
+                <ThemedText.DeprecatedWhite fontWeight={600}>
                   <Trans>Uniswap liquidity mining</Trans>
-                </ThemedText.White>
+                </ThemedText.DeprecatedWhite>
               </RowBetween>
               <RowBetween>
-                <ThemedText.White fontSize={14}>
+                <ThemedText.DeprecatedWhite fontSize={14}>
                   <Trans>
                     Deposit your Liquidity Provider tokens to receive UNI, the Uniswap protocol governance token.
                   </Trans>
-                </ThemedText.White>
+                </ThemedText.DeprecatedWhite>
               </RowBetween>{' '}
               <ExternalLink
-                style={{ color: 'white', textDecoration: 'underline' }}
+                style={{ color: theme.deprecated_white, textDecoration: 'underline' }}
                 href="https://uniswap.org/blog/uni/"
                 target="_blank"
               >
-                <ThemedText.White fontSize={14}>
+                <ThemedText.DeprecatedWhite fontSize={14}>
                   <Trans>Read more about UNI</Trans>
-                </ThemedText.White>
+                </ThemedText.DeprecatedWhite>
               </ExternalLink>
             </AutoColumn>
           </CardSection>
@@ -92,9 +94,9 @@ export default function Earn() {
 
       <AutoColumn gap="lg" style={{ width: '100%', maxWidth: '720px' }}>
         <DataRow style={{ alignItems: 'baseline' }}>
-          <ThemedText.MediumHeader style={{ marginTop: '0.5rem' }}>
+          <ThemedText.DeprecatedMediumHeader style={{ marginTop: '0.5rem' }}>
             <Trans>Participating pools</Trans>
-          </ThemedText.MediumHeader>
+          </ThemedText.DeprecatedMediumHeader>
           <Countdown exactEnd={stakingInfos?.[0]?.periodFinish} />
         </DataRow>
 

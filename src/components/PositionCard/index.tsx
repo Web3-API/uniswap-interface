@@ -1,6 +1,7 @@
 import { Trans } from '@lingui/macro'
 import { CurrencyAmount, Percent, Token } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
+import { useWeb3React } from '@web3-react/core'
 import JSBI from 'jsbi'
 import { transparentize } from 'polished'
 import { useState } from 'react'
@@ -12,8 +13,7 @@ import styled from 'styled-components/macro'
 import { BIG_INT_ZERO } from '../../constants/misc'
 import { useColor } from '../../hooks/useColor'
 import { useTotalSupply } from '../../hooks/useTotalSupply'
-import { useActiveWeb3React } from '../../hooks/web3'
-import { useTokenBalance } from '../../state/wallet/hooks'
+import { useTokenBalance } from '../../state/connection/hooks'
 import { ExternalLink, ThemedText } from '../../theme'
 import { currencyId } from '../../utils/currencyId'
 import { unwrappedToken } from '../../utils/unwrappedToken'
@@ -33,7 +33,7 @@ export const FixedHeightRow = styled(RowBetween)`
 const StyledPositionCard = styled(LightCard)<{ bgColor: any }>`
   border: none;
   background: ${({ theme, bgColor }) =>
-    `radial-gradient(91.85% 100% at 1.84% 0%, ${transparentize(0.8, bgColor)} 0%, ${theme.bg3} 100%) `};
+    `radial-gradient(91.85% 100% at 1.84% 0%, ${transparentize(0.8, bgColor)} 0%, ${theme.deprecated_bg3} 100%) `};
   position: relative;
   overflow: hidden;
 `
@@ -46,7 +46,7 @@ interface PositionCardProps {
 }
 
 export function MinimalPositionCard({ pair, showUnwrapped = false, border }: PositionCardProps) {
-  const { account } = useActiveWeb3React()
+  const { account } = useWeb3React()
 
   const currency0 = showUnwrapped ? pair.token0 : unwrappedToken(pair.token0)
   const currency1 = showUnwrapped ? pair.token1 : unwrappedToken(pair.token1)
@@ -142,7 +142,7 @@ export function MinimalPositionCard({ pair, showUnwrapped = false, border }: Pos
         </GreyCard>
       ) : (
         <LightCard>
-          <ThemedText.SubHeader style={{ textAlign: 'center' }}>
+          <ThemedText.DeprecatedSubHeader style={{ textAlign: 'center' }}>
             <span role="img" aria-label="wizard-icon">
               ⭐️
             </span>{' '}
@@ -150,7 +150,7 @@ export function MinimalPositionCard({ pair, showUnwrapped = false, border }: Pos
               By adding liquidity you&apos;ll earn 0.3% of all trades on this pair proportional to your share of the
               pool. Fees are added to the pool, accrue in real time and can be claimed by withdrawing your liquidity.
             </Trans>{' '}
-          </ThemedText.SubHeader>
+          </ThemedText.DeprecatedSubHeader>
         </LightCard>
       )}
     </>
@@ -158,7 +158,7 @@ export function MinimalPositionCard({ pair, showUnwrapped = false, border }: Pos
 }
 
 export default function FullPositionCard({ pair, border, stakedBalance }: PositionCardProps) {
-  const { account } = useActiveWeb3React()
+  const { account } = useWeb3React()
 
   const currency0 = unwrappedToken(pair.token0)
   const currency1 = unwrappedToken(pair.token1)

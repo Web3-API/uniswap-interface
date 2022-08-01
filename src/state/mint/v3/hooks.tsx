@@ -2,15 +2,18 @@ import { Trans } from '@lingui/macro'
 import { InvokeResult, PolywrapClient } from '@polywrap/client-js'
 import { usePolywrapClient } from '@polywrap/react'
 import { Currency, CurrencyAmount, Price, Rounding, Token } from '@uniswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
 import { usePool } from 'hooks/usePools'
 import JSBI from 'jsbi'
+import tryParseCurrencyAmount from 'lib/utils/tryParseCurrencyAmount'
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 import { getTickToPrice } from 'utils/getTickToPrice'
+import { replaceURLParam } from 'utils/routes'
 
 import { BIG_INT_ZERO } from '../../../constants/misc'
 import { PoolState } from '../../../hooks/usePools'
-import { useActiveWeb3React } from '../../../hooks/web3'
 import { mapPrice, mapToken, reverseMapPrice, reverseMapToken, tokenEquals } from '../../../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../../../polywrap-utils/makeCancelable'
 import {
@@ -22,9 +25,8 @@ import {
   Uni_Position as Position,
   Uni_Price,
 } from '../../../wrap'
+import { useCurrencyBalances } from '../../connection/hooks'
 import { AppState } from '../../index'
-import { tryParseAmount } from '../../swap/hooks'
-import { useCurrencyBalances } from '../../wallet/hooks'
 import {
   Bound,
   Field,
@@ -48,6 +50,7 @@ export function useV3MintActionHandlers(noLiquidity: boolean | undefined): {
   onStartPriceInput: (typedValue: string) => void
 } {
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
 
   const onFieldAInput = useCallback(
     (typedValue: string) => {
@@ -63,18 +66,22 @@ export function useV3MintActionHandlers(noLiquidity: boolean | undefined): {
     [dispatch, noLiquidity]
   )
 
+  const { search } = useLocation()
+
   const onLeftRangeInput = useCallback(
     (typedValue: string) => {
       dispatch(typeLeftRangeInput({ typedValue }))
+      navigate({ search: replaceURLParam(search, 'minPrice', typedValue) }, { replace: true })
     },
-    [dispatch]
+    [dispatch, navigate, search]
   )
 
   const onRightRangeInput = useCallback(
     (typedValue: string) => {
       dispatch(typeRightRangeInput({ typedValue }))
+      navigate({ search: replaceURLParam(search, 'maxPrice', typedValue) }, { replace: true })
     },
-    [dispatch]
+    [dispatch, navigate, search]
   )
 
   const onStartPriceInput = useCallback(
@@ -271,7 +278,7 @@ export function useV3DerivedMintInfo(
   invertPrice: boolean
   ticksAtLimit: { [bound in Bound]?: boolean | undefined }
 } {
-  const { account } = useActiveWeb3React()
+  const { account } = useWeb3React()
   const client: PolywrapClient = usePolywrapClient()
 
   const { independentField, typedValue, leftRangeTypedValue, rightRangeTypedValue, startPriceTypedValue } =
@@ -321,9 +328,9 @@ export function useV3DerivedMintInfo(
   const price: Price<Token, Token> | undefined = useMemo(() => {
     // if no liquidity use typed value
     if (noLiquidity) {
-      const parsedQuoteAmount = tryParseAmount(startPriceTypedValue, invertPrice ? token0 : token1)
+      const parsedQuoteAmount = tryParseCurrencyAmount(startPriceTypedValue, invertPrice ? token0 : token1)
       if (parsedQuoteAmount && token0 && token1) {
-        const baseAmount = tryParseAmount('1', invertPrice ? token1 : token0)
+        const baseAmount = tryParseCurrencyAmount('1', invertPrice ? token1 : token0)
         const price =
           baseAmount && parsedQuoteAmount
             ? new Price(
@@ -463,7 +470,7 @@ export function useV3DerivedMintInfo(
   )
 
   // amounts
-  const independentAmount: CurrencyAmount<Currency> | undefined = tryParseAmount(
+  const independentAmount: CurrencyAmount<Currency> | undefined = tryParseCurrencyAmount(
     typedValue,
     currencies[independentField]
   )

@@ -1,13 +1,15 @@
 // eslint-disable-next-line no-restricted-imports
 import { t, Trans } from '@lingui/macro'
 import { TokenList } from '@uniswap/token-lists'
+import { useWeb3React } from '@web3-react/core'
+import { sendEvent } from 'components/analytics'
 import Card from 'components/Card'
 import { UNSUPPORTED_LIST_URLS } from 'constants/lists'
 import { useListColor } from 'hooks/useColor'
-import { useActiveWeb3React } from 'hooks/web3'
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import parseENSAddress from 'lib/utils/parseENSAddress'
+import uriToHttp from 'lib/utils/uriToHttp'
+import { ChangeEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle, Settings } from 'react-feather'
-import ReactGA from 'react-ga'
 import { usePopper } from 'react-popper'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 import styled from 'styled-components/macro'
@@ -20,13 +22,11 @@ import { acceptListUpdate, disableList, enableList, removeList } from '../../sta
 import { useActiveListUrls, useAllLists, useIsListActive } from '../../state/lists/hooks'
 import { ExternalLink, IconWrapper, LinkStyledButton, ThemedText } from '../../theme'
 import listVersionLabel from '../../utils/listVersionLabel'
-import { parseENSAddress } from '../../utils/parseENSAddress'
-import uriToHttp from '../../utils/uriToHttp'
 import { ButtonEmpty, ButtonPrimary } from '../Button'
 import Column, { AutoColumn } from '../Column'
 import ListLogo from '../ListLogo'
 import Row, { RowBetween, RowFixed } from '../Row'
-import ListToggle from '../Toggle/ListToggle'
+import Toggle from '../Toggle'
 import { CurrencyModalView } from './CurrencySearchModal'
 import { PaddedColumn, SearchInput, Separator, SeparatorDark } from './styleds'
 
@@ -46,11 +46,11 @@ const PopoverContainer = styled.div<{ show: boolean }>`
   visibility: ${(props) => (props.show ? 'visible' : 'hidden')};
   opacity: ${(props) => (props.show ? 1 : 0)};
   transition: visibility 150ms linear, opacity 150ms linear;
-  background: ${({ theme }) => theme.bg2};
-  border: 1px solid ${({ theme }) => theme.bg3};
+  background: ${({ theme }) => theme.deprecated_bg2};
+  border: 1px solid ${({ theme }) => theme.deprecated_bg3};
   box-shadow: 0px 0px 1px rgba(0, 0, 0, 0.01), 0px 4px 8px rgba(0, 0, 0, 0.04), 0px 16px 24px rgba(0, 0, 0, 0.04),
     0px 24px 32px rgba(0, 0, 0, 0.01);
-  color: ${({ theme }) => theme.text2};
+  color: ${({ theme }) => theme.deprecated_text2};
   border-radius: 0.5rem;
   padding: 1rem;
   display: grid;
@@ -73,16 +73,16 @@ const StyledTitleText = styled.div<{ active: boolean }>`
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 600;
-  color: ${({ theme, active }) => (active ? theme.white : theme.text2)};
+  color: ${({ theme, active }) => (active ? theme.deprecated_white : theme.deprecated_text2)};
 `
 
-const StyledListUrlText = styled(ThemedText.Main)<{ active: boolean }>`
+const StyledListUrlText = styled(ThemedText.DeprecatedMain)<{ active: boolean }>`
   font-size: 12px;
-  color: ${({ theme, active }) => (active ? theme.white : theme.text2)};
+  color: ${({ theme, active }) => (active ? theme.deprecated_white : theme.deprecated_text2)};
 `
 
 const RowWrapper = styled(Row)<{ bgColor: string; active: boolean; hasActiveTokens: boolean }>`
-  background-color: ${({ bgColor, active, theme }) => (active ? bgColor ?? 'transparent' : theme.bg2)};
+  background-color: ${({ bgColor, active, theme }) => (active ? bgColor ?? 'transparent' : theme.deprecated_bg2)};
   opacity: ${({ hasActiveTokens }) => (hasActiveTokens ? 1 : 0.4)};
   transition: 200ms;
   align-items: center;
@@ -95,7 +95,7 @@ function listUrlRowHTMLId(listUrl: string) {
 }
 
 const ListRow = memo(function ListRow({ listUrl }: { listUrl: string }) {
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
   const listsByUrl = useAppSelector((state) => state.lists.byUrl)
   const dispatch = useAppDispatch()
   const { current: list, pendingUpdate: pending } = listsByUrl[listUrl]
@@ -126,7 +126,7 @@ const ListRow = memo(function ListRow({ listUrl }: { listUrl: string }) {
 
   const handleAcceptListUpdate = useCallback(() => {
     if (!pending) return
-    ReactGA.event({
+    sendEvent({
       category: 'Lists',
       action: 'Update List from List Select',
       label: listUrl,
@@ -135,13 +135,13 @@ const ListRow = memo(function ListRow({ listUrl }: { listUrl: string }) {
   }, [dispatch, listUrl, pending])
 
   const handleRemoveList = useCallback(() => {
-    ReactGA.event({
+    sendEvent({
       category: 'Lists',
       action: 'Start Remove List',
       label: listUrl,
     })
     if (window.prompt(t`Please confirm you would like to remove this list by typing REMOVE`) === `REMOVE`) {
-      ReactGA.event({
+      sendEvent({
         category: 'Lists',
         action: 'Confirm Remove List',
         label: listUrl,
@@ -151,7 +151,7 @@ const ListRow = memo(function ListRow({ listUrl }: { listUrl: string }) {
   }, [dispatch, listUrl])
 
   const handleEnableList = useCallback(() => {
-    ReactGA.event({
+    sendEvent({
       category: 'Lists',
       action: 'Enable List',
       label: listUrl,
@@ -160,7 +160,7 @@ const ListRow = memo(function ListRow({ listUrl }: { listUrl: string }) {
   }, [dispatch, listUrl])
 
   const handleDisableList = useCallback(() => {
-    ReactGA.event({
+    sendEvent({
       category: 'Lists',
       action: 'Disable List',
       label: listUrl,
@@ -193,7 +193,7 @@ const ListRow = memo(function ListRow({ listUrl }: { listUrl: string }) {
           </StyledListUrlText>
           <StyledMenu ref={node as any}>
             <ButtonEmpty onClick={toggle} ref={setReferenceElement} padding="0">
-              <Settings stroke={isActive ? theme.bg1 : theme.text1} size={12} />
+              <Settings stroke={isActive ? theme.deprecated_bg1 : theme.deprecated_text1} size={12} />
             </ButtonEmpty>
             {open && (
               <PopoverContainer show={true} ref={setPopperElement as any} style={styles.popper} {...attributes.popper}>
@@ -215,7 +215,7 @@ const ListRow = memo(function ListRow({ listUrl }: { listUrl: string }) {
           </StyledMenu>
         </RowFixed>
       </Column>
-      <ListToggle
+      <Toggle
         isActive={isActive}
         bgColor={listColor}
         toggle={() => {
@@ -242,7 +242,7 @@ export function ManageLists({
   setImportList: (list: TokenList) => void
   setListUrl: (url: string) => void
 }) {
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
   const theme = useTheme()
 
   const [listUrlInput, setListUrlInput] = useState<string>('')
@@ -266,7 +266,7 @@ export function ManageLists({
   // sort by active but only if not visible
   const activeListUrls = useActiveListUrls()
 
-  const handleInput = useCallback((e) => {
+  const handleInput = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     setListUrlInput(e.target.value)
   }, [])
 
@@ -362,32 +362,32 @@ export function ManageLists({
           />
         </Row>
         {addError ? (
-          <ThemedText.Error title={addError} style={{ textOverflow: 'ellipsis', overflow: 'hidden' }} error>
+          <ThemedText.DeprecatedError title={addError} style={{ textOverflow: 'ellipsis', overflow: 'hidden' }} error>
             {addError}
-          </ThemedText.Error>
+          </ThemedText.DeprecatedError>
         ) : null}
       </PaddedColumn>
       {tempList && (
         <PaddedColumn style={{ paddingTop: 0 }}>
-          <Card backgroundColor={theme.bg2} padding="12px 20px">
+          <Card backgroundColor={theme.deprecated_bg2} padding="12px 20px">
             <RowBetween>
               <RowFixed>
                 {tempList.logoURI && <ListLogo logoURI={tempList.logoURI} size="40px" />}
                 <AutoColumn gap="4px" style={{ marginLeft: '20px' }}>
-                  <ThemedText.Body fontWeight={600}>{tempList.name}</ThemedText.Body>
-                  <ThemedText.Main fontSize={'12px'}>
+                  <ThemedText.DeprecatedBody fontWeight={600}>{tempList.name}</ThemedText.DeprecatedBody>
+                  <ThemedText.DeprecatedMain fontSize={'12px'}>
                     <Trans>{tempList.tokens.length} tokens</Trans>
-                  </ThemedText.Main>
+                  </ThemedText.DeprecatedMain>
                 </AutoColumn>
               </RowFixed>
               {isImported ? (
                 <RowFixed>
-                  <IconWrapper stroke={theme.text2} size="16px" marginRight={'10px'}>
+                  <IconWrapper stroke={theme.deprecated_text2} size="16px" marginRight={'10px'}>
                     <CheckCircle />
                   </IconWrapper>
-                  <ThemedText.Body color={theme.text2}>
+                  <ThemedText.DeprecatedBody color={theme.deprecated_text2}>
                     <Trans>Loaded</Trans>
-                  </ThemedText.Body>
+                  </ThemedText.DeprecatedBody>
                 </RowFixed>
               ) : (
                 <ButtonPrimary

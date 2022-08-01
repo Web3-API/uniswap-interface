@@ -1,11 +1,11 @@
 import { Currency, Token } from '@uniswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
 import { SupportedChainId } from 'constants/chains'
 import { useMemo } from 'react'
 
 import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Pool as Pool } from '../wrap'
 import { useAllCurrencyCombinations } from './useAllCurrencyCombinations'
 import { PoolState, usePools } from './usePools'
-import { useActiveWeb3React } from './web3'
 
 /**
  * Returns all the existing pools that should be considered for swapping between an input currency and an output currency
@@ -19,7 +19,7 @@ export function useV3SwapPools(
   pools: Pool[]
   loading: boolean
 } {
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
 
   const allCurrencyCombinations = useAllCurrencyCombinations(currencyIn, currencyOut)
 

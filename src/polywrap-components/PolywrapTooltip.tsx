@@ -15,7 +15,7 @@ const QuestionWrapper = styled.div`
   cursor: default;
   border-radius: 36px;
   background-color: transparent;
-  color: ${({ theme }) => theme.text2};
+  color: ${({ theme }) => theme.deprecated_text2};
   :hover,
   :focus {
     opacity: 0.7;

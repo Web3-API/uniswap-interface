@@ -30,7 +30,6 @@ export async function computeRoutes(
   if (parsedTokenOut.address !== currencyOut.wrapped.address) return undefined
 
   const parsedCurrencyIn = currencyIn.isNative ? nativeOnChain(currencyIn.chainId) : parsedTokenIn
-
   const parsedCurrencyOut = currencyOut.isNative ? nativeOnChain(currencyOut.chainId) : parsedTokenOut
 
   try {

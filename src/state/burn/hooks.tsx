@@ -1,16 +1,16 @@
 import { Trans } from '@lingui/macro'
 import { Currency, CurrencyAmount, Percent, Token } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
+import { useWeb3React } from '@web3-react/core'
 import JSBI from 'jsbi'
+import tryParseCurrencyAmount from 'lib/utils/tryParseCurrencyAmount'
 import { ReactNode, useCallback } from 'react'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 
 import { useTotalSupply } from '../../hooks/useTotalSupply'
 import { useV2Pair } from '../../hooks/useV2Pairs'
-import { useActiveWeb3React } from '../../hooks/web3'
+import { useTokenBalances } from '../connection/hooks'
 import { AppState } from '../index'
-import { tryParseAmount } from '../swap/hooks'
-import { useTokenBalances } from '../wallet/hooks'
 import { Field, typeInput } from './actions'
 
 export function useBurnState(): AppState['burn'] {
@@ -30,7 +30,7 @@ export function useDerivedBurnInfo(
   }
   error?: ReactNode
 } {
-  const { account } = useActiveWeb3React()
+  const { account } = useWeb3React()
 
   const { independentField, typedValue } = useBurnState()
 
@@ -81,7 +81,7 @@ export function useDerivedBurnInfo(
   // user specified a specific amount of liquidity tokens
   else if (independentField === Field.LIQUIDITY) {
     if (pair?.liquidityToken) {
-      const independentAmount = tryParseAmount(typedValue, pair.liquidityToken)
+      const independentAmount = tryParseCurrencyAmount(typedValue, pair.liquidityToken)
       if (independentAmount && userLiquidity && !independentAmount.greaterThan(userLiquidity)) {
         percentToRemove = new Percent(independentAmount.quotient, userLiquidity.quotient)
       }
@@ -90,7 +90,7 @@ export function useDerivedBurnInfo(
   // user specified a specific amount of token a or b
   else {
     if (tokens[independentField]) {
-      const independentAmount = tryParseAmount(typedValue, tokens[independentField])
+      const independentAmount = tryParseCurrencyAmount(typedValue, tokens[independentField])
       const liquidityValue = liquidityValues[independentField]
       if (independentAmount && liquidityValue && !independentAmount.greaterThan(liquidityValue)) {
         percentToRemove = new Percent(independentAmount.quotient, liquidityValue.quotient)

@@ -1,6 +1,5 @@
 import { Trans } from '@lingui/macro'
-import { PolywrapClient } from '@polywrap/client-js'
-import { InvokeResult } from '@polywrap/client-js'
+import { InvokeResult, PolywrapClient } from '@polywrap/client-js'
 import { usePolywrapClient } from '@polywrap/react'
 import { Percent, Price, Token as UniToken } from '@uniswap/sdk-core'
 import Badge from 'components/Badge'
@@ -21,7 +20,7 @@ import { PositionDetails } from 'types/position'
 import { formatTickPrice } from 'utils/formatTickPrice'
 import { unwrappedToken } from 'utils/unwrappedToken'
 
-import { DAI, USDC, USDT, WBTC, WRAPPED_NATIVE_CURRENCY } from '../../constants/tokens'
+import { DAI, USDC_MAINNET, USDT, WBTC, WRAPPED_NATIVE_CURRENCY } from '../../constants/tokens'
 import { reverseMapPrice, reverseMapToken } from '../../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCancelable'
 import { Uni_Module, Uni_Position } from '../../wrap'
@@ -36,12 +35,12 @@ const LinkRow = styled(Link)`
   flex-direction: column;
 
   justify-content: space-between;
-  color: ${({ theme }) => theme.text1};
+  color: ${({ theme }) => theme.deprecated_text1};
   margin: 8px 0;
   padding: 16px;
   text-decoration: none;
   font-weight: 500;
-  background-color: ${({ theme }) => theme.bg1};
+  background-color: ${({ theme }) => theme.deprecated_bg1};
 
   &:last-of-type {
     margin: 8px 0 0 0;
@@ -50,7 +49,7 @@ const LinkRow = styled(Link)`
     text-align: center;
   }
   :hover {
-    background-color: ${({ theme }) => theme.bg2};
+    background-color: ${({ theme }) => theme.deprecated_bg2};
   }
 
   @media screen and (min-width: ${MEDIA_WIDTHS.upToSmall}px) {
@@ -84,7 +83,7 @@ const RangeLineItem = styled(DataLineItem)`
   width: 100%;
 
   ${({ theme }) => theme.mediaWidth.upToSmall`
-  background-color: ${({ theme }) => theme.bg2};
+  background-color: ${({ theme }) => theme.deprecated_bg2};
     border-radius: 12px;
     padding: 8px 0;
 `};
@@ -92,7 +91,7 @@ const RangeLineItem = styled(DataLineItem)`
 
 const DoubleArrow = styled.span`
   margin: 0 2px;
-  color: ${({ theme }) => theme.text3};
+  color: ${({ theme }) => theme.deprecated_text3};
   ${({ theme }) => theme.mediaWidth.upToSmall`
     margin: 4px;
     padding: 20px;
@@ -100,13 +99,13 @@ const DoubleArrow = styled.span`
 `
 
 const RangeText = styled.span`
-  /* background-color: ${({ theme }) => theme.bg2}; */
+  /* background-color: ${({ theme }) => theme.deprecated_bg2}; */
   padding: 0.25rem 0.5rem;
   border-radius: 8px;
 `
 
 const ExtentsText = styled.span`
-  color: ${({ theme }) => theme.text3};
+  color: ${({ theme }) => theme.deprecated_text3};
   font-size: 14px;
   margin-right: 4px;
   ${({ theme }) => theme.mediaWidth.upToSmall`
@@ -152,7 +151,7 @@ export function getPriceOrderingFromPositionForUI(position?: Uni_Position): {
   const token0PriceLower = reverseMapPrice(position.token0PriceLower) as Price<UniToken, UniToken>
 
   // if token0 is a dollar-stable asset, set it as the quote token
-  const stables = [DAI, USDC, USDT]
+  const stables = [DAI, USDC_MAINNET, USDT]
   if (stables.some((stable) => stable.equals(token0))) {
     return {
       priceLower: token0PriceUpper.invert(),
@@ -164,7 +163,7 @@ export function getPriceOrderingFromPositionForUI(position?: Uni_Position): {
 
   // if token1 is an ETH-/BTC-stable asset, set it as the base token
   const bases = [...Object.values(WRAPPED_NATIVE_CURRENCY), WBTC]
-  if (bases.some((base) => base.equals(token1))) {
+  if (bases.some((base) => base && base.equals(token1))) {
     return {
       priceLower: token0PriceUpper.invert(),
       priceUpper: token0PriceLower.invert(),

@@ -1,10 +1,10 @@
 import { Trans } from '@lingui/macro'
-import { Protocol } from '@uniswap/router-sdk'
-import { Currency, Percent } from '@uniswap/sdk-core'
+import { Currency } from '@uniswap/sdk-core'
 import Badge from 'components/Badge'
 import CurrencyLogo from 'components/CurrencyLogo'
 import DoubleCurrencyLogo from 'components/DoubleLogo'
 import Row, { AutoRow } from 'components/Row'
+import { RoutingDiagramEntry } from 'components/swap/SwapRoute'
 import { useTokenInfoFromActiveList } from 'hooks/useTokenInfoFromActiveList'
 import { useMemo } from 'react'
 import { Box } from 'rebass'
@@ -15,12 +15,6 @@ import { ReactComponent as DotLine } from '../../assets/svg/dot_line.svg'
 import { reverseMapFeeAmount } from '../../polywrap-utils'
 import { Uni_FeeAmountEnum as FeeAmountEnum } from '../../wrap'
 import { MouseoverTooltip } from '../Tooltip'
-
-export interface RoutingDiagramEntry {
-  percent: Percent
-  path: [Currency, Currency, FeeAmountEnum][]
-  protocol: Protocol
-}
 
 const Wrapper = styled(Box)`
   align-items: center;
@@ -56,12 +50,12 @@ const DottedLine = styled.div`
 
 const DotColor = styled(DotLine)`
   path {
-    stroke: ${({ theme }) => theme.bg4};
+    stroke: ${({ theme }) => theme.deprecated_bg4};
   }
 `
 
 const OpaqueBadge = styled(Badge)`
-  background-color: ${({ theme }) => theme.bg2};
+  background-color: ${({ theme }) => theme.deprecated_bg2};
   border-radius: 8px;
   display: grid;
   font-size: 12px;
@@ -73,15 +67,15 @@ const OpaqueBadge = styled(Badge)`
 `
 
 const ProtocolBadge = styled(Badge)`
-  background-color: ${({ theme }) => theme.bg3};
+  background-color: ${({ theme }) => theme.deprecated_bg3};
   border-radius: 4px;
-  color: ${({ theme }) => theme.text2};
+  color: ${({ theme }) => theme.deprecated_text2};
   font-size: 10px;
   padding: 2px 4px;
   z-index: ${Z_INDEX.sticky + 1};
 `
 
-const BadgeText = styled(ThemedText.Small)`
+const BadgeText = styled(ThemedText.DeprecatedSmall)`
   word-break: normal;
 `
 
@@ -153,7 +147,7 @@ function Pool({
         <Box margin="0 4px 0 12px">
           <DoubleCurrencyLogo currency0={tokenInfo1} currency1={tokenInfo0} size={20} />
         </Box>
-        <ThemedText.Small fontSize={14}>{feeAmount / 10000}%</ThemedText.Small>
+        <ThemedText.DeprecatedSmall fontSize={14}>{fee / 10000}%</ThemedText.DeprecatedSmall>
       </PoolBadge>
     </MouseoverTooltip>
   )

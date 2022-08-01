@@ -1,13 +1,13 @@
 import { PolywrapClient } from '@polywrap/client-js'
 import { usePolywrapClient } from '@polywrap/react'
 import { Currency } from '@uniswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
 import { useEffect, useRef, useState } from 'react'
 
 import { mapToken, tokenEquals } from '../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
 import { Uni_Module, Uni_Pool, Uni_Route, Uni_Token } from '../wrap'
 import { useV3SwapPools } from './useV3SwapPools'
-import { useActiveWeb3React } from './web3'
 
 /**
  * Returns true if poolA is equivalent to poolB
@@ -89,7 +89,7 @@ export function useAllV3Routes(
   currencyIn?: Currency,
   currencyOut?: Currency
 ): { loading: boolean; routes: Uni_Route[] } {
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
   const { pools, loading: poolsLoading } = useV3SwapPools(currencyIn, currencyOut)
   const client: PolywrapClient = usePolywrapClient()
 

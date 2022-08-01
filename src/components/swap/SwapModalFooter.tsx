@@ -1,8 +1,8 @@
 import { Trans } from '@lingui/macro'
+import { ElementName } from 'components/AmplitudeAnalytics/constants'
 import { ReactNode } from 'react'
 import { Text } from 'rebass'
 
-import { Uni_Trade as Trade } from '../../wrap'
 import { ButtonError } from '../Button'
 import { AutoRow } from '../Row'
 import { SwapCallbackError } from './styleds'
@@ -12,7 +12,6 @@ export default function SwapModalFooter({
   swapErrorMessage,
   disabledConfirm,
 }: {
-  trade: Trade
   onConfirm: () => void
   swapErrorMessage: ReactNode | undefined
   disabledConfirm: boolean
@@ -24,13 +23,12 @@ export default function SwapModalFooter({
           onClick={onConfirm}
           disabled={disabledConfirm}
           style={{ margin: '10px 0 0 0' }}
-          id="confirm-swap-or-send"
+          id={ElementName.CONFIRM_SWAP_BUTTON}
         >
           <Text fontSize={20} fontWeight={500}>
             <Trans>Confirm Swap</Trans>
           </Text>
         </ButtonError>
-
         {swapErrorMessage ? <SwapCallbackError error={swapErrorMessage} /> : null}
       </AutoRow>
     </>

@@ -1,11 +1,11 @@
 import { Trans } from '@lingui/macro'
+import { useWeb3React } from '@web3-react/core'
 import { useContext, useState } from 'react'
 import { ArrowUpCircle, X } from 'react-feather'
 import styled, { ThemeContext } from 'styled-components/macro'
 import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
 
 import Circle from '../../assets/images/blue-loader.svg'
-import { useActiveWeb3React } from '../../hooks/web3'
 import { useUserVotes, useVoteCallback } from '../../state/governance/hooks'
 import { VoteOption } from '../../state/governance/types'
 import { CustomLightSpinner, ThemedText } from '../../theme'
@@ -44,8 +44,8 @@ interface VoteModalProps {
 }
 
 export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }: VoteModalProps) {
-  const { chainId } = useActiveWeb3React()
-  const { voteCallback } = useVoteCallback()
+  const { chainId } = useWeb3React()
+  const voteCallback = useVoteCallback()
   const { votes: availableVotes } = useUserVotes()
 
   // monitor call to help UI loading state
@@ -56,7 +56,7 @@ export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }:
   const theme = useContext(ThemeContext)
 
   // wrapper to reset state on modal close
-  function wrappedOndismiss() {
+  function wrappedOnDismiss() {
     setHash(undefined)
     setAttempting(false)
     onDismiss()
@@ -80,12 +80,12 @@ export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }:
   }
 
   return (
-    <Modal isOpen={isOpen} onDismiss={wrappedOndismiss} maxHeight={90}>
+    <Modal isOpen={isOpen} onDismiss={wrappedOnDismiss} maxHeight={90}>
       {!attempting && !hash && (
         <ContentWrapper gap="lg">
           <AutoColumn gap="lg" justify="center">
             <RowBetween>
-              <ThemedText.MediumHeader fontWeight={500}>
+              <ThemedText.DeprecatedMediumHeader fontWeight={500}>
                 {voteOption === VoteOption.Against ? (
                   <Trans>Vote against proposal {proposalId}</Trans>
                 ) : voteOption === VoteOption.For ? (
@@ -93,14 +93,14 @@ export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }:
                 ) : (
                   <Trans>Vote to abstain on proposal {proposalId}</Trans>
                 )}
-              </ThemedText.MediumHeader>
-              <StyledClosed stroke="black" onClick={wrappedOndismiss} />
+              </ThemedText.DeprecatedMediumHeader>
+              <StyledClosed onClick={wrappedOnDismiss} />
             </RowBetween>
-            <ThemedText.LargeHeader>
+            <ThemedText.DeprecatedLargeHeader>
               <Trans>{formatCurrencyAmount(availableVotes, 4)} Votes</Trans>
-            </ThemedText.LargeHeader>
+            </ThemedText.DeprecatedLargeHeader>
             <ButtonPrimary onClick={onVote}>
-              <ThemedText.MediumHeader color="white">
+              <ThemedText.DeprecatedMediumHeader color="white">
                 {voteOption === VoteOption.Against ? (
                   <Trans>Vote against proposal {proposalId}</Trans>
                 ) : voteOption === VoteOption.For ? (
@@ -108,7 +108,7 @@ export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }:
                 ) : (
                   <Trans>Vote to abstain on proposal {proposalId}</Trans>
                 )}
-              </ThemedText.MediumHeader>
+              </ThemedText.DeprecatedMediumHeader>
             </ButtonPrimary>
           </AutoColumn>
         </ContentWrapper>
@@ -117,20 +117,20 @@ export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }:
         <ConfirmOrLoadingWrapper>
           <RowBetween>
             <div />
-            <StyledClosed onClick={wrappedOndismiss} />
+            <StyledClosed onClick={wrappedOnDismiss} />
           </RowBetween>
           <ConfirmedIcon>
             <CustomLightSpinner src={Circle} alt="loader" size={'90px'} />
           </ConfirmedIcon>
           <AutoColumn gap="100px" justify={'center'}>
             <AutoColumn gap="12px" justify={'center'}>
-              <ThemedText.LargeHeader>
+              <ThemedText.DeprecatedLargeHeader>
                 <Trans>Submitting Vote</Trans>
-              </ThemedText.LargeHeader>
+              </ThemedText.DeprecatedLargeHeader>
             </AutoColumn>
-            <ThemedText.SubHeader>
+            <ThemedText.DeprecatedSubHeader>
               <Trans>Confirm this transaction in your wallet</Trans>
-            </ThemedText.SubHeader>
+            </ThemedText.DeprecatedSubHeader>
           </AutoColumn>
         </ConfirmOrLoadingWrapper>
       )}
@@ -138,25 +138,25 @@ export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }:
         <ConfirmOrLoadingWrapper>
           <RowBetween>
             <div />
-            <StyledClosed onClick={wrappedOndismiss} />
+            <StyledClosed onClick={wrappedOnDismiss} />
           </RowBetween>
           <ConfirmedIcon>
-            <ArrowUpCircle strokeWidth={0.5} size={90} color={theme.primary1} />
+            <ArrowUpCircle strokeWidth={0.5} size={90} color={theme.deprecated_primary1} />
           </ConfirmedIcon>
           <AutoColumn gap="100px" justify={'center'}>
             <AutoColumn gap="12px" justify={'center'}>
-              <ThemedText.LargeHeader>
+              <ThemedText.DeprecatedLargeHeader>
                 <Trans>Transaction Submitted</Trans>
-              </ThemedText.LargeHeader>
+              </ThemedText.DeprecatedLargeHeader>
             </AutoColumn>
             {chainId && (
               <ExternalLink
                 href={getExplorerLink(chainId, hash, ExplorerDataType.TRANSACTION)}
                 style={{ marginLeft: '4px' }}
               >
-                <ThemedText.SubHeader>
+                <ThemedText.DeprecatedSubHeader>
                   <Trans>View transaction on Explorer</Trans>
-                </ThemedText.SubHeader>
+                </ThemedText.DeprecatedSubHeader>
               </ExternalLink>
             )}
           </AutoColumn>

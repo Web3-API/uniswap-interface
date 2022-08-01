@@ -1,12 +1,12 @@
+import { useWeb3React } from '@web3-react/core'
 import useDebounce from 'hooks/useDebounce'
 import useIsWindowVisible from 'hooks/useIsWindowVisible'
-import { useActiveWeb3React } from 'hooks/web3'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api, CHAIN_TAG } from 'state/data/enhanced'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 import { supportedChainId } from 'utils/supportedChainId'
 
-import { updateBlockNumber, updateChainId } from './reducer'
+import { updateChainId } from './reducer'
 
 function useQueryCacheInvalidator() {
   const dispatch = useAppDispatch()
@@ -22,59 +22,26 @@ function useQueryCacheInvalidator() {
 }
 
 export default function Updater(): null {
-  const { chainId, library } = useActiveWeb3React()
+  const { chainId, provider } = useWeb3React()
   const dispatch = useAppDispatch()
   const windowVisible = useIsWindowVisible()
 
-  const [state, setState] = useState<{ chainId: number | undefined; blockNumber: number | null }>({
-    chainId,
-    blockNumber: null,
-  })
+  const [activeChainId, setActiveChainId] = useState(chainId)
 
   useQueryCacheInvalidator()
 
-  const blockNumberCallback = useCallback(
-    (blockNumber: number) => {
-      setState((state) => {
-        if (chainId === state.chainId) {
-          if (typeof state.blockNumber !== 'number') return { chainId, blockNumber }
-          return { chainId, blockNumber: Math.max(blockNumber, state.blockNumber) }
-        }
-        return state
-      })
-    },
-    [chainId, setState]
-  )
-
-  // attach/detach listeners
   useEffect(() => {
-    if (!library || !chainId || !windowVisible) return undefined
-
-    setState({ chainId, blockNumber: null })
-
-    library
-      .getBlockNumber()
-      .then(blockNumberCallback)
-      .catch((error) => console.error(`Failed to get block number for chainId: ${chainId}`, error))
-
-    library.on('block', blockNumberCallback)
-    return () => {
-      library.removeListener('block', blockNumberCallback)
+    if (provider && chainId && windowVisible) {
+      setActiveChainId(chainId)
     }
-  }, [dispatch, chainId, library, blockNumberCallback, windowVisible])
+  }, [dispatch, chainId, provider, windowVisible])
 
-  const debouncedState = useDebounce(state, 100)
-
-  useEffect(() => {
-    if (!debouncedState.chainId || !debouncedState.blockNumber || !windowVisible) return
-    dispatch(updateBlockNumber({ chainId: debouncedState.chainId, blockNumber: debouncedState.blockNumber }))
-  }, [windowVisible, dispatch, debouncedState.blockNumber, debouncedState.chainId])
+  const debouncedChainId = useDebounce(activeChainId, 100)
 
   useEffect(() => {
-    dispatch(
-      updateChainId({ chainId: debouncedState.chainId ? supportedChainId(debouncedState.chainId) ?? null : null })
-    )
-  }, [dispatch, debouncedState.chainId])
+    const chainId = debouncedChainId ? supportedChainId(debouncedChainId) ?? null : null
+    dispatch(updateChainId({ chainId }))
+  }, [dispatch, debouncedChainId])
 
   return null
 }

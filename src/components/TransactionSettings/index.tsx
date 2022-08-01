@@ -1,8 +1,8 @@
 import { Trans } from '@lingui/macro'
 import { Percent } from '@uniswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
 import { L2_CHAIN_IDS } from 'constants/chains'
 import { DEFAULT_DEADLINE_FROM_NOW } from 'constants/misc'
-import { useActiveWeb3React } from 'hooks/web3'
 import ms from 'ms.macro'
 import { darken } from 'polished'
 import { useContext, useState } from 'react'
@@ -23,21 +23,21 @@ enum DeadlineError {
 }
 
 const FancyButton = styled.button`
-  color: ${({ theme }) => theme.text1};
+  color: ${({ theme }) => theme.deprecated_text1};
   align-items: center;
   height: 2rem;
   border-radius: 36px;
   font-size: 1rem;
   width: auto;
   min-width: 3.5rem;
-  border: 1px solid ${({ theme }) => theme.bg3};
+  border: 1px solid ${({ theme }) => theme.deprecated_bg3};
   outline: none;
-  background: ${({ theme }) => theme.bg1};
+  background: ${({ theme }) => theme.deprecated_bg1};
   :hover {
-    border: 1px solid ${({ theme }) => theme.bg4};
+    border: 1px solid ${({ theme }) => theme.deprecated_bg4};
   }
   :focus {
-    border: 1px solid ${({ theme }) => theme.primary1};
+    border: 1px solid ${({ theme }) => theme.deprecated_primary1};
   }
 `
 
@@ -46,12 +46,12 @@ const Option = styled(FancyButton)<{ active: boolean }>`
   :hover {
     cursor: pointer;
   }
-  background-color: ${({ active, theme }) => active && theme.primary1};
-  color: ${({ active, theme }) => (active ? theme.white : theme.text1)};
+  background-color: ${({ active, theme }) => active && theme.deprecated_primary1};
+  color: ${({ active, theme }) => (active ? theme.deprecated_white : theme.deprecated_text1)};
 `
 
 const Input = styled.input`
-  background: ${({ theme }) => theme.bg1};
+  background: ${({ theme }) => theme.deprecated_bg1};
   font-size: 16px;
   width: auto;
   outline: none;
@@ -59,7 +59,7 @@ const Input = styled.input`
   &::-webkit-inner-spin-button {
     -webkit-appearance: none;
   }
-  color: ${({ theme, color }) => (color === 'red' ? theme.red1 : theme.text1)};
+  color: ${({ theme, color }) => (color === 'red' ? theme.deprecated_red1 : theme.deprecated_text1)};
   text-align: right;
 `
 
@@ -69,10 +69,12 @@ const OptionCustom = styled(FancyButton)<{ active?: boolean; warning?: boolean }
   padding: 0 0.75rem;
   flex: 1;
   border: ${({ theme, active, warning }) =>
-    active ? `1px solid ${warning ? theme.red1 : theme.primary1}` : warning && `1px solid ${theme.red1}`};
+    active
+      ? `1px solid ${warning ? theme.deprecated_red1 : theme.deprecated_primary1}`
+      : warning && `1px solid ${theme.deprecated_red1}`};
   :hover {
     border: ${({ theme, active, warning }) =>
-      active && `1px solid ${warning ? darken(0.1, theme.red1) : darken(0.1, theme.primary1)}`};
+      active && `1px solid ${warning ? darken(0.1, theme.deprecated_red1) : darken(0.1, theme.deprecated_primary1)}`};
   }
 
   input {
@@ -97,7 +99,7 @@ interface TransactionSettingsProps {
 const THREE_DAYS_IN_SECONDS = ms`3 days` / 1000
 
 export default function TransactionSettings({ placeholderSlippage }: TransactionSettingsProps) {
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
   const theme = useContext(ThemeContext)
 
   const userSlippageTolerance = useUserSlippageTolerance()
@@ -163,9 +165,9 @@ export default function TransactionSettings({ placeholderSlippage }: Transaction
     <AutoColumn gap="md">
       <AutoColumn gap="sm">
         <RowFixed>
-          <ThemedText.Black fontWeight={400} fontSize={14} color={theme.text2}>
+          <ThemedText.DeprecatedBlack fontWeight={400} fontSize={14} color={theme.deprecated_text2}>
             <Trans>Slippage tolerance</Trans>
-          </ThemedText.Black>
+          </ThemedText.DeprecatedBlack>
           <QuestionHelper
             text={
               <Trans>Your transaction will revert if the price changes unfavorably by more than this percentage.</Trans>
@@ -232,9 +234,9 @@ export default function TransactionSettings({ placeholderSlippage }: Transaction
       {showCustomDeadlineRow && (
         <AutoColumn gap="sm">
           <RowFixed>
-            <ThemedText.Black fontSize={14} fontWeight={400} color={theme.text2}>
+            <ThemedText.DeprecatedBlack fontSize={14} fontWeight={400} color={theme.deprecated_text2}>
               <Trans>Transaction deadline</Trans>
-            </ThemedText.Black>
+            </ThemedText.DeprecatedBlack>
             <QuestionHelper
               text={<Trans>Your transaction will revert if it is pending for more than this period of time.</Trans>}
             />
@@ -258,9 +260,9 @@ export default function TransactionSettings({ placeholderSlippage }: Transaction
                 color={deadlineError ? 'red' : ''}
               />
             </OptionCustom>
-            <ThemedText.Body style={{ paddingLeft: '8px' }} fontSize={14}>
+            <ThemedText.DeprecatedBody style={{ paddingLeft: '8px' }} fontSize={14}>
               <Trans>minutes</Trans>
-            </ThemedText.Body>
+            </ThemedText.DeprecatedBody>
           </RowFixed>
         </AutoColumn>
       )}

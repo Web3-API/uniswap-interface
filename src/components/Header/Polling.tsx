@@ -1,15 +1,15 @@
 import { Trans } from '@lingui/macro'
+import { useWeb3React } from '@web3-react/core'
 import { RowFixed } from 'components/Row'
-import { CHAIN_INFO } from 'constants/chains'
+import { getChainInfo } from 'constants/chainInfo'
 import useCurrentBlockTimestamp from 'hooks/useCurrentBlockTimestamp'
 import useGasPrice from 'hooks/useGasPrice'
 import useMachineTimeMs from 'hooks/useMachineTime'
 import useTheme from 'hooks/useTheme'
-import { useActiveWeb3React } from 'hooks/web3'
 import JSBI from 'jsbi'
+import useBlockNumber from 'lib/hooks/useBlockNumber'
 import ms from 'ms.macro'
 import { useEffect, useState } from 'react'
-import { useBlockNumber } from 'state/application/hooks'
 import styled, { keyframes } from 'styled-components/macro'
 import { ExternalLink, ThemedText } from 'theme'
 import { ExplorerDataType, getExplorerLink } from 'utils/getExplorerLink'
@@ -24,14 +24,14 @@ const StyledPolling = styled.div<{ warning: boolean }>`
   right: 0;
   bottom: 0;
   padding: 1rem;
-  color: ${({ theme, warning }) => (warning ? theme.yellow3 : theme.green1)};
+  color: ${({ theme, warning }) => (warning ? theme.deprecated_yellow3 : theme.deprecated_green1)};
   transition: 250ms ease color;
 
   ${({ theme }) => theme.mediaWidth.upToMedium`
     display: none;
   `}
 `
-const StyledPollingNumber = styled(ThemedText.Small)<{ breathe: boolean; hovering: boolean }>`
+const StyledPollingNumber = styled(ThemedText.DeprecatedSmall)<{ breathe: boolean; hovering: boolean }>`
   transition: opacity 0.25s ease;
   opacity: ${({ breathe, hovering }) => (hovering ? 0.7 : breathe ? 1 : 0.5)};
   :hover {
@@ -53,12 +53,12 @@ const StyledPollingDot = styled.div<{ warning: boolean }>`
   min-width: 8px;
   border-radius: 50%;
   position: relative;
-  background-color: ${({ theme, warning }) => (warning ? theme.yellow3 : theme.green1)};
+  background-color: ${({ theme, warning }) => (warning ? theme.deprecated_yellow3 : theme.deprecated_green1)};
   transition: 250ms ease background-color;
 `
 
 const StyledGasDot = styled.div`
-  background-color: ${({ theme }) => theme.text3};
+  background-color: ${({ theme }) => theme.deprecated_text3};
   border-radius: 50%;
   height: 4px;
   min-height: 4px;
@@ -84,7 +84,7 @@ const Spinner = styled.div<{ warning: boolean }>`
   border-top: 1px solid transparent;
   border-right: 1px solid transparent;
   border-bottom: 1px solid transparent;
-  border-left: 2px solid ${({ theme, warning }) => (warning ? theme.yellow3 : theme.green1)};
+  border-left: 2px solid ${({ theme, warning }) => (warning ? theme.deprecated_yellow3 : theme.deprecated_green1)};
   background: transparent;
   width: 14px;
   height: 14px;
@@ -100,7 +100,7 @@ const DEFAULT_MS_BEFORE_WARNING = ms`10m`
 const NETWORK_HEALTH_CHECK_MS = ms`10s`
 
 export default function Polling() {
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useWeb3React()
   const blockNumber = useBlockNumber()
   const [isMounting, setIsMounting] = useState(false)
   const [isHover, setIsHover] = useState(false)
@@ -112,7 +112,7 @@ export default function Polling() {
   const priceGwei = ethGasPrice ? JSBI.divide(ethGasPrice, JSBI.BigInt(1000000000)) : undefined
 
   const waitMsBeforeWarning =
-    (chainId ? CHAIN_INFO[chainId]?.blockWaitMsBeforeWarning : DEFAULT_MS_BEFORE_WARNING) ?? DEFAULT_MS_BEFORE_WARNING
+    (chainId ? getChainInfo(chainId)?.blockWaitMsBeforeWarning : DEFAULT_MS_BEFORE_WARNING) ?? DEFAULT_MS_BEFORE_WARNING
 
   const warning = Boolean(!!blockTime && machineTime - blockTime.mul(1000).toNumber() > waitMsBeforeWarning)
 
@@ -143,7 +143,7 @@ export default function Polling() {
           <ExternalLink href={'https://etherscan.io/gastracker'}>
             {priceGwei ? (
               <RowFixed style={{ marginRight: '8px' }}>
-                <ThemedText.Main fontSize="11px" mr="8px" color={theme.text3}>
+                <ThemedText.DeprecatedMain fontSize="11px" mr="8px" color={theme.deprecated_text3}>
                   <MouseoverTooltip
                     text={
                       <Trans>
@@ -154,7 +154,7 @@ export default function Polling() {
                   >
                     {priceGwei.toString()} <Trans>gwei</Trans>
                   </MouseoverTooltip>
-                </ThemedText.Main>
+                </ThemedText.DeprecatedMain>
                 <StyledGasDot />
               </RowFixed>
             ) : null}

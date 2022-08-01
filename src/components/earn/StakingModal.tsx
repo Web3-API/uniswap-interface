@@ -1,18 +1,19 @@
 import { TransactionResponse } from '@ethersproject/providers'
 import { Trans } from '@lingui/macro'
+import StakingRewardsJson from '@uniswap/liquidity-staker/build/StakingRewards.json'
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
+import { useWeb3React } from '@web3-react/core'
+import { useV2LiquidityTokenPermit } from 'hooks/useV2LiquidityTokenPermit'
 import { useCallback, useState } from 'react'
 import styled from 'styled-components/macro'
 
 import { ApprovalState, useApproveCallback } from '../../hooks/useApproveCallback'
-import { usePairContract, useStakingContract, useV2RouterContract } from '../../hooks/useContract'
-import { useV2LiquidityTokenPermit } from '../../hooks/useERC20Permit'
+import { useContract, usePairContract, useV2RouterContract } from '../../hooks/useContract'
 import useTransactionDeadline from '../../hooks/useTransactionDeadline'
-import { useActiveWeb3React } from '../../hooks/web3'
 import { StakingInfo, useDerivedStakeInfo } from '../../state/stake/hooks'
-import { TransactionType } from '../../state/transactions/actions'
 import { useTransactionAdder } from '../../state/transactions/hooks'
+import { TransactionType } from '../../state/transactions/types'
 import { CloseIcon, ThemedText } from '../../theme'
 import { formatCurrencyAmount } from '../../utils/formatCurrencyAmount'
 import { maxAmountSpend } from '../../utils/maxAmountSpend'
@@ -23,6 +24,12 @@ import Modal from '../Modal'
 import { LoadingView, SubmittedView } from '../ModalViews'
 import ProgressCircles from '../ProgressSteps'
 import { RowBetween } from '../Row'
+
+const { abi: STAKING_REWARDS_ABI } = StakingRewardsJson
+
+function useStakingContract(stakingAddress?: string, withSignerIfPossible?: boolean) {
+  return useContract(stakingAddress, STAKING_REWARDS_ABI, withSignerIfPossible)
+}
 
 const HypotheticalRewardRate = styled.div<{ dim: boolean }>`
   display: flex;
@@ -46,7 +53,7 @@ interface StakingModalProps {
 }
 
 export default function StakingModal({ isOpen, onDismiss, stakingInfo, userLiquidityUnstaked }: StakingModalProps) {
-  const { library } = useActiveWeb3React()
+  const { provider } = useWeb3React()
 
   // track and parse user input
   const [typedValue, setTypedValue] = useState('')
@@ -137,7 +144,7 @@ export default function StakingModal({ isOpen, onDismiss, stakingInfo, userLiqui
   }, [maxAmountInput, onUserInput])
 
   async function onAttemptToApprove() {
-    if (!pairContract || !library || !deadline) throw new Error('missing dependencies')
+    if (!pairContract || !provider || !deadline) throw new Error('missing dependencies')
     if (!parsedAmount) throw new Error('missing liquidity amount')
 
     if (gatherPermitSignature) {
@@ -159,9 +166,9 @@ export default function StakingModal({ isOpen, onDismiss, stakingInfo, userLiqui
       {!attempting && !hash && (
         <ContentWrapper gap="lg">
           <RowBetween>
-            <ThemedText.MediumHeader>
+            <ThemedText.DeprecatedMediumHeader>
               <Trans>Deposit</Trans>
-            </ThemedText.MediumHeader>
+            </ThemedText.DeprecatedMediumHeader>
             <CloseIcon onClick={wrappedOnDismiss} />
           </RowBetween>
           <CurrencyInputPanel
@@ -178,19 +185,19 @@ export default function StakingModal({ isOpen, onDismiss, stakingInfo, userLiqui
 
           <HypotheticalRewardRate dim={!hypotheticalRewardRate.greaterThan('0')}>
             <div>
-              <ThemedText.Black fontWeight={600}>
+              <ThemedText.DeprecatedBlack fontWeight={600}>
                 <Trans>Weekly Rewards</Trans>
-              </ThemedText.Black>
+              </ThemedText.DeprecatedBlack>
             </div>
 
-            <ThemedText.Black>
+            <ThemedText.DeprecatedBlack>
               <Trans>
                 {hypotheticalRewardRate
                   .multiply((60 * 60 * 24 * 7).toString())
                   .toSignificant(4, { groupSeparator: ',' })}{' '}
                 UNI / week
               </Trans>
-            </ThemedText.Black>
+            </ThemedText.DeprecatedBlack>
           </HypotheticalRewardRate>
 
           <RowBetween>
@@ -216,24 +223,24 @@ export default function StakingModal({ isOpen, onDismiss, stakingInfo, userLiqui
       {attempting && !hash && (
         <LoadingView onDismiss={wrappedOnDismiss}>
           <AutoColumn gap="12px" justify={'center'}>
-            <ThemedText.LargeHeader>
+            <ThemedText.DeprecatedLargeHeader>
               <Trans>Depositing Liquidity</Trans>
-            </ThemedText.LargeHeader>
-            <ThemedText.Body fontSize={20}>
+            </ThemedText.DeprecatedLargeHeader>
+            <ThemedText.DeprecatedBody fontSize={20}>
               <Trans>{parsedAmount?.toSignificant(4)} UNI-V2</Trans>
-            </ThemedText.Body>
+            </ThemedText.DeprecatedBody>
           </AutoColumn>
         </LoadingView>
       )}
       {attempting && hash && (
         <SubmittedView onDismiss={wrappedOnDismiss} hash={hash}>
           <AutoColumn gap="12px" justify={'center'}>
-            <ThemedText.LargeHeader>
+            <ThemedText.DeprecatedLargeHeader>
               <Trans>Transaction Submitted</Trans>
-            </ThemedText.LargeHeader>
-            <ThemedText.Body fontSize={20}>
+            </ThemedText.DeprecatedLargeHeader>
+            <ThemedText.DeprecatedBody fontSize={20}>
               <Trans>Deposited {parsedAmount?.toSignificant(4)} UNI-V2</Trans>
-            </ThemedText.Body>
+            </ThemedText.DeprecatedBody>
           </AutoColumn>
         </SubmittedView>
       )}
