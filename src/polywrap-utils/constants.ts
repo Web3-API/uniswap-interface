@@ -18,9 +18,7 @@ export const mMATIC: Uni_Currency = {
   decimals: 18,
 }
 
-export const ensUri = 'wrap://ens/goerli/v3.uniswap.wrappers.eth'
-export const ipfsCid = 'wrap://ipfs/QmRYicmQJUPSfWoXtneaF6msgvMdyz6jC8TiG3AbWVXDgd' // warning: ipfs uri can be outdated
-export const wrapperUri = ensUri
+export const wrapperUri = 'wrap://ens/goerli/v3.uniswap.wrappers.eth'
 
 // infura keys
 // b00b2c2cc09c487685e9fb061256d6a6
