@@ -1,3 +1,5 @@
+import { Connection } from '@polywrap/ethereum-plugin-js'
+
 import { INFURA_NETWORK_URLS, SupportedChainId } from '../constants/chains'
 import { Uni_ChainIdEnum, Uni_Currency } from '../wrap'
 import { reverseMapChainId } from './reverseMapping'
@@ -21,12 +23,12 @@ export const wrapperUri = 'wrap://ens/goerli/v3.uniswap.wrappers.eth'
 
 export const DEFAULT_ETHEREUM_PROVIDERS = getDefaultProviders()
 
-function getDefaultProviders(): Record<string, any> {
-  const result: Record<string, any> = {}
+function getDefaultProviders(): Record<string, Connection> {
+  const result: Record<string, Connection> = {}
   for (let i = 0; i < Object.keys(Uni_ChainIdEnum).length / 2; i++) {
-    result[Uni_ChainIdEnum[i]] = {
+    result[Uni_ChainIdEnum[i]] = new Connection({
       provider: INFURA_NETWORK_URLS[reverseMapChainId(i) as SupportedChainId],
-    }
+    })
   }
   return result
 }

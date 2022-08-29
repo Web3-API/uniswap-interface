@@ -1,10 +1,9 @@
 import { Trans } from '@lingui/macro'
-import { PluginPackage } from '@polywrap/client-js'
 import { PluginRegistration } from '@polywrap/core-js'
-import { ethereumPlugin, EthereumPluginConfig } from '@polywrap/ethereum-plugin-js'
+import { Connections, ethereumPlugin, EthereumProvider } from '@polywrap/ethereum-plugin-js'
 import { PolywrapProvider } from '@polywrap/react'
 import { useWeb3React } from '@web3-react/core'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import styled from 'styled-components/macro'
 
 import { network } from '../../connectors'
@@ -41,37 +40,36 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
   // when there's no account connected, react to logins (broadly speaking) on the injected provider, if it exists
   useInactiveListener(!triedEager)
 
-  // Polywrap integration.
-  const [ethPlugin, setEthPlugin] = useState<PluginPackage<EthereumPluginConfig>>(
-    ethereumPlugin({
-      networks: DEFAULT_ETHEREUM_PROVIDERS,
-    })
+  const connections = useMemo(
+    () =>
+      new Connections({
+        networks: DEFAULT_ETHEREUM_PROVIDERS,
+        defaultNetwork: 'MAINNET',
+      }),
+    []
   )
 
   const plugins: PluginRegistration[] = [
     {
       uri: 'wrap://ens/ethereum.polywrap.eth',
-      plugin: ethPlugin,
+      plugin: ethereumPlugin({ connections }),
     },
   ]
 
   useEffect(() => {
     if (chainId && library) {
-      const currentNetwork = Uni_ChainIdEnum[mapChainId(chainId)]
-      const config = {
-        ...DEFAULT_ETHEREUM_PROVIDERS,
-        [currentNetwork]: {
-          provider: library,
-        },
+      const currentNetwork: string = Uni_ChainIdEnum[mapChainId(chainId)]
+      const prevNetwork: string = connections.getDefaultNetwork()
+      connections.setDefaultNetwork(currentNetwork, library as EthereumProvider)
+      // always have goerli and mainnet set for ens resolution
+      if (
+        prevNetwork === Uni_ChainIdEnum[Uni_ChainIdEnum.GOERLI] ||
+        prevNetwork === Uni_ChainIdEnum[Uni_ChainIdEnum.MAINNET]
+      ) {
+        connections.set(prevNetwork, DEFAULT_ETHEREUM_PROVIDERS[prevNetwork])
       }
-      setEthPlugin(
-        ethereumPlugin({
-          networks: config,
-          defaultNetwork: currentNetwork,
-        })
-      )
     }
-  }, [library, chainId])
+  }, [library, chainId, connections])
 
   // if the account context isn't active, and there's an error on the network context, it's an irrecoverable error
   if (triedEager && !active && networkError) {

@@ -10,7 +10,6 @@ import { Provider } from 'react-redux'
 import { HashRouter } from 'react-router-dom'
 
 import Blocklist from './components/Blocklist'
-import Web3ReactManager from './components/Web3ReactManager'
 import { NetworkContextName } from './constants/misc'
 import { LanguageProvider } from './i18n'
 import App from './pages/App'
@@ -53,15 +52,13 @@ ReactDOM.render(
         <LanguageProvider>
           <Web3ReactProvider getLibrary={getLibrary}>
             <Web3ProviderNetwork getLibrary={getLibrary}>
-              <Web3ReactManager>
-                <Blocklist>
-                  <Updaters />
-                  <ThemeProvider>
-                    <ThemedGlobalStyle />
-                    <App />
-                  </ThemeProvider>
-                </Blocklist>
-              </Web3ReactManager>
+              <Blocklist>
+                <Updaters />
+                <ThemeProvider>
+                  <ThemedGlobalStyle />
+                  <App />
+                </ThemeProvider>
+              </Blocklist>
             </Web3ProviderNetwork>
           </Web3ReactProvider>
         </LanguageProvider>

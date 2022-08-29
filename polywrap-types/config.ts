@@ -1,5 +1,5 @@
 import { PolywrapClientConfig } from '@polywrap/client-js'
-import { ethereumPlugin } from '@polywrap/ethereum-plugin-js'
+import { Connection, Connections, ethereumPlugin } from '@polywrap/ethereum-plugin-js'
 
 export const INFURA_KEY = 'b76cba91dc954ceebff27244923224b1'
 
@@ -35,18 +35,19 @@ const INFURA_NETWORK_URLS: { [key in SupportedChainId]: string } = {
 }
 
 export async function getClientConfig(_: Partial<PolywrapClientConfig>): Promise<Partial<PolywrapClientConfig>> {
+  const connections: Connections = new Connections({
+    networks: {
+      goerli: new Connection({
+        provider: INFURA_NETWORK_URLS[SupportedChainId.GOERLI],
+      }),
+    },
+    defaultNetwork: 'goerli',
+  })
   return {
     plugins: [
       {
         uri: 'wrap://ens/ethereum.polywrap.eth',
-        plugin: ethereumPlugin({
-          networks: {
-            goerli: {
-              provider: INFURA_NETWORK_URLS[SupportedChainId.GOERLI],
-            },
-          },
-          defaultNetwork: 'goerli',
-        }),
+        plugin: ethereumPlugin({ connections }),
       },
     ],
   }
