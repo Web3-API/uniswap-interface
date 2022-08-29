@@ -2,7 +2,7 @@ import { Trans } from '@lingui/macro'
 import { Connections, ethereumPlugin, EthereumProvider } from '@polywrap/ethereum-plugin-js'
 import { PolywrapProvider } from '@polywrap/react'
 import { useWeb3React } from '@web3-react/core'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import styled from 'styled-components/macro'
 
 import { network } from '../../connectors'
@@ -39,27 +39,17 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
   // when there's no account connected, react to logins (broadly speaking) on the injected provider, if it exists
   useInactiveListener(!triedEager)
 
-  const connections = useMemo(
-    () =>
-      new Connections({
-        networks: DEFAULT_ETHEREUM_PROVIDERS,
-        defaultNetwork: 'MAINNET',
-      }),
-    []
+  const [connections] = useState<Connections>(
+    new Connections({
+      networks: DEFAULT_ETHEREUM_PROVIDERS,
+      defaultNetwork: 'MAINNET',
+    })
   )
 
   useEffect(() => {
     if (chainId && library) {
       const currentNetwork: string = Uni_ChainIdEnum[mapChainId(chainId)]
-      // const prevNetwork: string = connections.getDefaultNetwork()
       connections.setDefaultNetwork(currentNetwork, library as EthereumProvider)
-      // always have goerli and mainnet set for ens resolution
-      // if (
-      //   prevNetwork === Uni_ChainIdEnum[Uni_ChainIdEnum.GOERLI] ||
-      //   prevNetwork === Uni_ChainIdEnum[Uni_ChainIdEnum.MAINNET]
-      // ) {
-      //   connections.set(prevNetwork, DEFAULT_ETHEREUM_PROVIDERS[prevNetwork])
-      // }
     }
   }, [library, chainId, connections])
 
