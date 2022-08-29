@@ -1,5 +1,4 @@
 import { Trans } from '@lingui/macro'
-import { PluginRegistration } from '@polywrap/core-js'
 import { Connections, ethereumPlugin, EthereumProvider } from '@polywrap/ethereum-plugin-js'
 import { PolywrapProvider } from '@polywrap/react'
 import { useWeb3React } from '@web3-react/core'
@@ -49,25 +48,18 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
     []
   )
 
-  const plugins: PluginRegistration[] = [
-    {
-      uri: 'wrap://ens/ethereum.polywrap.eth',
-      plugin: ethereumPlugin({ connections }),
-    },
-  ]
-
   useEffect(() => {
     if (chainId && library) {
       const currentNetwork: string = Uni_ChainIdEnum[mapChainId(chainId)]
-      const prevNetwork: string = connections.getDefaultNetwork()
+      // const prevNetwork: string = connections.getDefaultNetwork()
       connections.setDefaultNetwork(currentNetwork, library as EthereumProvider)
       // always have goerli and mainnet set for ens resolution
-      if (
-        prevNetwork === Uni_ChainIdEnum[Uni_ChainIdEnum.GOERLI] ||
-        prevNetwork === Uni_ChainIdEnum[Uni_ChainIdEnum.MAINNET]
-      ) {
-        connections.set(prevNetwork, DEFAULT_ETHEREUM_PROVIDERS[prevNetwork])
-      }
+      // if (
+      //   prevNetwork === Uni_ChainIdEnum[Uni_ChainIdEnum.GOERLI] ||
+      //   prevNetwork === Uni_ChainIdEnum[Uni_ChainIdEnum.MAINNET]
+      // ) {
+      //   connections.set(prevNetwork, DEFAULT_ETHEREUM_PROVIDERS[prevNetwork])
+      // }
     }
   }, [library, chainId, connections])
 
@@ -83,6 +75,13 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
       </MessageWrapper>
     )
   }
+
+  const plugins = [
+    {
+      uri: 'wrap://ens/ethereum.polywrap.eth',
+      plugin: ethereumPlugin({ connections }),
+    },
+  ]
 
   return <PolywrapProvider plugins={plugins}>{children}</PolywrapProvider>
 }
