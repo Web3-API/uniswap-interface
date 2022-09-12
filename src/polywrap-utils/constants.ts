@@ -26,7 +26,7 @@ export const DEFAULT_ETHEREUM_PROVIDERS = getDefaultProviders()
 
 function getDefaultProviders(): Record<string, Connection> {
   const result: Record<string, Connection> = {}
-  for (let i = 0; i < Object.keys(Uni_ChainIdEnum).length / 2; i++) {
+  for (let i = 0; i < 5; i++) {
     result[Uni_ChainIdEnum[i]] = new Connection({
       provider: INFURA_NETWORK_URLS[reverseMapChainId(i) as SupportedChainId],
     })
