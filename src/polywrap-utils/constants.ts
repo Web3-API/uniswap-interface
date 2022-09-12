@@ -15,7 +15,6 @@ export const MATIC: Uni_Currency = {
   symbol: 'MATIC',
 }
 
-// export const wrapperUri = 'wrap://ipfs/QmRW4jyQREgP1xSM3dbPfYoaEjekACTqhjLeaexc9qWZbp'
 export const wrapperUri = 'wrap://ens/goerli/v3.uniswap.wrappers.eth'
 
 // infura keys
