@@ -150,7 +150,7 @@
     "bundle": "microbundle --define process.env.REACT_APP_IS_WIDGET=true --tsconfig tsconfig.lib.json src/lib/index.tsx --format esm,cjs",
     "bundle:depcheck": "node depcheck.js",
     "cosmos": "cross-env FAST_REFRESH=false REACT_APP_IS_WIDGET=true cosmos",
-    "codegen:app": "npx polywrap codegen -m polywrap-types/polywrap.app.yaml -c polywrap-types/config.ts -g src/wrap",
+    "codegen:app": "npx polywrap codegen -m polywrap-types/polywrap.app.yaml -g src/wrap",
     "lint": "npx eslint src",
     "lint:fix": "npx eslint src --fix"
   },

@@ -42,14 +42,18 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
   const [connections] = useState<Connections>(
     new Connections({
       networks: DEFAULT_ETHEREUM_PROVIDERS,
-      defaultNetwork: 'MAINNET',
+      defaultNetwork: 'GOERLI',
     })
   )
 
   useEffect(() => {
     if (chainId && library) {
       const currentNetwork: string = Uni_ChainIdEnum[mapChainId(chainId)]
+      const prevNetwork: string = connections.getDefaultNetwork()
       connections.setDefaultNetwork(currentNetwork, library as EthereumProvider)
+      if (prevNetwork === Uni_ChainIdEnum[Uni_ChainIdEnum.GOERLI]) {
+        connections.set(prevNetwork, DEFAULT_ETHEREUM_PROVIDERS[prevNetwork])
+      }
     }
   }, [library, chainId, connections])
 

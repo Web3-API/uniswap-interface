@@ -19,7 +19,7 @@ export const wrapperUri = 'wrap://ens/goerli/v3.uniswap.wrappers.eth'
 
 export const DEFAULT_ETHEREUM_PROVIDERS = getDefaultProviders()
 
-function getDefaultProviders(): Record<string, Connection> {
+export function getDefaultProviders(): Record<string, Connection> {
   const result: Record<string, Connection> = {}
   for (let i = 0; i < 5; i++) {
     result[Uni_ChainIdEnum[i]] = new Connection({
