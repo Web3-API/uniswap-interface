@@ -17,10 +17,6 @@ export const MATIC: Uni_Currency = {
 
 export const wrapperUri = 'wrap://ens/goerli/v3.uniswap.wrappers.eth'
 
-// infura keys
-// b00b2c2cc09c487685e9fb061256d6a6
-// b76cba91dc954ceebff27244923224b1
-
 export const DEFAULT_ETHEREUM_PROVIDERS = getDefaultProviders()
 
 function getDefaultProviders(): Record<string, Connection> {
