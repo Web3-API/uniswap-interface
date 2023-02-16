@@ -57,7 +57,7 @@ import approveAmountCalldata from '../../utils/approveAmountCalldata'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { currencyId } from '../../utils/currencyId'
 import { maxAmountSpend } from '../../utils/maxAmountSpend'
-import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_MethodParameters, Uni_Module } from '../../wrap'
+import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Module } from '../../wrap'
 import { Dots } from '../Pool/styleds'
 import { Review } from './Review'
 import {
@@ -246,11 +246,11 @@ export default function AddLiquidity({
               },
               client
             )
-      if (invoke.error) {
+      if (!invoke.ok) {
         console.error(invoke.error)
         return
       }
-      const { calldata, value } = invoke.data as Uni_MethodParameters
+      const { calldata, value } = invoke.value
 
       let txn: { to: string; data: string; value: string } = {
         to: NONFUNGIBLE_POSITION_MANAGER_ADDRESSES[chainId],

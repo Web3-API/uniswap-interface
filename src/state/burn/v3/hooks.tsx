@@ -65,8 +65,11 @@ export function useDerivedV3BurnInfo(
       cancelable.current = makeCancelable(positionPromise)
       cancelable.current?.promise.then((res) => {
         if (!res) return
-        if (res.error) console.error(res.error)
-        setPositionSDK(res.data)
+        if (!res.ok) {
+          console.error(res.error)
+        } else {
+          setPositionSDK(res.value)
+        }
       })
     } else {
       setPositionSDK(undefined)

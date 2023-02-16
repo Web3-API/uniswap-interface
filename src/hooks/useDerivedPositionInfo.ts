@@ -40,8 +40,12 @@ export function useDerivedPositionInfo(positionDetails: PositionDetails | undefi
       cancelable.current = makeCancelable(positionPromise)
       cancelable.current?.promise.then((res) => {
         if (!res) return
-        if (res.error) console.error(res.error)
-        setPosition(res.data)
+        if (!res.ok) {
+          if (res.error) console.error(res.error)
+          setPosition(undefined)
+        } else {
+          setPosition(res.value)
+        }
       })
     }
     return () => cancelable.current?.cancel()

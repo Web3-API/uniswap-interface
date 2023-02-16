@@ -38,7 +38,7 @@ import { mapTokenAmount } from '../../polywrap-utils'
 import { TransactionType } from '../../state/transactions/actions'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { currencyId } from '../../utils/currencyId'
-import { Uni_MethodParameters, Uni_Module, Uni_TokenAmount as TokenAmount } from '../../wrap'
+import { Uni_Module, Uni_TokenAmount as TokenAmount } from '../../wrap'
 import AppBody from '../AppBody'
 import { ResponsiveHeaderText, SmallMaxButton, Wrapper } from './styled'
 
@@ -138,8 +138,10 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
       },
       client
     )
-    if (invoke.error) throw invoke.error
-    const { calldata, value } = invoke.data as Uni_MethodParameters
+    if (!invoke.ok) {
+      throw invoke.error
+    }
+    const { calldata, value } = invoke.value
 
     const txn = {
       to: positionManager.address,

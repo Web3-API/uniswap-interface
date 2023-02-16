@@ -53,16 +53,16 @@ export async function tryParseTick(
       },
       client
     )
-    if (sqrtRatioX96Invoke.error) throw sqrtRatioX96Invoke.error
-    const sqrtRatioX96 = sqrtRatioX96Invoke.data as string
+    if (!sqrtRatioX96Invoke.ok) throw sqrtRatioX96Invoke.error
+    const sqrtRatioX96 = sqrtRatioX96Invoke.value
 
     const maxSqrtRatioInvoke = await Uni_Module.MAX_SQRT_RATIO({}, client)
-    if (maxSqrtRatioInvoke.error) throw maxSqrtRatioInvoke.error
-    const maxSqrtRatio = maxSqrtRatioInvoke.data as string
+    if (!maxSqrtRatioInvoke.ok) throw maxSqrtRatioInvoke.error
+    const maxSqrtRatio = maxSqrtRatioInvoke.value
 
     const minSqrtRatioInvoke = await Uni_Module.MIN_SQRT_RATIO({}, client)
-    if (minSqrtRatioInvoke.error) throw minSqrtRatioInvoke.error
-    const minSqrtRatio = minSqrtRatioInvoke.data as string
+    if (!minSqrtRatioInvoke.ok) throw minSqrtRatioInvoke.error
+    const minSqrtRatio = minSqrtRatioInvoke.value
 
     let tickInvoke
     if (JSBI.greaterThanOrEqual(JSBI.BigInt(sqrtRatioX96), JSBI.BigInt(maxSqrtRatio))) {
@@ -73,16 +73,16 @@ export async function tryParseTick(
       // this function is agnostic to the base, will always return the correct tick
       tickInvoke = await Uni_Module.priceToClosestTick({ price: mapPrice(price) }, client)
     }
-    if (tickInvoke.error) throw tickInvoke.error
-    const tick: number = tickInvoke.data as number
+    if (!tickInvoke.ok) throw tickInvoke.error
+    const tick: number = tickInvoke.value
 
     const tickSpacingInvoke = await Uni_Module.feeAmountToTickSpacing({ feeAmount }, client)
-    if (tickSpacingInvoke.error) throw tickSpacingInvoke.error
-    const tickSpacing = tickSpacingInvoke.data as number
+    if (!tickSpacingInvoke.ok) throw tickSpacingInvoke.error
+    const tickSpacing = tickSpacingInvoke.value
 
     const nearestTickInvoke = await Uni_Module.nearestUsableTick({ tick, tickSpacing }, client)
-    if (nearestTickInvoke.error) throw nearestTickInvoke.error
-    return nearestTickInvoke.data
+    if (!nearestTickInvoke.ok) throw nearestTickInvoke.error
+    return nearestTickInvoke.value
   } catch (e) {
     console.error(e)
     return undefined

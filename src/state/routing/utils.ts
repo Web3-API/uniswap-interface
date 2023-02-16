@@ -5,7 +5,7 @@ import { Route as V2Route } from '@uniswap/v2-sdk'
 import { nativeOnChain } from '../../constants/tokens'
 import { mapChainId, mapFeeAmount, mapToken, mapTokenAmount, mapTradeType } from '../../polywrap-utils'
 import { ExtendedTrade } from '../../polywrap-utils/interfaces'
-import { Uni_Module, Uni_Pool as Pool, Uni_Route, Uni_Token as Token, Uni_TokenAmount, Uni_Trade } from '../../wrap'
+import { Uni_Module, Uni_Pool as Pool, Uni_Route, Uni_Token as Token, Uni_TokenAmount } from '../../wrap'
 import { GetQuoteResult, V2PoolInRoute, V3PoolInRoute } from './types'
 
 /**
@@ -55,8 +55,12 @@ export async function computeRoutes(
           },
           client
         )
-        if (routeInvoke.error) console.error(routeInvoke.error)
-        routev3 = routeInvoke.data ?? null
+        if (!routeInvoke.ok) {
+          console.error(routeInvoke.error)
+          routev3 = null
+        } else {
+          routev3 = routeInvoke.value
+        }
       }
 
       return {
@@ -107,11 +111,11 @@ export async function transformRoutesToTrade(
     },
     client
   )
-  if (polyTradeInvoke.error) {
+  if (!polyTradeInvoke.ok) {
     console.error(polyTradeInvoke.error)
     return undefined
   }
-  const polyTrade = polyTradeInvoke.data as Uni_Trade
+  const polyTrade = polyTradeInvoke.value
 
   return {
     gasUseEstimateUSD,
@@ -149,8 +153,8 @@ const parsePool = async (
     },
     client
   )
-  if (poolInvoke.error) throw poolInvoke.error
-  return poolInvoke.data as Pool
+  if (!poolInvoke.ok) throw poolInvoke.error
+  return poolInvoke.value
 }
 
 function isV3Route(route: V3PoolInRoute[] | V2PoolInRoute[]): route is V3PoolInRoute[] {

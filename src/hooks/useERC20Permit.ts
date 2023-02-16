@@ -312,9 +312,13 @@ export function useERC20PermitFromTrade(
       cancelable.current = makeCancelable(maxInPromise)
       cancelable.current?.promise.then((res) => {
         if (!res) return
-        if (res.error) console.error(res.error)
-        const maxAmountIn = reverseMapTokenAmount(res.data)
-        setAmountToApprove(maxAmountIn)
+        if (!res.ok) {
+          if (res.error) console.error(res.error)
+          setAmountToApprove(undefined)
+        } else {
+          const maxAmountIn = reverseMapTokenAmount(res.value)
+          setAmountToApprove(maxAmountIn)
+        }
       })
     }
     return () => cancelable.current?.cancel()

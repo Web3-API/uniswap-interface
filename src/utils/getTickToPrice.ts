@@ -2,7 +2,7 @@ import { PolywrapClient } from '@polywrap/client-js'
 import { Price, Token } from '@uniswap/sdk-core'
 
 import { mapToken, reverseMapPrice } from '../polywrap-utils'
-import { Uni_Module, Uni_Price } from '../wrap'
+import { Uni_Module } from '../wrap'
 
 export async function getTickToPrice(
   client: PolywrapClient,
@@ -21,7 +21,7 @@ export async function getTickToPrice(
     },
     client
   ).then((res) => {
-    if (res.error) throw res.error
-    return reverseMapPrice(res.data as Uni_Price)
+    if (!res.ok) throw res.error
+    return reverseMapPrice(res.value)
   })
 }

@@ -47,13 +47,7 @@ import { CancelablePromise, makeCancelable } from '../../polywrap-utils/makeCanc
 import { TransactionType } from '../../state/transactions/actions'
 import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { ExplorerDataType, getExplorerLink } from '../../utils/getExplorerLink'
-import {
-  Uni_MethodParameters,
-  Uni_Module,
-  Uni_Pool as Pool,
-  Uni_Position as Position,
-  Uni_TokenAmount as TokenAmount,
-} from '../../wrap'
+import { Uni_Module, Uni_Pool as Pool, Uni_Position as Position, Uni_TokenAmount as TokenAmount } from '../../wrap'
 import { LoadingRows } from './styleds'
 
 const PageWrapper = styled.div`
@@ -379,8 +373,12 @@ export function PositionPage({
       cancelable.current = makeCancelable(positionPromise)
       cancelable.current?.promise.then((invoke) => {
         if (!invoke) return
-        if (invoke.error) console.error(invoke.error)
-        setPosition(invoke.data)
+        if (!invoke.ok) {
+          console.error(invoke.error)
+          setPosition(undefined)
+        } else {
+          setPosition(invoke.value)
+        }
       })
     } else {
       setPosition(undefined)
@@ -468,8 +466,8 @@ export function PositionPage({
       },
       client
     )
-    if (invoke.error) throw invoke.error
-    const { calldata, value } = invoke.data as Uni_MethodParameters
+    if (!invoke.ok) throw invoke.error
+    const { calldata, value } = invoke.value
 
     const txn = {
       to: positionManager.address,

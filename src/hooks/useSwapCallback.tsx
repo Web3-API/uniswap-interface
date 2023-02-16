@@ -19,10 +19,8 @@ import { currencyId } from '../utils/currencyId'
 import isZero from '../utils/isZero'
 import {
   Uni_MethodParameters as MethodParameters,
-  Uni_MethodParameters,
   Uni_Module,
   Uni_PermitV as PermitV,
-  Uni_TokenAmount,
   Uni_Trade as PolyTrade,
   Uni_TradeTypeEnum as TradeTypeEnum,
 } from '../wrap'
@@ -85,8 +83,12 @@ async function createArgentParams(
       },
       client
     )
-    if (maxInInvoke.error) console.error(maxInInvoke.error)
-    maxIn = reverseMapTokenAmount(maxInInvoke.data)
+    if (!maxInInvoke.ok) {
+      console.error(maxInInvoke.error)
+      maxIn = undefined
+    } else {
+      maxIn = reverseMapTokenAmount(maxInInvoke.value)
+    }
   } else {
     maxIn = trade.maximumAmountIn(allowedSlippage)
   }
@@ -237,8 +239,8 @@ function useSwapCallArguments(
           },
           client
         ).then((paramsInvoke) => {
-          if (paramsInvoke.error) throw paramsInvoke.error
-          return paramsInvoke.data as Uni_MethodParameters
+          if (!paramsInvoke.ok) throw paramsInvoke.error
+          return paramsInvoke.value
         })
       } else {
         swapParams = SwapRouter.swapCallParameters(trade, {
@@ -503,8 +505,8 @@ export function useSwapCallback(
                         },
                         client
                       ).then((invoke) => {
-                        if (invoke.error) throw invoke.error
-                        return (invoke.data as Uni_TokenAmount).amount
+                        if (!invoke.ok) throw invoke.error
+                        return invoke.value.amount
                       }),
                     }
                   : {
@@ -529,8 +531,8 @@ export function useSwapCallback(
                       },
                       client
                     ).then((invoke) => {
-                      if (invoke.error) throw invoke.error
-                      return (invoke.data as Uni_TokenAmount).amount
+                      if (!invoke.ok) throw invoke.error
+                      return invoke.value.amount
                     }),
                     outputCurrencyId: currencyId(reverseMapToken(trade.outputAmount.token) as Currency),
                     outputCurrencyAmountRaw: trade.outputAmount.amount,

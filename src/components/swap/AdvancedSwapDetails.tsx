@@ -62,8 +62,11 @@ const asyncAmounts = async (
       },
       client
     ).then((res) => {
-      if (res.error) console.error(res.error)
-      return res.data
+      if (!res.ok) {
+        console.error(res.error)
+        return undefined
+      }
+      return res.value
     }),
     maxAmountIn: await Uni_Module.tradeMaximumAmountIn(
       {
@@ -73,8 +76,11 @@ const asyncAmounts = async (
       },
       client
     ).then((res) => {
-      if (res.error) console.error(res.error)
-      return res.data
+      if (!res.ok) {
+        console.error(res.error)
+        return undefined
+      }
+      return res.value
     }),
   }
 }

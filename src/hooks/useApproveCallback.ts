@@ -74,8 +74,12 @@ export function useAllApprovalStates(trade: PolyTrade | undefined, allowedSlippa
       cancelable.current = makeCancelable(maxInPromise)
       cancelable.current?.promise.then((res) => {
         if (!res) return
-        if (res.error) console.error(res.error)
-        setAmountToApprove(res.data)
+        if (!res.ok) {
+          console.error(res.error)
+          setAmountToApprove(undefined)
+        } else {
+          setAmountToApprove(res.value)
+        }
       })
     }
     return () => cancelable.current?.cancel()
@@ -190,9 +194,13 @@ export function useApproveCallbackFromTrade(
       cancelable.current = makeCancelable(maxInPromise)
       cancelable.current?.promise.then((res) => {
         if (!res) return
-        if (res.error) console.error(res.error)
-        const currencyAmount = reverseMapTokenAmount(res.data)
-        setAmountToApprove(currencyAmount)
+        if (!res.ok) {
+          console.error(res.error)
+          setAmountToApprove(undefined)
+        } else {
+          const currencyAmount = reverseMapTokenAmount(res.value)
+          setAmountToApprove(currencyAmount)
+        }
       })
     }
     return () => cancelable.current?.cancel()

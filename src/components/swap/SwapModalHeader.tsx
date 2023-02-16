@@ -73,8 +73,11 @@ const asyncAmount = async (
       client
     )
   }
-  if (invoke.error) console.error(invoke.error)
-  return invoke.data
+  if (!invoke.ok) {
+    console.error(invoke.error)
+    return undefined
+  }
+  return invoke.value
 }
 
 export default function SwapModalHeader({

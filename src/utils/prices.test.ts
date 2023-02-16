@@ -7,7 +7,6 @@ import {
   Uni_FeeAmountEnum,
   Uni_Module,
   Uni_Pool,
-  Uni_Route,
   Uni_Token,
   Uni_Trade,
   Uni_TradeTypeEnum,
@@ -49,8 +48,8 @@ const getTrade = async (
   amount: string
 ): Promise<Uni_Trade> => {
   const routeInvoke = await Uni_Module.createRoute({ pools, inToken, outToken }, client)
-  if (routeInvoke.error) throw routeInvoke.error
-  const route = routeInvoke.data as Uni_Route
+  if (!routeInvoke.ok) throw routeInvoke.error
+  const route = routeInvoke.value
   const tradeInvoke = await Uni_Module.createTradeFromRoutes(
     {
       tradeRoutes: [
@@ -66,8 +65,8 @@ const getTrade = async (
     },
     client
   )
-  if (tradeInvoke.error) throw tradeInvoke.error
-  return tradeInvoke.data as Uni_Trade
+  if (!tradeInvoke.ok) throw tradeInvoke.error
+  return tradeInvoke.value
 }
 
 describe('prices', () => {
@@ -87,8 +86,8 @@ describe('prices', () => {
       },
       client
     )
-    if (polyPool12Invoke.error) throw polyPool12Invoke.error
-    polyPool12 = polyPool12Invoke.data as Uni_Pool
+    if (!polyPool12Invoke.ok) throw polyPool12Invoke.error
+    polyPool12 = polyPool12Invoke.value
 
     const polyPool13Invoke = await Uni_Module.createPool(
       {
@@ -101,8 +100,8 @@ describe('prices', () => {
       },
       client
     )
-    if (polyPool13Invoke.error) throw polyPool13Invoke.error
-    polyPool13 = polyPool13Invoke.data as Uni_Pool
+    if (!polyPool13Invoke.ok) throw polyPool13Invoke.error
+    polyPool13 = polyPool13Invoke.value
   })
 
   describe('#computeRealizedLPFeeAmount', () => {

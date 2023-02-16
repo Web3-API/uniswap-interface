@@ -68,8 +68,11 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
         },
         client
       )
-      if (invoke.error) console.error(invoke.error)
-      return invoke.data?.calldata
+      if (!invoke.ok) {
+        console.error(invoke.error)
+        return undefined
+      }
+      return invoke.value.calldata
     })
     cancelableCalldata.current = makeCancelable(Promise.all(calldatas))
     cancelableCalldata.current?.promise.then((params) => {
@@ -193,12 +196,12 @@ export function useClientSideV3Trade<TTradeType extends TradeType>(
     cancelableTrade.current = makeCancelable(tradePromise)
     cancelableTrade.current?.promise.then((invoke) => {
       if (!invoke) return
-      if (invoke.error) {
+      if (!invoke.ok) {
         console.error(invoke.error)
       } else {
         setResult({
           state: TradeState.VALID,
-          trade: invoke.data as Trade,
+          trade: invoke.value,
         })
       }
     })

@@ -196,8 +196,12 @@ export function useDerivedSwapInfo(): {
       cancelable.current = makeCancelable(maxInPromise)
       cancelable.current?.promise.then((invoke) => {
         if (!invoke) return
-        if (invoke.error) console.error(invoke.error)
-        setMaximumAmountIn(invoke.data)
+        if (!invoke.ok) {
+          console.error(invoke.error)
+          setMaximumAmountIn(undefined)
+        } else {
+          setMaximumAmountIn(invoke.value)
+        }
       })
     }
     return () => cancelable.current?.cancel()

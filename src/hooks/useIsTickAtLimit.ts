@@ -46,33 +46,52 @@ const loadIsTickAtLimits = async (
   let tickSpacing: number | undefined = undefined
   if (tickLower !== undefined || tickUpper !== undefined) {
     const tickSpacingInvoke = await Uni_Module.feeAmountToTickSpacing({ feeAmount }, client)
-    if (tickSpacingInvoke.error) console.error(tickSpacingInvoke.error)
-    tickSpacing = tickSpacingInvoke.data
+    if (!tickSpacingInvoke.ok) {
+      console.error(tickSpacingInvoke.error)
+    } else {
+      tickSpacing = tickSpacingInvoke.value
+    }
   }
 
   let lower: boolean | undefined = undefined
   if (tickLower !== undefined && tickSpacing !== undefined) {
     const tickInvoke = await Uni_Module.MIN_TICK({}, client)
-    if (tickInvoke.error) console.error(tickInvoke.error)
-    const tick = tickInvoke.data
+
+    let tick = undefined
+    if (!tickInvoke.ok) {
+      console.error(tickInvoke.error)
+    } else {
+      tick = tickInvoke.value
+    }
 
     if (tick !== undefined) {
       const nearestTickInvoke = await Uni_Module.nearestUsableTick({ tick, tickSpacing }, client)
-      if (nearestTickInvoke.error) console.error(nearestTickInvoke.error)
-      lower = tickLower === nearestTickInvoke.data
+      if (!nearestTickInvoke.ok) {
+        console.error(nearestTickInvoke.error)
+      } else {
+        lower = tickLower === nearestTickInvoke.value
+      }
     }
   }
 
   let upper: boolean | undefined = undefined
   if (tickUpper !== undefined && tickSpacing !== undefined) {
     const tickInvoke = await Uni_Module.MAX_TICK({}, client)
-    if (tickInvoke.error) console.error(tickInvoke.error)
-    const tick = tickInvoke.data
+
+    let tick = undefined
+    if (!tickInvoke.ok) {
+      console.error(tickInvoke.error)
+    } else {
+      tick = tickInvoke.value
+    }
 
     if (tick !== undefined) {
       const nearestTickInvoke = await Uni_Module.nearestUsableTick({ tick, tickSpacing }, client)
-      if (nearestTickInvoke.error) console.error(nearestTickInvoke.error)
-      upper = tickUpper === nearestTickInvoke.data
+      if (!nearestTickInvoke.ok) {
+        console.error(nearestTickInvoke.error)
+      } else {
+        upper = tickUpper === nearestTickInvoke.value
+      }
     }
   }
 

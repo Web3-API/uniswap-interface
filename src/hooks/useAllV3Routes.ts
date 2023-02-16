@@ -33,12 +33,20 @@ async function computeAllRoutes(
   maxHops = 2
 ): Promise<Uni_Route[]> {
   const tokenInInvoke = await Uni_Module.wrapToken({ token: currencyIn }, client)
-  if (tokenInInvoke.error) console.error(tokenInInvoke.error)
-  const tokenIn = tokenInInvoke.data
+  let tokenIn: Uni_Token | undefined
+  if (!tokenInInvoke.ok) {
+    console.error(tokenInInvoke.error)
+  } else {
+    tokenIn = tokenInInvoke.value
+  }
 
   const tokenOutInvoke = await Uni_Module.wrapToken({ token: currencyOut }, client)
-  if (tokenOutInvoke.error) console.error(tokenOutInvoke.error)
-  const tokenOut = tokenOutInvoke.data
+  let tokenOut: Uni_Token | undefined
+  if (!tokenOutInvoke.ok) {
+    console.error(tokenOutInvoke.error)
+  } else {
+    tokenOut = tokenOutInvoke.value
+  }
 
   if (!tokenIn || !tokenOut) throw new Error('Missing tokenIn/tokenOut')
 
@@ -60,8 +68,11 @@ async function computeAllRoutes(
         },
         client
       )
-      if (routeInvoke.error) console.error(routeInvoke.error)
-      else allPaths.push(routeInvoke.data as Uni_Route)
+      if (!routeInvoke.ok) {
+        console.error(routeInvoke.error)
+      } else {
+        allPaths.push(routeInvoke.value)
+      }
     } else if (maxHops > 1) {
       await computeAllRoutes(
         client,

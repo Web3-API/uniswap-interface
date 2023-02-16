@@ -11,7 +11,7 @@ import computeSurroundingTicks from 'utils/computeSurroundingTicks'
 
 import { feeAmountToTickSpacing, mapToken, reverseMapToken, wrapperUri } from '../polywrap-utils'
 import { CancelablePromise, makeCancelable } from '../polywrap-utils/makeCancelable'
-import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Module, Uni_Pool, Uni_Price } from '../wrap'
+import { Uni_FeeAmountEnum as FeeAmountEnum, Uni_Module, Uni_Pool } from '../wrap'
 import { PoolState, usePool } from './usePools'
 
 const PRICE_FIXED_DIGITS = 8
@@ -210,7 +210,7 @@ async function loadPoolLiquidity(
     },
     client
   )
-  if (priceInvoke.error) {
+  if (!priceInvoke.ok) {
     console.error(priceInvoke.error)
     return {
       isLoading,
@@ -221,7 +221,7 @@ async function loadPoolLiquidity(
       data: undefined,
     }
   }
-  const { baseToken, quoteToken, numerator, denominator } = priceInvoke.data as Uni_Price
+  const { baseToken, quoteToken, numerator, denominator } = priceInvoke.value
 
   const activeTickProcessed: TickProcessed = {
     liquidityActive: JSBI.BigInt(pool[1]?.liquidity ?? 0),

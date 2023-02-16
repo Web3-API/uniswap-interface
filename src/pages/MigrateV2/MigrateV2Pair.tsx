@@ -135,42 +135,48 @@ const loadPositionData = async (
     tick = pool?.tickCurrent
   } else {
     const invoke = await Uni_Module.priceToClosestTick({ price: mapPrice(v2SpotPrice) }, client)
-    if (invoke.error) {
+    if (!invoke.ok) {
       console.error(invoke.error)
       return { sqrtPrice: pool?.sqrtRatioX96 ?? '0' }
     }
-    tick = invoke.data as number
+    tick = invoke.value
   }
   // the price is either the current v3 price, or the price at the tick
-  let sqrtPrice
+  let sqrtPrice: string
   if (pool?.sqrtRatioX96) {
     sqrtPrice = pool?.sqrtRatioX96
   } else {
     const invoke = await Uni_Module.getSqrtRatioAtTick({ tick }, client)
-    if (invoke.error) {
+    if (!invoke.ok) {
       console.error(invoke.error)
       return { sqrtPrice: '0' }
     }
-    sqrtPrice = invoke.data as string
+    sqrtPrice = invoke.value
   }
 
   let position: Uni_Position | undefined = undefined
   if (typeof tickLower === 'number' && typeof tickUpper === 'number' && !invalidRange) {
+    let poolForPosition = pool
+    if (!poolForPosition) {
+      const res = await Uni_Module.createPool(
+        {
+          tokenA: mapToken(token0),
+          tokenB: mapToken(token1),
+          fee: feeAmount,
+          sqrtRatioX96: sqrtPrice,
+          liquidity: '0',
+          tickCurrent: tick,
+        },
+        client
+      )
+      if (!res.ok) {
+        return { sqrtPrice, position }
+      }
+      poolForPosition = res.value
+    }
     const invoke = await Uni_Module.createPositionFromAmounts(
       {
-        pool:
-          pool ??
-          ((await Uni_Module.createPool(
-            {
-              tokenA: mapToken(token0),
-              tokenB: mapToken(token1),
-              fee: feeAmount,
-              sqrtRatioX96: sqrtPrice,
-              liquidity: '0',
-              tickCurrent: tick,
-            },
-            client
-          )) as Uni_Pool),
+        pool: poolForPosition,
         tickLower,
         tickUpper,
         amount0: token0Value.quotient.toString(),
@@ -179,8 +185,11 @@ const loadPositionData = async (
       },
       client
     )
-    if (invoke.error) console.error(invoke.error)
-    position = invoke.data
+    if (!invoke.ok) {
+      console.error(invoke.error)
+    } else {
+      position = invoke.value
+    }
   }
   const posAmount0 = position && position.token0Amount
   const posAmount1 = position && position.token1Amount
@@ -355,8 +364,12 @@ function V2PairMigration({
       cancelableMintAmounts.current = makeCancelable(mintAmountsPromise)
       cancelableMintAmounts.current?.promise.then((res) => {
         if (!res) return
-        if (res.error) console.error(res.error)
-        setMintAmounts(res.data ?? {})
+        if (!res.ok) {
+          console.error(res.error)
+          setMintAmounts({})
+        } else {
+          setMintAmounts(res.value)
+        }
       })
     }
     return () => cancelableMintAmounts.current?.cancel()

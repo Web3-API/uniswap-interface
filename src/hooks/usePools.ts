@@ -59,13 +59,13 @@ class PoolCache {
       },
       client
     )
-    if (invoke.error) {
+    if (!invoke.ok) {
       console.error(invoke.error)
       return undefined
     }
     const address = {
       key,
-      address: invoke.data as string,
+      address: invoke.value,
     }
 
     this.addresses.unshift(address)
@@ -107,8 +107,8 @@ class PoolCache {
       },
       client
     )
-    if (invoke.error) throw invoke.error
-    const pool = invoke.data as Uni_Pool
+    if (!invoke.ok) throw invoke.error
+    const pool = invoke.value
 
     this.pools.unshift(pool)
     return pool

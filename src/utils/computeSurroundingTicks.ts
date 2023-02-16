@@ -5,7 +5,7 @@ import JSBI from 'jsbi'
 import { AllV3TicksQuery } from 'state/data/generated'
 
 import { mapToken, reverseMapPrice } from '../polywrap-utils'
-import { Uni_Module, Uni_Price } from '../wrap'
+import { Uni_Module } from '../wrap'
 
 const PRICE_FIXED_DIGITS = 8
 
@@ -36,8 +36,8 @@ export default async function computeSurroundingTicks(
       },
       client
     ).then((res) => {
-      if (res.error) throw res.error
-      return reverseMapPrice(res.data as Uni_Price)
+      if (!res.ok) throw res.error
+      return reverseMapPrice(res.value)
     })
 
     const currentTickProcessed: TickProcessed = {

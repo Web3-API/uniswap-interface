@@ -21,8 +21,8 @@ describe('#computeSurroundingTicks', () => {
     const token1 = new Token(1, '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984', 18)
     const feeAmount = Uni_FeeAmountEnum.LOW
     const spacing = await Uni_Module.feeAmountToTickSpacing({ feeAmount }, client).then((res) => {
-      if (res.error) throw res.error
-      return res.data as number
+      if (!res.ok) throw res.error
+      return res.value
     })
     const activeTickProcessed = {
       tickIdx: 1000,

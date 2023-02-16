@@ -232,9 +232,11 @@ export default function PositionListItem({ positionDetails }: PositionListItemPr
       )
       cancelable.current = makeCancelable(positionPromise)
       cancelable.current?.promise.then((res) => {
-        if (!res) return
-        if (res.error) console.error(res.error)
-        setPosition(res.data)
+        if (!res?.ok) {
+          if (res?.error) console.error(res.error)
+          return
+        }
+        setPosition(res.value)
       })
     }
     return () => cancelable.current?.cancel()
