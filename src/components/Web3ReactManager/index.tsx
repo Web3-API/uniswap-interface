@@ -2,6 +2,7 @@ import { Trans } from '@lingui/macro'
 import { Connections, ethereumPlugin, EthereumProvider } from '@polywrap/ethereum-plugin-js'
 import { PolywrapProvider } from '@polywrap/react'
 import { useWeb3React } from '@web3-react/core'
+import { ipfsResolverPlugin } from 'ipfs-resolver-plugin-js-with-retries'
 import { useEffect, useState } from 'react'
 import styled from 'styled-components/macro'
 
@@ -42,7 +43,7 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
   const [connections] = useState<Connections>(
     new Connections({
       networks: DEFAULT_ETHEREUM_PROVIDERS,
-      defaultNetwork: 'GOERLI',
+      defaultNetwork: 'MAINNET',
     })
   )
 
@@ -75,7 +76,24 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
       uri: 'wrap://ens/ethereum.polywrap.eth',
       plugin: ethereumPlugin({ connections }),
     },
+    {
+      uri: 'wrap://ens/ipfs-resolver.polywrap.eth',
+      plugin: ipfsResolverPlugin({}),
+    },
   ]
 
-  return <PolywrapProvider plugins={plugins}>{children}</PolywrapProvider>
+  const envs = [
+    {
+      uri: 'wrap://ens/ipfs-resolver.polywrap.eth',
+      env: {
+        retries: { getFile: 2, tryResolveUri: 2 },
+      },
+    },
+  ]
+
+  return (
+    <PolywrapProvider plugins={plugins} envs={envs}>
+      {children}
+    </PolywrapProvider>
+  )
 }

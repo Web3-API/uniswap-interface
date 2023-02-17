@@ -13150,6 +13150,16 @@ ipfs-http-client@48.1.3:
     stream-to-it "^0.2.2"
     uint8arrays "^1.1.0"
 
+ipfs-resolver-plugin-js-with-retries@0.9.5:
+  version "0.9.5"
+  resolved "https://registry.yarnpkg.com/ipfs-resolver-plugin-js-with-retries/-/ipfs-resolver-plugin-js-with-retries-0.9.5.tgz#6d53a0fc0a22290d58d67554abe0bd60b073a7b3"
+  integrity sha512-NoxAz6/8Fxiss5PQadYqZBaSmxgokDYxjVrgcaBO/aT4rvzabBfnfQ1CMqIQLfY03UiatnEcGYAmCXdmHhR7dw==
+  dependencies:
+    "@polywrap/core-js" "0.9.5"
+    "@polywrap/ipfs-http-client-lite" "0.3.0"
+    abort-controller "3.0.0"
+    is-ipfs "1.0.3"
+
 ipfs-utils@^5.0.0:
   version "5.0.1"
   resolved "https://registry.yarnpkg.com/ipfs-utils/-/ipfs-utils-5.0.1.tgz#7c0053d5e77686f45577257a73905d4523e6b4f7"

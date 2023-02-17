@@ -15,7 +15,8 @@ export const MATIC: Uni_Currency = {
   symbol: 'MATIC',
 }
 
-export const wrapperUri = 'wrap://ens/goerli/v3.uniswap.wrappers.eth'
+// 'wrap://ens/goerli/v3.uniswap.wrappers.eth'
+export const wrapperUri = 'wrap://ipfs/QmYDZ3zTiZsPwWUoek3BmdkuGKyBaJSS3tyAemVhRE1KxY'
 
 export const DEFAULT_ETHEREUM_PROVIDERS = getDefaultProviders()
 
