@@ -1,9 +1,10 @@
 import { Trans } from '@lingui/macro'
+import { PluginRegistration } from '@polywrap/client-js'
 import { Connections, ethereumPlugin, EthereumProvider } from '@polywrap/ethereum-plugin-js'
 import { PolywrapProvider } from '@polywrap/react'
 import { useWeb3React } from '@web3-react/core'
 import { ipfsResolverPlugin } from 'ipfs-resolver-plugin-js-with-retries'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import styled from 'styled-components/macro'
 
 import { network } from '../../connectors'
@@ -40,7 +41,7 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
   // when there's no account connected, react to logins (broadly speaking) on the injected provider, if it exists
   useInactiveListener(!triedEager)
 
-  const [connections] = useState<Connections>(
+  const connections = useRef<Connections>(
     new Connections({
       networks: DEFAULT_ETHEREUM_PROVIDERS,
       defaultNetwork: 'MAINNET',
@@ -50,13 +51,33 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
   useEffect(() => {
     if (chainId && library) {
       const currentNetwork: string = Uni_ChainIdEnum[mapChainId(chainId)]
-      const prevNetwork: string = connections.getDefaultNetwork()
-      connections.setDefaultNetwork(currentNetwork, library as EthereumProvider)
+      const prevNetwork: string = connections.current.getDefaultNetwork()
+      connections.current.setDefaultNetwork(currentNetwork, library as EthereumProvider)
       if (prevNetwork === Uni_ChainIdEnum[Uni_ChainIdEnum.GOERLI]) {
-        connections.set(prevNetwork, DEFAULT_ETHEREUM_PROVIDERS[prevNetwork])
+        connections.current.set(prevNetwork, DEFAULT_ETHEREUM_PROVIDERS[prevNetwork])
       }
     }
   }, [library, chainId, connections])
+
+  const plugins = useRef<PluginRegistration[]>([
+    {
+      uri: 'wrap://ens/ethereum.polywrap.eth',
+      plugin: ethereumPlugin({ connections: connections.current }),
+    },
+    {
+      uri: 'wrap://ens/ipfs-resolver.polywrap.eth',
+      plugin: ipfsResolverPlugin({}),
+    },
+  ])
+
+  const envs = [
+    {
+      uri: 'wrap://ens/ipfs-resolver.polywrap.eth',
+      env: {
+        retries: { getFile: 2, tryResolveUri: 2 },
+      },
+    },
+  ]
 
   // if the account context isn't active, and there's an error on the network context, it's an irrecoverable error
   if (triedEager && !active && networkError) {
@@ -71,28 +92,8 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
     )
   }
 
-  const plugins = [
-    {
-      uri: 'wrap://ens/ethereum.polywrap.eth',
-      plugin: ethereumPlugin({ connections }),
-    },
-    {
-      uri: 'wrap://ens/ipfs-resolver.polywrap.eth',
-      plugin: ipfsResolverPlugin({}),
-    },
-  ]
-
-  const envs = [
-    {
-      uri: 'wrap://ens/ipfs-resolver.polywrap.eth',
-      env: {
-        retries: { getFile: 2, tryResolveUri: 2 },
-      },
-    },
-  ]
-
   return (
-    <PolywrapProvider plugins={plugins} envs={envs}>
+    <PolywrapProvider plugins={plugins.current} envs={envs}>
       {children}
     </PolywrapProvider>
   )
