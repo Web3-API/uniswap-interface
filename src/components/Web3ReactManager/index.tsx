@@ -3,7 +3,6 @@ import { PluginRegistration } from '@polywrap/client-js'
 import { Connections, ethereumPlugin, EthereumProvider } from '@polywrap/ethereum-plugin-js'
 import { PolywrapProvider } from '@polywrap/react'
 import { useWeb3React } from '@web3-react/core'
-import { ipfsResolverPlugin } from 'ipfs-resolver-plugin-js-with-retries'
 import { useEffect, useRef } from 'react'
 import styled from 'styled-components/macro'
 
@@ -63,10 +62,6 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
     {
       uri: 'wrap://ens/ethereum.polywrap.eth',
       plugin: ethereumPlugin({ connections: connections.current }),
-    },
-    {
-      uri: 'wrap://ens/ipfs-resolver.polywrap.eth',
-      plugin: ipfsResolverPlugin({}),
     },
   ])
 
