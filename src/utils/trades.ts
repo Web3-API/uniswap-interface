@@ -1,12 +1,12 @@
 import { W3_ZERO_PERCENT, W3_ONE_HUNDRED_PERCENT } from '../constants'
-import { W3Trade } from '../web3api/types'
+import { W3Trade } from '../polywrap/types'
 import Decimal from 'decimal.js'
-import { w3TradeExecutionPrice } from '../web3api/tradeWrappers'
-import { currencyEquals as w3currencyEquals } from '../web3api/utils'
-import { Web3ApiClient } from '@web3api/client-js'
+import { w3TradeExecutionPrice } from '../polywrap/tradeWrappers'
+import { currencyEquals as w3currencyEquals } from '../polywrap/utils'
+import { PolywrapClient } from '@polywrap/client-js'
 
 export async function w3IsTradeBetter(
-  client: Web3ApiClient,
+  client: PolywrapClient,
   tradeA: W3Trade | undefined | null,
   tradeB: W3Trade | undefined | null,
   minimumDelta: Decimal = W3_ZERO_PERCENT

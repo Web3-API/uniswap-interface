@@ -11,8 +11,8 @@ import { useActiveWeb3React } from 'hooks'
 import { getEtherscanLink } from 'utils'
 import { wrappedCurrency } from 'utils/w3WrappedCurrency'
 import { useUnsupportedTokens } from '../../hooks/W3Tokens'
-import { W3Token } from '../../web3api/types'
-import { mapChainId, reverseMapToken } from '../../web3api/mapping'
+import { W3Token } from '../../polywrap/types'
+import { mapChainId, reverseMapToken } from '../../polywrap/mapping'
 
 const DetailsFooter = styled.div<{ show: boolean }>`
   padding-top: calc(16px + 2rem);

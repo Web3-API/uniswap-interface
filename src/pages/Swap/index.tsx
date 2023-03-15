@@ -47,14 +47,14 @@ import Loader from '../../components/Loader'
 import { useIsTransactionUnsupported } from 'hooks/Trades'
 import UnsupportedCurrencyFooter from 'components/swap/UnsupportedCurrencyFooter'
 import { RouteComponentProps } from 'react-router-dom'
-import { W3Token, W3TokenAmount, W3Trade } from '../../web3api/types'
-import { mapToken, reverseMapToken } from '../../web3api/mapping'
-import { isEther, isToken, toExact, toSignificant, tokenDeps, tokenAmountDeps } from '../../web3api/utils'
+import { W3Token, W3TokenAmount, W3Trade } from '../../polywrap/types'
+import { mapToken, reverseMapToken } from '../../polywrap/mapping'
+import { isEther, isToken, toExact, toSignificant, tokenDeps, tokenAmountDeps } from '../../polywrap/utils'
 import { Currency } from '@uniswap/sdk'
-import { w3TradeExecutionPrice } from '../../web3api/tradeWrappers'
-import { Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
-import Codeblock from '../../web3api/components/Codeblock'
+import { w3TradeExecutionPrice } from '../../polywrap/tradeWrappers'
+import { PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
+import Codeblock from '../../polywrap/components/Codeblock'
 import useDebounce from '../../hooks/useDebounce'
 
 export default function Swap({ history }: RouteComponentProps) {
@@ -93,8 +93,8 @@ export default function Swap({ history }: RouteComponentProps) {
   const [allowedSlippage] = useUserSlippageTolerance()
   const toggledVersion = useToggledVersion()
 
-  // get web3api client
-  const client: Web3ApiClient = useWeb3ApiClient()
+  // get polywrap client
+  const client: PolywrapClient = usePolywrapClient()
 
   // swap state
   const { independentField, typedValue, recipient } = useSwapState()

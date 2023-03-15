@@ -25,7 +25,7 @@ import DoubleCurrencyLogo from '../DoubleLogo'
 import { RowBetween, RowFixed, AutoRow } from '../Row'
 import { Dots } from '../swap/styleds'
 import { BIG_INT_ZERO } from '../../constants'
-import { mapToken, reverseMapTokenAmount } from '../../web3api/mapping'
+import { mapToken, reverseMapTokenAmount } from '../../polywrap/mapping'
 
 export const FixedHeightRow = styled(RowBetween)`
   height: 24px;

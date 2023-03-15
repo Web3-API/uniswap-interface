@@ -15,7 +15,7 @@ import { useDelegateCallback } from '../../state/governance/hooks'
 import { useTokenBalance } from '../../state/wallet/hooks'
 import { UNI } from '../../constants'
 import { LoadingView, SubmittedView } from '../ModalViews'
-import { mapToken, reverseMapTokenAmount } from '../../web3api/mapping'
+import { mapToken, reverseMapTokenAmount } from '../../polywrap/mapping'
 import { TokenAmount } from '@uniswap/sdk'
 
 const ContentWrapper = styled(AutoColumn)`

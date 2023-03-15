@@ -10,10 +10,10 @@ import { useActiveWeb3React } from './index'
 import { useBytes32TokenContract, useTokenContract } from './useContract'
 import { filterTokens } from '../components/SearchModal/w3filtering'
 import { arrayify } from 'ethers/lib/utils'
-import { mapChainId, mapToken } from '../web3api/mapping'
-import { W3Token } from '../web3api/types'
-import { ETHER } from '../web3api/constants'
-import { isEther, tokenEquals } from '../web3api/utils'
+import { mapChainId, mapToken } from '../polywrap/mapping'
+import { W3Token } from '../polywrap/types'
+import { ETHER } from '../polywrap/constants'
+import { isEther, tokenEquals } from '../polywrap/utils'
 
 // reduce token map into standard address <-> Token mapping, optionally include user added tokens
 function useTokensFromMap(tokenMap: TokenAddressMap, includeUserAdded: boolean): { [address: string]: W3Token } {

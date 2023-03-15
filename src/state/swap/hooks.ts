@@ -12,15 +12,15 @@ import { useCurrencyBalances } from '../wallet/hooks'
 import { Field, replaceSwapState, selectCurrency, setRecipient, switchCurrencies, typeInput } from './actions'
 import { SwapState } from './reducer'
 import { w3ComputeSlippageAdjustedAmounts } from '../../utils/prices'
-import { W3Pair, W3Token, W3TokenAmount, W3Trade } from '../../web3api/types'
+import { W3Pair, W3Token, W3TokenAmount, W3Trade } from '../../polywrap/types'
 import Decimal from 'decimal.js-light'
-import { isEther } from '../../web3api/utils'
+import { isEther } from '../../polywrap/utils'
 import useENS from '../../hooks/useENS'
 import { useUserSlippageTolerance } from '../user/hooks'
-import { Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
-import { w3PairAddress } from '../../web3api/tradeWrappers'
-import { reverseMapToken } from '../../web3api/mapping'
+import { PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
+import { w3PairAddress } from '../../polywrap/tradeWrappers'
+import { reverseMapToken } from '../../polywrap/mapping'
 import { Pair, Token } from '@uniswap/sdk'
 
 export function useSwapState(): AppState['swap'] {
@@ -101,7 +101,7 @@ const BAD_RECIPIENT_ADDRESSES: string[] = [
 ]
 
 export async function w3InvolvesAddress(
-  client: Web3ApiClient,
+  client: PolywrapClient,
   trade: W3Trade,
   checksummedAddress: string
 ): Promise<boolean> {
@@ -141,7 +141,7 @@ export function involvesAddress(trade: W3Trade, checksummedAddress: string): boo
 // check swap inputs for errors
 // formerly part of useDerivedSwapInfo()
 export async function validateSwapInput(
-  client: Web3ApiClient,
+  client: PolywrapClient,
   currencies: { [field in Field]?: W3Token },
   currencyBalances: { [field in Field]?: W3TokenAmount },
   parsedAmount: W3TokenAmount | undefined,
@@ -169,7 +169,10 @@ export async function validateSwapInput(
   if (!to || !formattedTo) {
     inputError = inputError ?? 'Enter a recipient'
   } else {
-    if (BAD_RECIPIENT_ADDRESSES.indexOf(formattedTo) !== -1 || (v2Trade && await w3InvolvesAddress(client, v2Trade, formattedTo))) {
+    if (
+      BAD_RECIPIENT_ADDRESSES.indexOf(formattedTo) !== -1 ||
+      (v2Trade && await w3InvolvesAddress(client, v2Trade, formattedTo))
+    ) {
       inputError = inputError ?? 'Invalid recipient'
     }
   }
@@ -234,8 +237,8 @@ export function useDerivedSwapInfo(): {
     [Field.OUTPUT]: outputCurrency ?? undefined
   }
 
-  // get web3api client
-  const client: Web3ApiClient = useWeb3ApiClient()
+  // get polywrap client
+  const client: PolywrapClient = usePolywrapClient()
   // get info needed for input validation
   const recipientLookup = useENS(recipient ?? undefined)
   const to: string | null = (recipient === null ? account : recipientLookup.address) ?? null

@@ -18,7 +18,7 @@ import { Dots } from '../../components/swap/styleds'
 import { useAddUserToken } from '../../state/user/hooks'
 import { isTokenOnList } from '../../utils'
 import { useCombinedActiveList } from '../../state/lists/hooks'
-import { mapToken, reverseMapTokenAmount } from '../../web3api/mapping'
+import { mapToken, reverseMapTokenAmount } from '../../polywrap/mapping'
 
 export default function MigrateV1() {
   const theme = useContext(ThemeContext)

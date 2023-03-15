@@ -10,7 +10,7 @@ import { AppDispatch, AppState } from '../index'
 import { tryParseAmount } from '../swap/hooks'
 import { useCurrencyBalances } from '../wallet/hooks'
 import { Field, typeInput } from './actions'
-import { mapToken, reverseMapTokenAmount } from '../../web3api/mapping'
+import { mapToken, reverseMapTokenAmount } from '../../polywrap/mapping'
 
 const ZERO = JSBI.BigInt(0)
 

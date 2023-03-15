@@ -13,8 +13,8 @@ import MetaMaskLogo from '../../assets/images/metamask.png'
 import { getEtherscanLink } from '../../utils'
 import { useActiveWeb3React } from '../../hooks'
 import useAddTokenToMetamask from 'hooks/useAddTokenToMetamask'
-import { W3ChainId, W3Token } from '../../web3api/types'
-import { mapChainId, reverseMapChainId, reverseMapToken } from '../../web3api/mapping'
+import { W3ChainId, W3Token } from '../../polywrap/types'
+import { mapChainId, reverseMapChainId, reverseMapToken } from '../../polywrap/mapping'
 
 const Wrapper = styled.div`
   width: 100%;

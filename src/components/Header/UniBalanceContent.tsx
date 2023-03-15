@@ -16,7 +16,7 @@ import useUSDCPrice from '../../utils/useUSDCPrice'
 import { AutoColumn } from '../Column'
 import { RowBetween } from '../Row'
 import { Break, CardBGImage, CardNoise, CardSection, DataCard } from '../earn/styled'
-import { mapToken, reverseMapTokenAmount } from '../../web3api/mapping'
+import { mapToken, reverseMapTokenAmount } from '../../polywrap/mapping'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;

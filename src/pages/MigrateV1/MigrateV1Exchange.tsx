@@ -28,7 +28,7 @@ import { BackArrow, ExternalLink, TYPE } from '../../theme'
 import { getEtherscanLink, isAddress } from '../../utils'
 import { BodyWrapper } from '../AppBody'
 import { EmptyState } from './EmptyState'
-import { mapToken, mapTokenAmount, reverseMapTokenAmount } from '../../web3api/mapping'
+import { mapToken, mapTokenAmount, reverseMapTokenAmount } from '../../polywrap/mapping'
 
 const WEI_DENOM = JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(18))
 const ZERO = JSBI.BigInt(0)

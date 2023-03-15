@@ -4,7 +4,7 @@ import { Flex } from 'rebass'
 import { ThemeContext } from 'styled-components'
 import { TYPE } from '../../theme'
 import { unwrappedToken } from 'utils/w3WrappedCurrency'
-import { W3Trade } from '../../web3api/types'
+import { W3Trade } from '../../polywrap/types'
 
 export default memo(function SwapRoute({ trade }: { trade: W3Trade }) {
   const theme = useContext(ThemeContext)

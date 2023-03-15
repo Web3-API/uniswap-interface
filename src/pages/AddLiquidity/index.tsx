@@ -40,7 +40,7 @@ import { currencyId } from '../../utils/currencyId'
 import { PoolPriceBar } from './PoolPriceBar'
 import { useIsTransactionUnsupported } from 'hooks/Trades'
 import UnsupportedCurrencyFooter from 'components/swap/UnsupportedCurrencyFooter'
-import { mapToken, mapTokenAmount, reverseMapTokenAmount } from '../../web3api/mapping'
+import { mapToken, mapTokenAmount, reverseMapTokenAmount } from '../../polywrap/mapping'
 
 export default function AddLiquidity({
   match: {

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { isAddress } from '../../utils'
-import { W3Token } from '../../web3api/types'
+import { W3Token } from '../../polywrap/types'
 
 export function filterTokens(tokens: W3Token[], search: string): W3Token[] {
   if (search.length === 0) return tokens

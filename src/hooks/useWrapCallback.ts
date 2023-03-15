@@ -4,10 +4,10 @@ import { useTransactionAdder } from '../state/transactions/hooks'
 import { useCurrencyBalance } from '../state/wallet/hooks'
 import { useActiveWeb3React } from './index'
 import { useWETHContract } from './useContract'
-import { mapChainId } from '../web3api/mapping'
-import { W3Token } from '../web3api/types'
+import { mapChainId } from '../polywrap/mapping'
+import { W3Token } from '../polywrap/types'
 import Decimal from 'decimal.js'
-import { isEther, tokenEquals, toSignificant, WETH } from '../web3api/utils'
+import { isEther, tokenEquals, toSignificant, WETH } from '../polywrap/utils'
 
 export enum WrapType {
   NOT_APPLICABLE,
@@ -49,7 +49,7 @@ export default function useWrapCallback(
             ? async () => {
                 try {
                   const txReceipt = await wethContract.deposit({
-                    value: `0x${new Decimal(inputAmount.amount).toHex()}`
+                    value: inputAmount.amount
                   })
                   addTransaction(txReceipt, { summary: `Wrap ${toSignificant(inputAmount, 6)} ETH to WETH` })
                 } catch (error) {
@@ -66,7 +66,7 @@ export default function useWrapCallback(
           sufficientBalance && inputAmount
             ? async () => {
                 try {
-                  const txReceipt = await wethContract.withdraw(`0x${new Decimal(inputAmount.amount).toHex()}`)
+                  const txReceipt = await wethContract.withdraw(inputAmount.amount)
                   addTransaction(txReceipt, { summary: `Unwrap ${toSignificant(inputAmount, 6)} WETH to ETH` })
                 } catch (error) {
                   console.error('Could not withdraw', error)

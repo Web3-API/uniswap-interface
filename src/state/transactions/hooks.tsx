@@ -6,7 +6,7 @@ import { useActiveWeb3React } from '../../hooks'
 import { AppDispatch, AppState } from '../index'
 import { addTransaction } from './actions'
 import { TransactionDetails } from './reducer'
-import { W3TxResponse } from '../../web3api/types'
+import { W3TxResponse } from '../../polywrap/types'
 
 // helper that can take a ethers library transaction response and add it to the list of transactions
 export function useTransactionAdder(): (

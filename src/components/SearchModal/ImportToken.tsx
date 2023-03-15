@@ -17,8 +17,8 @@ import { ExternalLink } from '../../theme/components'
 import { useCombinedInactiveList } from 'state/lists/hooks'
 import ListLogo from 'components/ListLogo'
 import { PaddedColumn, Checkbox } from './styleds'
-import { W3Token } from '../../web3api/types'
-import { reverseMapToken } from '../../web3api/mapping'
+import { W3Token } from '../../polywrap/types'
+import { reverseMapToken } from '../../polywrap/mapping'
 
 const Wrapper = styled.div`
   position: relative;

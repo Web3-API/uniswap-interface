@@ -1,6 +1,6 @@
-import { W3ChainId, W3Token, W3TokenAmount } from '../web3api/types'
-import { isEther, tokenEquals, WETH } from '../web3api/utils'
-import { ETHER } from '../web3api/constants'
+import { W3ChainId, W3Token, W3TokenAmount } from '../polywrap/types'
+import { isEther, tokenEquals, WETH } from '../polywrap/utils'
+import { ETHER } from '../polywrap/constants'
 
 export function wrappedCurrency(currency: W3Token | undefined, chainId: W3ChainId | undefined): W3Token | undefined {
   return chainId !== undefined && isEther(currency) ? WETH(chainId) : currency

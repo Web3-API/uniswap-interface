@@ -43,7 +43,7 @@ import { Field } from '../../state/burn/actions'
 import { useWalletModalToggle } from '../../state/application/hooks'
 import { useUserSlippageTolerance } from '../../state/user/hooks'
 import { BigNumber } from '@ethersproject/bignumber'
-import { mapTokenAmount } from '../../web3api/mapping'
+import { mapTokenAmount } from '../../polywrap/mapping'
 
 export default function RemoveLiquidity({
   history,

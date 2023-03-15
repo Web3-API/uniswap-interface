@@ -1,7 +1,9 @@
 import { Token, TokenAmount } from '@uniswap/sdk'
 import { useMemo } from 'react'
 import { useAllTokenBalances } from '../../state/wallet/hooks'
-import { reverseMapTokenAmount } from '../../web3api/mapping'
+import { reverseMapTokenAmount } from '../../polywrap/mapping'
+import { W3ChainId } from '../../polywrap/types'
+import { tokenAmountDeps } from '../../polywrap/utils'
 
 // compare two token amounts with highest one coming first
 function balanceComparator(balanceA?: TokenAmount, balanceB?: TokenAmount) {
@@ -40,10 +42,28 @@ function getTokenComparator(balances: {
 
 export function useTokenComparator(inverted: boolean): (tokenA: Token, tokenB: Token) => number {
   const w3balances = useAllTokenBalances()
-  const balances: { [tokenAddress: string]: TokenAmount | undefined } = {}
-  Object.keys(w3balances).forEach(k => {
-    balances[k] = reverseMapTokenAmount(w3balances[k]) as TokenAmount | undefined
-  })
+
+  const w3BalancesDeps: (string | W3ChainId | undefined)[] = []
+  if (w3balances) {
+    Object.keys(w3balances).forEach(key => {
+      const tokenAmount = w3balances[key]
+      if (tokenAmount) {
+        w3BalancesDeps.push(...tokenAmountDeps(tokenAmount))
+      }
+    })
+    for (let i = w3BalancesDeps.length; i < 300; i++) {
+      w3BalancesDeps.push(undefined)
+    }
+  }
+
+  const balances: { [tokenAddress: string]: TokenAmount | undefined } = useMemo(() => {
+    const reverseMappedBalances: { [tokenAddress: string]: TokenAmount | undefined } = {}
+    Object.keys(w3balances).forEach(k => {
+      reverseMappedBalances[k] = reverseMapTokenAmount(w3balances[k]) as TokenAmount | undefined
+    })
+    return reverseMappedBalances
+  }, [...w3BalancesDeps])
+
   const comparator = useMemo(() => getTokenComparator(balances ?? {}), [balances])
   return useMemo(() => {
     if (inverted) {

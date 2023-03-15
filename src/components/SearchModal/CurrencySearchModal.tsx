@@ -8,8 +8,8 @@ import usePrevious from 'hooks/usePrevious'
 import Manage from './Manage'
 import { TokenList } from '@uniswap/token-lists'
 import { ImportList } from './ImportList'
-import { mapToken, reverseMapToken } from '../../web3api/mapping'
-import { W3Token } from '../../web3api/types'
+import { mapToken, reverseMapToken } from '../../polywrap/mapping'
+import { W3Token } from '../../polywrap/types'
 
 interface CurrencySearchModalProps {
   isOpen: boolean

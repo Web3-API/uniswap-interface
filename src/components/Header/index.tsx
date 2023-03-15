@@ -23,7 +23,7 @@ import { Dots } from '../swap/styleds'
 import Modal from '../Modal'
 import UniBalanceContent from './UniBalanceContent'
 import usePrevious from '../../hooks/usePrevious'
-import { reverseMapTokenAmount } from '../../web3api/mapping'
+import { reverseMapTokenAmount } from '../../polywrap/mapping'
 
 const HeaderFrame = styled.div`
   display: grid;
@@ -327,7 +327,7 @@ export default function Header() {
           >
             Documentation <span style={{ fontSize: '11px' }}>↗</span>
           </StyledExternalLink>
-          <StyledExternalLink id={`ens-nav-link`} href={'https://app.ens.domains/name/v2.uniswap.web3api.eth'}>
+          <StyledExternalLink id={`ens-nav-link`} href={'https://app.ens.domains/name/v2.uniswap.polywrap.eth'}>
             ENS <span style={{ fontSize: '11px' }}>↗</span>
           </StyledExternalLink>
         </HeaderLinks>

@@ -5,8 +5,8 @@ import TransactionConfirmationModal, {
 } from '../TransactionConfirmationModal'
 import SwapModalFooter from './SwapModalFooter'
 import SwapModalHeader from './SwapModalHeader'
-import { W3Trade } from '../../web3api/types'
-import { currencyEquals, toSignificant } from '../../web3api/utils'
+import { W3Trade } from '../../polywrap/types'
+import { currencyEquals, toSignificant } from '../../polywrap/utils'
 import Decimal from 'decimal.js'
 
 /**

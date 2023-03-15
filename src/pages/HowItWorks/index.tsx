@@ -5,7 +5,7 @@ import IpfsDiagram from '../../assets/images/ipfs-diagram.png'
 import WasmLogo from '../../assets/images/wasm-logo.png'
 import ArrowDown from '../../assets/images/arrow-down-green.svg'
 import { Image, Flex, Text } from 'rebass'
-import '../../web3api/components/howItWorks.css'
+import '../../polywrap/components/howItWorks.css'
 import '../../components/Card/index'
 import { OutlineCard } from '../../components/Card/index'
 

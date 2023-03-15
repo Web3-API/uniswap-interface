@@ -16,11 +16,11 @@ import QuestionHelper from '../QuestionHelper'
 import { AutoRow, RowBetween, RowFixed } from '../Row'
 import FormattedPriceImpact from './FormattedPriceImpact'
 import { StyledBalanceMaxMini, SwapCallbackError } from './styleds'
-import { W3TokenAmount, W3Trade, W3TradeType } from '../../web3api/types'
+import { W3TokenAmount, W3Trade, W3TradeType } from '../../polywrap/types'
 import Decimal from 'decimal.js'
-import { toSignificant } from '../../web3api/utils'
-import { Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient } from '@web3api/react'
+import { toSignificant } from '../../polywrap/utils'
+import { PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient } from '@polywrap/react'
 
 export default function SwapModalFooter({
   trade,
@@ -38,8 +38,8 @@ export default function SwapModalFooter({
   const [showInverted, setShowInverted] = useState<boolean>(false)
   const theme = useContext(ThemeContext)
 
-  // get web3api client
-  const client: Web3ApiClient = useWeb3ApiClient()
+  // get polywrap client
+  const client: PolywrapClient = usePolywrapClient()
 
   const [slippageAdjustedAmounts, setSlippageAdjustedAmounts] = useState<
     { [field in Field]?: W3TokenAmount } | undefined

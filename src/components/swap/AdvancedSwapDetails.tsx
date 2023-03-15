@@ -9,12 +9,12 @@ import QuestionHelper from '../QuestionHelper'
 import { RowBetween, RowFixed } from '../Row'
 import FormattedPriceImpact from './FormattedPriceImpact'
 import SwapRoute from './SwapRoute'
-import { W3TokenAmount, W3Trade, W3TradeType } from '../../web3api/types'
+import { W3TokenAmount, W3Trade, W3TradeType } from '../../polywrap/types'
 import Decimal from 'decimal.js'
-import { toSignificant } from '../../web3api/utils'
-import { Web3ApiClient } from '@web3api/client-js'
-import { useWeb3ApiClient, useWeb3ApiQuery } from '@web3api/react'
-import { ensUri } from '../../web3api/constants'
+import { toSignificant } from '../../polywrap/utils'
+import { PolywrapClient } from '@polywrap/client-js'
+import { usePolywrapClient, usePolywrapInvoke } from '@polywrap/react'
+import { ipfsUri } from '../../polywrap/constants'
 
 const InfoLink = styled(ExternalLink)`
   display: none;
@@ -30,8 +30,8 @@ const InfoLink = styled(ExternalLink)`
 function TradeSummary({ trade, allowedSlippage }: { trade: W3Trade; allowedSlippage: number }) {
   const theme = useContext(ThemeContext)
 
-  // get web3api client
-  const client: Web3ApiClient = useWeb3ApiClient()
+  // get polywrap client
+  const client: PolywrapClient = usePolywrapClient()
 
   const [slippageAdjustedAmounts, setSlippageAdjustedAmounts] = useState<
     { [field in Field]?: W3TokenAmount } | undefined
@@ -112,19 +112,10 @@ export function AdvancedSwapDetails({ trade }: AdvancedSwapDetailsProps) {
     trade?.tradeType === W3TradeType.EXACT_INPUT
       ? trade?.route.pairs[0]
       : trade?.route.pairs[trade?.route.pairs.length - 1]
-  const pairAddressQuery = useWeb3ApiQuery<{
-    pairAddress: string
-  }>({
-    uri: ensUri,
-    query: `
-        query {
-          pairAddress(
-            token0: $token0
-            token1: $token1
-          )
-        }
-      `,
-    variables: {
+  const pairAddressQuery = usePolywrapInvoke<string>({
+    uri: ipfsUri,
+    method: 'pairAddress',
+    args: {
       token0: pair?.tokenAmount0.token,
       token1: pair?.tokenAmount1.token
     }
@@ -133,7 +124,7 @@ export function AdvancedSwapDetails({ trade }: AdvancedSwapDetailsProps) {
   const [pairAddress, setPairAddress] = useState<string | undefined>(undefined)
   useEffect(() => {
     pairAddressQuery.execute().then(pairAddressExec => {
-      setPairAddress(pairAddressExec.data?.pairAddress)
+      setPairAddress(pairAddressExec.ok ? pairAddressExec.value : undefined)
     })
   }, [pair])
 

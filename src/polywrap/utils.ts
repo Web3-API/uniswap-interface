@@ -137,7 +137,7 @@ export function chainIdToName(chainId: W3ChainId): string {
 
 export function tokenDeps(token: W3Token | undefined) {
   if (!token) {
-    return [undefined]
+    return [undefined, undefined]
   } else {
     return [token.address, token.chainId]
   }
@@ -145,7 +145,7 @@ export function tokenDeps(token: W3Token | undefined) {
 
 export function tokenAmountDeps(amount: W3TokenAmount | undefined) {
   if (!amount) {
-    return [undefined]
+    return [undefined, undefined, undefined]
   } else {
     return [amount.amount, ...tokenDeps(amount.token)]
   }
@@ -153,7 +153,7 @@ export function tokenAmountDeps(amount: W3TokenAmount | undefined) {
 
 export function pairDeps(pair: W3Pair | undefined) {
   if (!pair) {
-    return [undefined]
+    return [undefined, undefined, undefined, undefined, undefined, undefined]
   } else {
     return [...tokenAmountDeps(pair.tokenAmount0), ...tokenAmountDeps(pair.tokenAmount1)]
   }

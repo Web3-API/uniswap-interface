@@ -7,17 +7,17 @@ import {
 import { CurrencyAmount, Fraction, JSBI, Percent, TokenAmount, Trade } from '@uniswap/sdk'
 import { Field } from '../state/swap/actions'
 import { w3BasisPointsToPercent } from './index'
-import { W3TokenAmount, W3Trade } from '../web3api/types'
+import { W3TokenAmount, W3Trade } from '../polywrap/types'
 import {
   w3TradeExecutionPrice,
   w3TradeMaximumAmountIn,
   w3TradeMinimumAmountOut,
   w3TradeSlippage
-} from '../web3api/tradeWrappers'
+} from '../polywrap/tradeWrappers'
 import Decimal from 'decimal.js'
-import { isEther } from '../web3api/utils'
-import { ETHER } from '../web3api/constants'
-import { Web3ApiClient } from '@web3api/client-js'
+import { isEther } from '../polywrap/utils'
+import { ETHER } from '../polywrap/constants'
+import { PolywrapClient } from '@polywrap/client-js'
 
 const BASE_FEE = new Percent(JSBI.BigInt(30), JSBI.BigInt(10000))
 const ONE_HUNDRED_PERCENT = new Percent(JSBI.BigInt(10000), JSBI.BigInt(10000))
@@ -63,7 +63,7 @@ export function computeTradePriceBreakdown(
 
 // computes price breakdown for the trade
 export async function w3computeTradePriceBreakdown(
-  client: Web3ApiClient,
+  client: PolywrapClient,
   trade?: W3Trade | null
 ): Promise<{ priceImpactWithoutFee: Decimal | undefined; realizedLPFee: W3TokenAmount | undefined | null }> {
   // for each hop in our trade, take away the x*y=k price impact from 0.3% fees
@@ -105,7 +105,7 @@ export async function w3computeTradePriceBreakdown(
 
 // computes the minimum amount out and maximum amount in for a trade given a user specified allowed slippage in bips
 export async function w3ComputeSlippageAdjustedAmounts(
-  client: Web3ApiClient,
+  client: PolywrapClient,
   trade: W3Trade | undefined,
   allowedSlippage: number
 ): Promise<{ [field in Field]?: W3TokenAmount }> {
@@ -125,7 +125,7 @@ export function warningSeverity(priceImpact: Decimal | undefined): 0 | 1 | 2 | 3
 }
 
 export async function w3formatExecutionPrice(
-  client: Web3ApiClient,
+  client: PolywrapClient,
   trade?: W3Trade,
   inverted?: boolean
 ): Promise<string> {

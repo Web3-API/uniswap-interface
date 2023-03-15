@@ -5,7 +5,7 @@ import { Repeat } from 'react-feather'
 import { Text } from 'rebass'
 import { ThemeContext } from 'styled-components'
 import { StyledBalanceMaxMini } from './styleds'
-import { W3Token } from '../../web3api/types'
+import { W3Token } from '../../polywrap/types'
 
 interface TradePriceProps {
   price?: Decimal

@@ -1,8 +1,8 @@
 import { W3_MIN_ETH } from '../constants'
-import { W3TokenAmount } from '../web3api/types'
-import { isEther } from '../web3api/utils'
+import { W3TokenAmount } from '../polywrap/types'
+import { isEther } from '../polywrap/utils'
 import Decimal from 'decimal.js'
-import { ETHER } from '../web3api/constants'
+import { ETHER } from '../polywrap/constants'
 
 /**
  * Given some token amount, return the max that can be spent of it

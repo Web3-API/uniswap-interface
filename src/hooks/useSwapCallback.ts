@@ -5,14 +5,14 @@ import { calculateGasMargin, isAddress, shortenAddress } from '../utils'
 import { useActiveWeb3React } from './index'
 import useTransactionDeadline from './useTransactionDeadline'
 import useENS from './useENS'
-import { W3ChainId, W3SwapParameters, W3Trade, W3TradeType, W3TxResponse } from '../web3api/types'
-import { w3EstimateGas, w3ExecCall, w3ExecCallStatic, w3SwapCallParameters } from '../web3api/tradeWrappers'
+import { W3ChainId, W3SwapParameters, W3Trade, W3TradeType, W3TxResponse } from '../polywrap/types'
+import { w3EstimateGas, w3ExecCall, w3ExecCallStatic, w3SwapCallParameters } from '../polywrap/tradeWrappers'
 import Decimal from 'decimal.js'
-import { toSignificant } from '../web3api/utils'
-import { Web3ApiClient } from '@web3api/client-js'
-import { mapChainId } from '../web3api/mapping'
+import { toSignificant } from '../polywrap/utils'
+import { PolywrapClient } from '@polywrap/client-js'
+import { mapChainId } from '../polywrap/mapping'
 import { BigNumber } from 'ethers'
-import { useWeb3ApiClient } from '@web3api/react'
+import { usePolywrapClient } from '@polywrap/react'
 
 export enum SwapCallbackState {
   INVALID,
@@ -59,8 +59,8 @@ function useSwapCallArguments(
   const recipient = recipientAddressOrName === null ? account : recipientAddress
   const deadline = useTransactionDeadline()
 
-  // get web3api client
-  const client: Web3ApiClient = useWeb3ApiClient()
+  // get polywrap client
+  const client: PolywrapClient = usePolywrapClient()
 
   return useMemo(() => {
     if (!trade || !recipient || !library || !account || !chainId || !deadline) return []
@@ -107,7 +107,7 @@ export function useSwapCallback(
 } {
   const { account, chainId, library } = useActiveWeb3React()
 
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   const swapCalls = useSwapCallArguments(trade, allowedSlippage, recipientAddressOrName)
 

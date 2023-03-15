@@ -1,7 +1,7 @@
 import React from 'react'
 import Modal from '../Modal'
 import { ImportToken } from 'components/SearchModal/ImportToken'
-import { W3Token } from '../../web3api/types'
+import { W3Token } from '../../polywrap/types'
 
 export default function TokenWarningModal({
   isOpen,

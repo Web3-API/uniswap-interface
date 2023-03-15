@@ -20,7 +20,7 @@ import { wrappedCurrencyAmount } from '../../utils/wrappedCurrency'
 import { TransactionResponse } from '@ethersproject/providers'
 import { useTransactionAdder } from '../../state/transactions/hooks'
 import { LoadingView, SubmittedView } from '../ModalViews'
-import { mapTokenAmount, reverseMapTokenAmount } from '../../web3api/mapping'
+import { mapTokenAmount, reverseMapTokenAmount } from '../../polywrap/mapping'
 
 const HypotheticalRewardRate = styled.div<{ dim: boolean }>`
   display: flex;

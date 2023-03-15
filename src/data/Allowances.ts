@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 
 import { useTokenContract } from '../hooks/useContract'
 import { useSingleCallResult } from '../state/multicall/hooks'
-import { W3Token, W3TokenAmount } from '../web3api/types'
+import { W3Token, W3TokenAmount } from '../polywrap/types'
 
 export function useTokenAllowance(token?: W3Token, owner?: string, spender?: string): W3TokenAmount | undefined {
   const contract = useTokenContract(token?.address, false)

@@ -20,8 +20,8 @@ import AppBody from '../AppBody'
 import { Dots } from '../Pool/styleds'
 import { BlueCard } from '../../components/Card'
 import { TYPE } from '../../theme'
-import { mapToken, reverseMapTokenAmount } from '../../web3api/mapping'
-import { W3TokenAmount } from '../../web3api/types'
+import { mapToken, reverseMapTokenAmount } from '../../polywrap/mapping'
+import { W3TokenAmount } from '../../polywrap/types'
 
 enum Fields {
   TOKEN0 = 0,

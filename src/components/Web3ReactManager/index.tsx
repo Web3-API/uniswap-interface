@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useWeb3React } from '@web3-react/core'
 import styled from 'styled-components'
 import { useTranslation } from 'react-i18next'
@@ -6,10 +6,11 @@ import { network } from '../../connectors'
 import { useEagerConnect, useInactiveListener } from '../../hooks'
 import { NetworkContextName } from '../../constants'
 import Loader from '../Loader'
-import { PluginRegistration } from '@web3api/client-js'
-import { Web3ApiProvider } from '@web3api/react'
-import { ethereumPlugin } from '@web3api/ethereum-plugin-js'
-import { networks } from 'web3api/constants'
+import { PolywrapProvider } from '@polywrap/react'
+import { ethereumProviderPlugin, Connections, Connection } from '@polywrap/ethereum-provider-js'
+import { ClientConfigBuilder } from '@polywrap/client-config-builder-js'
+import { networks } from '../../polywrap/constants'
+import { DefaultBundle, IWrapPackage } from '@polywrap/client-js'
 
 const MessageWrapper = styled.div`
   display: flex;
@@ -27,23 +28,17 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
   const { active, account, library, chainId } = useWeb3React()
   const { active: networkActive, error: networkError, activate: activateNetwork } = useWeb3React(NetworkContextName)
 
-  // Web3API integration.
-  const [ethPlugin, setEthPlugin] = useState<any>(
-    ethereumPlugin({
+  // Polywrap ethereum provider plugin
+  const connections = useRef<Connections>(
+    new Connections({
       networks: {
-        mainnet: {
+        mainnet: new Connection({
           provider: 'https://mainnet.infura.io/v3/b00b2c2cc09c487685e9fb061256d6a6'
-        }
+        })
       }
     })
   )
-
-  const plugins: PluginRegistration[] = [
-    {
-      uri: 'ens/ethereum.web3api.eth',
-      plugin: ethPlugin
-    }
-  ]
+  const ethPlugin = useRef<IWrapPackage>(ethereumProviderPlugin({ connections: connections.current }) as IWrapPackage)
 
   // try to eagerly connect to an injected provider, if it exists and has granted access already
   const triedEager = useEagerConnect()
@@ -59,18 +54,8 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
     if (chainId && library) {
       const id = chainId.toString()
       const currentNetwork = networks[id]
-      const config = {
-        [currentNetwork.name]: {
-          provider: library,
-          signer: library.getSigner()
-        }
-      }
-      setEthPlugin(
-        ethereumPlugin({
-          networks: config,
-          defaultNetwork: currentNetwork.name
-        })
-      )
+      const connection = new Connection({ provider: library })
+      connections.current.setDefaultNetwork(currentNetwork.name, connection)
     }
   }, [library, chainId])
 
@@ -112,5 +97,20 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
     ) : null
   }
 
-  return <Web3ApiProvider plugins={plugins}>{children}</Web3ApiProvider>
+  const config = new ClientConfigBuilder()
+    .addDefaults()
+    .addPackage(DefaultBundle.plugins.ethereumProvider.uri.uri, ethPlugin.current).config
+
+  return (
+    <PolywrapProvider
+      redirects={config.redirects}
+      envs={config.envs}
+      resolvers={config.resolvers}
+      wrappers={config.wrappers}
+      packages={config.packages}
+      interfaces={config.interfaces}
+    >
+      {children}
+    </PolywrapProvider>
+  )
 }

@@ -20,8 +20,8 @@ import {
   toggleURLWarning,
   updateUserSingleHopOnly
 } from './actions'
-import { reverseMapToken } from '../../web3api/mapping'
-import { W3Token } from '../../web3api/types'
+import { reverseMapToken } from '../../polywrap/mapping'
+import { W3Token } from '../../polywrap/types'
 
 function serializeToken(token: Token): SerializedToken {
   return {

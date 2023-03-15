@@ -6,13 +6,13 @@ import { useHasPendingApproval, useW3TransactionAdder } from '../state/transacti
 import { calculateGasMargin } from '../utils'
 import { useTokenContract } from './useContract'
 import { useActiveWeb3React } from './index'
-import { W3TokenAmount, W3Trade, W3TxResponse } from '../web3api/types'
-import { isEther } from '../web3api/utils'
+import { W3TokenAmount, W3Trade, W3TxResponse } from '../polywrap/types'
+import { isEther } from '../polywrap/utils'
 import Decimal from 'decimal.js'
-import { Web3ApiClient } from '@web3api/client-js'
-import { w3Approve } from '../web3api/tradeWrappers'
+import { PolywrapClient } from '@polywrap/client-js'
+import { w3Approve } from '../polywrap/tradeWrappers'
 import { BigNumber } from 'ethers'
-import { useWeb3ApiClient } from '@web3api/react'
+import { usePolywrapClient } from '@polywrap/react'
 
 export enum ApprovalState {
   UNKNOWN,
@@ -31,7 +31,7 @@ export function useApproveCallback(
   const currentAllowance = useTokenAllowance(token, account ?? undefined, spender)
   const pendingApproval = useHasPendingApproval(token?.address, spender)
 
-  const client: Web3ApiClient = useWeb3ApiClient()
+  const client: PolywrapClient = usePolywrapClient()
 
   // check the current approval status
   const approvalState: ApprovalState = useMemo(() => {

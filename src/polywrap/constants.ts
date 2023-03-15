@@ -1,6 +1,7 @@
 import { W3Currency } from './types'
+import { Uri } from '@polywrap/client-js'
 
-export const ensUri = 'ens/v2.uniswap.web3api.eth'
+export const ipfsUri = Uri.from('wrap://ipfs/QmVJj8wZRpviHyANvNX8or2p8dk8ywmEviigGY7LzYBq2f')
 
 export const ETHER: W3Currency = {
   decimals: 18,
@@ -26,5 +27,11 @@ export const networks: any = {
     name: 'rinkeby',
     node: 'https://rinkeby.infura.io/v3/b76cba91dc954ceebff27244923224b1',
     explorer: 'https://rinkeby.etherscan.io'
+  },
+  '5': {
+    chainId: 5,
+    name: 'GÖRLI',
+    node: 'https://goerli.infura.io/v3/b76cba91dc954ceebff27244923224b1',
+    explorer: 'https://goerli.etherscan.io'
   }
 }
