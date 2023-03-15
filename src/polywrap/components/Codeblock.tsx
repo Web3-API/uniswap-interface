@@ -33,7 +33,7 @@ interface Props {
 const Codeblock = (props: React.PropsWithChildren<Props>) => {
   const { input, currencies, slippage, recipient, output } = props
   const [toggle, setToggle] = useState<boolean>(true)
-  const [query, setQuery] = useState<String | null>('A')
+  const [query, setQuery] = useState<string | null>('A')
 
   const queryAHandler = () => {
     setQuery('A')

@@ -19,7 +19,7 @@ interface Props {
   slippage: number
   recipient: string | null
   output: string
-  query: String | null
+  query: string | null
   toggle: boolean
 }
 
