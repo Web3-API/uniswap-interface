@@ -99,6 +99,11 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
 
   const config = new ClientConfigBuilder()
     .addDefaults()
+    // Hot-fix: the ens-ocr-contenthash-uri-resolver-ext is failing to resolve
+    .removeInterfaceImplementation(
+      "wrap://ens/wraps.eth:uri-resolver-ext@1.1.0",
+      "wrap://ens/wraps.eth:ens-ocr-contenthash-uri-resolver-ext@1.0.0"
+    )
     .addPackage(DefaultBundle.plugins.ethereumProvider.uri.uri, ethPlugin.current).config
 
   return (

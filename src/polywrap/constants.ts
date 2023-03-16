@@ -30,7 +30,7 @@ export const networks: any = {
   },
   '5': {
     chainId: 5,
-    name: 'GÖRLI',
+    name: 'goerli',
     node: 'https://goerli.infura.io/v3/b76cba91dc954ceebff27244923224b1',
     explorer: 'https://goerli.etherscan.io'
   }
