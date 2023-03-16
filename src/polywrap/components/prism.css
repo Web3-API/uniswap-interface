@@ -159,13 +159,12 @@ pre[class*='language-'] {
   z-index: 1000;
   width: 100%;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
+  margin-bottom: 35px !important;
 }
 
 .codeBlock__code {
-  margin-left: -6rem;
   margin-top: -3rem;
-  width: 20rem;
   display: flex;
   justify-content: center;
 }

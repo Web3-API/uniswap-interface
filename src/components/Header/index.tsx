@@ -1,8 +1,6 @@
 import { ChainId, TokenAmount } from '@uniswap/sdk'
 import React, { useState } from 'react'
 import { Image, Text } from 'rebass'
-import { NavLink } from 'react-router-dom'
-import { darken } from 'polished'
 import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
 import PolywrapLogo from '../../assets/images/polywrap-logo.png'
@@ -11,7 +9,7 @@ import { useActiveWeb3React } from '../../hooks'
 import { useETHBalances, useAggregateUniBalance } from '../../state/wallet/hooks'
 import { CardNoise } from '../earn/styled'
 import { CountUp } from 'use-count-up'
-import { TYPE, ExternalLink } from '../../theme'
+import { TYPE } from '../../theme'
 import { YellowCard } from '../Card'
 import Row, { RowFixed } from '../Row'
 import Web3Status from '../Web3Status'
@@ -24,6 +22,7 @@ import Modal from '../Modal'
 import UniBalanceContent from './UniBalanceContent'
 import usePrevious from '../../hooks/usePrevious'
 import { reverseMapTokenAmount } from '../../polywrap/mapping'
+import { ExternalLink, NavLink } from "../Links"
 
 const HeaderFrame = styled.div`
   display: grid;
@@ -183,66 +182,6 @@ const Title = styled.a`
   }
 `
 
-const activeClassName = 'ACTIVE'
-
-const StyledNavLink = styled(NavLink).attrs({
-  activeClassName
-})`
-  ${({ theme }) => theme.flexRowNoWrap}
-  align-items: left;
-  border-radius: 3rem;
-  outline: none;
-  cursor: pointer;
-  text-decoration: none;
-  color: ${({ theme }) => theme.text2};
-  font-size: 1rem;
-  width: fit-content;
-  margin: 0 12px;
-  font-weight: 500;
-
-  &.${activeClassName} {
-    border-radius: 12px;
-    font-weight: 600;
-    color: ${({ theme }) => theme.text1};
-  }
-
-  :hover,
-  :focus {
-    color: ${({ theme }) => darken(0.1, theme.text1)};
-  }
-`
-
-const StyledExternalLink = styled(ExternalLink).attrs({
-  activeClassName
-})<{ isActive?: boolean }>`
-  // ${({ theme }) => theme.flexRowNoWrap}
-  align-items: left;
-  border-radius: 3rem;
-  outline: none;
-  cursor: pointer;
-  text-decoration: none;
-  color: ${({ theme }) => theme.text2};
-  font-size: 1rem;
-  width: fit-content;
-  margin: 0 12px;
-  font-weight: 500;
-
-  &.${activeClassName} {
-    border-radius: 12px;
-    font-weight: 600;
-    color: ${({ theme }) => theme.text1};
-  }
-
-  :hover,
-  :focus {
-    color: ${({ theme }) => darken(0.1, theme.text1)};
-  }
-
-  ${({ theme }) => theme.mediaWidth.upToExtraSmall`
-      display: none;
-`}
-`
-
 export const StyledMenuButton = styled.button`
   position: relative;
   width: 100%;
@@ -312,24 +251,24 @@ export default function Header() {
         <Image sx={{ width: '2.5rem', marginLeft: '1rem' }} src={LogoDark} />
         <Title href="."></Title>
         <HeaderLinks>
-          <StyledNavLink id={`swap-nav-link`} to={'/swap'}>
-            {t('<UniV2> Polywrapper')}
-          </StyledNavLink>
-          <StyledNavLink id={`howitworks-nav-link`} to={'/howitworks'}>
+          <NavLink id={`swap-nav-link`} to={'/swap'}>
+            {t('<UniV2> Wrapper')}
+          </NavLink>
+          <NavLink id={`howitworks-nav-link`} to={'/howitworks'}>
             {t('How It Works')}
-          </StyledNavLink>
-          <StyledExternalLink id={`discord-nav-link`} href={'https://discord.gg/QQDAtAX8ZT'}>
+          </NavLink>
+          <ExternalLink id={`discord-nav-link`} href={'https://discord.gg/QQDAtAX8ZT'}>
             Discord <span style={{ fontSize: '11px' }}>↗</span>
-          </StyledExternalLink>
-          <StyledExternalLink
+          </ExternalLink>
+          <ExternalLink
             id={`docs-nav-link`}
             href={'https://docs.polywrap.io/demos/uniswapv2/uniswapv2-polywrap-intro'}
           >
             Documentation <span style={{ fontSize: '11px' }}>↗</span>
-          </StyledExternalLink>
-          <StyledExternalLink id={`ens-nav-link`} href={'https://app.ens.domains/name/v2.uniswap.polywrap.eth'}>
+          </ExternalLink>
+          <ExternalLink id={`ens-nav-link`} href={'https://app.ens.domains/name/v2.uniswap.polywrap.eth'}>
             ENS <span style={{ fontSize: '11px' }}>↗</span>
-          </StyledExternalLink>
+          </ExternalLink>
         </HeaderLinks>
       </HeaderRow>
       <HeaderControls>

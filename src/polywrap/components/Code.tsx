@@ -13,6 +13,11 @@ export const CodeWrapper = styled.div`
   /* padding: 1rem; */
 `
 
+const codeStyle = {
+  fontFamily: "monospace",
+  fontSize: "0.95em"
+};
+
 interface Props {
   input: string
   currencies: { INPUT?: W3Token | undefined; OUTPUT?: W3Token | undefined }
@@ -33,107 +38,84 @@ const Code = (props: React.PropsWithChildren<Props>) => {
     setTimeout(() => Prism.highlightAll(), 0)
   }, [input, currencies, slippage, recipient, output, query, toggle])
 
-  const queryA = `
-Client.query({
-    uri: ensUri,
-    query: \`query {
-      bestTradeExactIn(
-        pairs: $pairs,
-        amountIn: $amountIn,
-        tokenOut: $tokenOut,
-        options: $options
-      )
-    }\`,
-    variables
-  })`.trim()
-
-  const variablesA = `
-  const currencyAmountIn = {
-    token: {
-      chainId: ${currencies.INPUT?.chainId ? currencies.INPUT.chainId : ''},
-      address: '${currencies.INPUT?.address ? currencies.INPUT.address : ''}',
-      currency: {
-        decimals: ${currencies.INPUT?.currency.decimals},
-        symbol: '${currencies.INPUT?.currency.symbol}',
-        name: '${currencies.INPUT?.currency.name}'
-      }
-    },
-    amount: ${input}
+  const invokeA = `
+const trade = await client.invoke({
+  uri: "ens/uniswap.wraps.eth:v2",
+  method: "bestTradeExactIn"
+  args: {
+    pairs: [...],
+    amountIn: {...},
+    tokenOut: {...},
+    options: {...}
   }
+})`.trim()
 
-  const currencyOut = {
-    chainId: ${currencies.OUTPUT?.chainId ? currencies.OUTPUT.chainId : ''},
-    address: '${currencies.OUTPUT?.address ? currencies.OUTPUT.address : ''}',
-    currency: {
-        decimals: ${currencies.OUTPUT?.currency.decimals},
-        symbol: '${currencies.OUTPUT?.currency.symbol}',
-        name: '${currencies.OUTPUT?.currency.name}'
-    }
+  const codegenA = `
+const trade = await UniswapV2.bestTradeExactIn({
+  pairs: [...],
+  amountIn: {...},
+  tokenOut: {...},
+  options: {...}
+})`.trim()
+
+  const invokeB = `
+const parameters = await client.invoke({
+  uri: "ens/uniswap.wraps.eth:v2",
+  method: "swapCallParameters",
+  args: {
+    trade: trade.value,
+    tradeOptions: {...}
   }
-`.trim()
+})`.trim()
 
-  const queryB = `
-Client.query({
-    uri: ensUri,
-    query: \`query {
-      swapCallParameters(
-        trade: $trade,
-        tradeOptions: $tradeOptions,
-      )
-    }\`,
-    variables
-  })`.trim()
+  const codegenB = `
+const parameters = await UniswapV2.swapCallParameters({
+  trade: trade,
+  tradeOptions: {...}
+})`.trim()
 
-  const variablesB = `const trade = {
-    route: Route,
-    inputAmount: ${input}
-    outputAmount: ${output}
+  const invokeC = `
+const txRes = await client.invoke({
+  uri: "ens/uniswap.wraps.eth:v2",
+  method: "execCall",
+  args: {
+    parameters: parameters.value,
+    chainId: "...",
   }
+})`.trim()
 
-  const tradeOptions = {
-    allowedSlippage: ${slippage}
-    recipient: ${recipient}
-    unixTimestamp: ${'1622664382250'}
-  }
-  `
-
-  const queryC = `
-Client.query({
-    uri: ensUri,
-    query: \`mutation {
-      execCall(
-        parameters: $parameters,
-        chainId: $chainId,
-      )
-    }\`,
-    variables
-  })`.trim()
-
-  const variablesC = `
-  const parameters = ${slippage}
-  const chainId: ${currencies.INPUT?.chainId}
-  `
+  const codegenC = `
+const txRes = await UniswapV2.execCall({
+  parameters: params,
+  chainId: "...",
+})`.trim()
 
   return (
     <>
       {query === 'A' && (
         <CodeWrapper className="codeBlock__code">
           <pre className="line-numbers">
-            <code className="language-js">{toggle ? queryA : variablesA}</code>
+            <code className="language-js" style={codeStyle}>
+              {toggle ? invokeA : codegenA}
+            </code>
           </pre>
         </CodeWrapper>
       )}
       {query === 'B' && (
         <CodeWrapper className="codeBlock__code">
           <pre className="line-numbers">
-            <code className="language-js">{toggle ? queryB : variablesB}</code>
+          <code className="language-js" style={codeStyle}>
+            {toggle ? invokeB : codegenB}
+          </code>
           </pre>
         </CodeWrapper>
       )}
       {query === 'C' && (
         <CodeWrapper className="codeBlock__code">
           <pre className="line-numbers">
-            <code className="language-js">{toggle ? queryC : variablesC}</code>
+          <code className="language-js" style={codeStyle}>
+            {toggle ? invokeC : codegenC}
+          </code>
           </pre>
         </CodeWrapper>
       )}

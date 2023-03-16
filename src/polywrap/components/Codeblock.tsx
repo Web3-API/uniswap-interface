@@ -4,6 +4,7 @@ import { Image, Flex } from 'rebass'
 import Code from './Code'
 import CodeToggle from './CodeToggle'
 import { ButtonPolywrap } from '../../components/Button'
+import { ExternalLink } from '../../components/Links'
 import { W3Token } from '../types'
 import './prism.css'
 import W3ToolTip from './W3ToolTip'
@@ -75,9 +76,6 @@ const Codeblock = (props: React.PropsWithChildren<Props>) => {
             </ButtonPolywrap>
           </Flex>
         </Flex>
-        <Flex className="codeBlock__toggle">
-          <CodeToggle id="toggle-expert-mode-button" isActive={toggle} toggle={() => setToggle(!toggle)} />
-        </Flex>
         <Code
           toggle={toggle}
           input={input}
@@ -87,6 +85,15 @@ const Codeblock = (props: React.PropsWithChildren<Props>) => {
           output={output}
           query={query}
         />
+        <Flex className="codeBlock__toggle">
+          <CodeToggle id="toggle-expert-mode-button" isActive={toggle} toggle={() => setToggle(!toggle)} />
+        </Flex>
+        <ExternalLink
+            id={`docs-nav-link`}
+            href={'https://github.com/polywrap/uniswap'}
+          >
+          Source Code <span style={{ fontSize: '11px' }}>↗</span>
+        </ExternalLink>
       </Flex>
     </>
   )

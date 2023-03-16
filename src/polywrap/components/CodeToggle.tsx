@@ -4,7 +4,7 @@ import styled from 'styled-components'
 const ToggleElement = styled.span<{ isActive?: boolean; isOnSwitch?: boolean }>`
   padding: 0.25rem 0.5rem;
   border-radius: 14px;
-  background: ${({ theme, isActive, isOnSwitch }) => (isActive ? (isOnSwitch ? theme.primary1 : theme.text4) : 'none')};
+  background: ${({ theme, isActive, isOnSwitch }) => (isActive ? (isOnSwitch ? theme.primary1 : theme.primary1) : 'none')};
   color: ${({ theme, isActive, isOnSwitch }) => (isActive ? (isOnSwitch ? theme.white : theme.white) : theme.white)};
   font-size: 1rem;
   font-weight: 400;
@@ -38,10 +38,10 @@ export default function CodeToggle({ id, isActive, toggle }: ToggleProps) {
   return (
     <StyledToggle id={id} isActive={isActive} onClick={toggle}>
       <ToggleElement isActive={isActive} isOnSwitch={true}>
-        Query
+        Client
       </ToggleElement>
       <ToggleElement isActive={!isActive} isOnSwitch={false}>
-        Variables
+        Codegen
       </ToggleElement>
     </StyledToggle>
   )
