@@ -1,3 +1,4 @@
+import { Uri } from '@polywrap/core-js'
 import { Connection } from '@polywrap/ethereum-plugin-js'
 
 import { INFURA_NETWORK_URLS, SupportedChainId } from '../constants/chains'
@@ -16,7 +17,7 @@ export const MATIC: Uni_Currency = {
 }
 
 // 'wrap://ens/goerli/v3.uniswap.wrappers.eth'
-export const wrapperUri = 'wrap://ipfs/QmYDZ3zTiZsPwWUoek3BmdkuGKyBaJSS3tyAemVhRE1KxY'
+export const wrapperUri = Uri.from('wrap://ipfs/QmYDZ3zTiZsPwWUoek3BmdkuGKyBaJSS3tyAemVhRE1KxY')
 
 export const DEFAULT_ETHEREUM_PROVIDERS = getDefaultProviders()
 

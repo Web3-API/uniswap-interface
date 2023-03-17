@@ -33,6 +33,7 @@ export const SUPPORTED_LOCALES = [
   'zh-CN',
   'zh-TW',
 ] as const
+// prettier-ignore
 export type SupportedLocale = typeof SUPPORTED_LOCALES[number] | 'pseudo'
 
 // eslint-disable-next-line import/first

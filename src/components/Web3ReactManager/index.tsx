@@ -1,5 +1,6 @@
 import { Trans } from '@lingui/macro'
-import { PluginRegistration } from '@polywrap/client-js'
+import { DefaultBundle } from '@polywrap/client-config-builder-js'
+import { IWrapPackage } from '@polywrap/core-js'
 import { Connections, ethereumPlugin, EthereumProvider } from '@polywrap/ethereum-plugin-js'
 import { PolywrapProvider } from '@polywrap/react'
 import { useWeb3React } from '@web3-react/core'
@@ -22,6 +23,8 @@ const MessageWrapper = styled.div`
 const Message = styled.h2`
   color: ${({ theme }) => theme.secondary1};
 `
+
+const defaultConfig = DefaultBundle.getConfig()
 
 export default function Web3ReactManager({ children }: { children: JSX.Element }) {
   const { active, library, chainId } = useWeb3React()
@@ -58,21 +61,17 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
     }
   }, [library, chainId, connections])
 
-  const plugins = useRef<PluginRegistration[]>([
-    {
-      uri: 'wrap://ens/ethereum.polywrap.eth',
-      plugin: ethereumPlugin({ connections: connections.current }),
-    },
-  ])
+  const packages = useRef<Record<string, IWrapPackage>>({
+    ...defaultConfig.packages,
+    'wrap://ens/ethereum.polywrap.eth': ethereumPlugin({ connections: connections.current }) as IWrapPackage,
+  })
 
-  const envs = [
-    {
-      uri: 'wrap://ens/ipfs-resolver.polywrap.eth',
-      env: {
-        retries: { getFile: 2, tryResolveUri: 2 },
-      },
+  const envs: Record<string, Record<string, unknown>> = {
+    ...defaultConfig.envs,
+    'wrap://ens/ipfs-resolver.polywrap.eth': {
+      retries: { getFile: 2, tryResolveUri: 2 },
     },
-  ]
+  }
 
   // if the account context isn't active, and there's an error on the network context, it's an irrecoverable error
   if (triedEager && !active && networkError) {
@@ -88,7 +87,14 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
   }
 
   return (
-    <PolywrapProvider plugins={plugins.current} envs={envs}>
+    <PolywrapProvider
+      packages={packages.current}
+      envs={envs}
+      interfaces={defaultConfig.interfaces}
+      redirects={defaultConfig.redirects}
+      wrappers={defaultConfig.wrappers}
+      resolvers={defaultConfig.resolvers}
+    >
       {children}
     </PolywrapProvider>
   )
