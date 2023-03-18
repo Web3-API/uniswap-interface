@@ -176,7 +176,7 @@
     "@lingui/react": "^3.9.0",
     "@polywrap/client-config-builder-js": "~0.10.0-pre",
     "@polywrap/client-js": "~0.10.0-pre",
-    "@polywrap/ethereum-plugin-js": "~0.10.0-pre",
+    "@polywrap/ethereum-provider-js": "~0.3.0",
     "@polywrap/react": "~0.10.0-pre",
     "@popperjs/core": "^2.4.4",
     "@uniswap/redux-multicall": "^1.0.0",

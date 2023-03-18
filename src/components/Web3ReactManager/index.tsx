@@ -1,7 +1,7 @@
 import { Trans } from '@lingui/macro'
 import { DefaultBundle } from '@polywrap/client-config-builder-js'
 import { IWrapPackage } from '@polywrap/core-js'
-import { Connections, ethereumPlugin, EthereumProvider } from '@polywrap/ethereum-plugin-js'
+import { Connections, EthereumProvider, ethereumProviderPlugin } from '@polywrap/ethereum-provider-js'
 import { PolywrapProvider } from '@polywrap/react'
 import { useWeb3React } from '@web3-react/core'
 import { useEffect, useRef } from 'react'
@@ -63,7 +63,7 @@ export default function Web3ReactManager({ children }: { children: JSX.Element }
 
   const packages = useRef<Record<string, IWrapPackage>>({
     ...defaultConfig.packages,
-    'wrap://ens/ethereum.polywrap.eth': ethereumPlugin({ connections: connections.current }) as IWrapPackage,
+    'wrap://ens/wraps.eth:ethereum-provider@2.0.0': ethereumProviderPlugin({ connections: connections.current }),
   })
 
   const envs: Record<string, Record<string, unknown>> = {
